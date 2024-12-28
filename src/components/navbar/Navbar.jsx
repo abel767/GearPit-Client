@@ -24,7 +24,7 @@ const Navbar = () => {
     return (
         <nav className="bg-black text-white px-6 py-4 flex justify-between items-center sticky top-0 z-50">
             {/* Logo */}
-            <Link to="/">
+            <Link to="/user/home">
                 <img src={logo} alt="GearPit Logo" className="h-20" />
             </Link>
 
