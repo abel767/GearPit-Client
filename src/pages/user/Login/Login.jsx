@@ -8,6 +8,8 @@ import { login } from "../../../redux/Slices/authSlice";
 
 //imgaes
 import loginImage from '../../../assets/user/login/banner.jpg'
+import google from '../../../assets/user/signup/googleicon.png'
+import logo from '../../../assets/user/signup/logo 3.png'
 
 function Login() {
   const [email, setEmail] = useState("");
@@ -148,7 +150,7 @@ function Login() {
         <div className="max-w-[450px] mx-auto">
           <div className="flex justify-end mb-8">
             <img
-              src="/placeholder.svg?height=40&width=40"
+              src={logo}
               alt="Logo"
               className="object-contain w-20 h-20"
             />
@@ -205,7 +207,7 @@ function Login() {
                 onClick={googleAuth}
               >
                 <img
-                  src="/google.svg"
+                  src={google}
                   alt="Google"
                   className="w-6 h-6 object-contain"
                 />

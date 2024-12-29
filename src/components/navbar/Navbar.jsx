@@ -45,7 +45,7 @@ const Navbar = () => {
                     <img
                         src={user?.profileImageUrl || 'default-profile-image-url'}  // Handling if no image
                         alt="Profile Icon"
-                        className="m-h-6 m-w-6 rounded-full"
+                        className="h-6 w-6 rounded-full"
                     />
                     <span>Profile</span>
                 </div>

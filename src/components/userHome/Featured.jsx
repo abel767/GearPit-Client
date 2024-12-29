@@ -54,7 +54,7 @@ function Featured() {
             </div>
           </div>
         </div>
-        <button className="block mt-6 mx-auto bg-orange-500 hover:bg-orange-600 text-white py-3 px-6 rounded-md">
+        <button className="block mt-6 mx-auto border-2 border-black bg-white hover:bg-black text-black hover:text-white py-3 px-6 rounded-md transition-all duration-300 ease-in-out">
           See More →
         </button>
       </section>

@@ -1,6 +1,87 @@
+import { useState, useEffect } from 'react';
 import { X, Check } from 'lucide-react';
+import { useNavigate, useParams } from 'react-router-dom';
+import axios from 'axios';
 
 export default function EditCategory() {
+  const navigate = useNavigate();
+  const { id } = useParams();
+  const [formData, setFormData] = useState({
+    categoryName: '',
+    description: ''
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    fetchCategoryData();
+  }, [id]);
+
+  const fetchCategoryData = async () => {
+    try {
+      setLoading(true);
+      // Using the correct endpoint that matches your backend route
+      const response = await axios.get(`http://localhost:3000/admin/categorydata/${id}`);
+      const category = response.data;
+      setFormData({
+        categoryName: category.categoryName || '',
+        description: category.description || ''
+      });
+    } catch (err) {
+      console.error('Error fetching category:', err);
+      setError('Failed to load category data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSubmit = async () => {
+    try {
+      // Using the correct endpoint that matches your backend route
+      await axios.put(`http://localhost:3000/admin/editcategory/${id}`, formData);
+      navigate('/admin/categorydata');
+    } catch (err) {
+      console.error('Error updating category:', err);
+      if (err.response?.data?.message) {
+        setError(err.response.data.message);
+      } else {
+        setError('Failed to update category');
+      }
+    }
+  };
+
+  const handleCancel = () => {
+    navigate('/admin/categorydata');
+  };
+
+  if (loading) {
+    return <div className="p-6 text-center">Loading...</div>;
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="text-center text-red-500 mb-4">{error}</div>
+        <div className="text-center">
+          <button
+            onClick={() => navigate('/admin/categorydata')}
+            className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md"
+          >
+            Back to Categories
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 bg-white min-h-screen">
       {/* Header */}
@@ -16,11 +97,17 @@ export default function EditCategory() {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <button className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md flex items-center gap-2">
+          <button 
+            onClick={handleCancel}
+            className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md flex items-center gap-2"
+          >
             <X className="w-4 h-4" />
             Cancel
           </button>
-          <button className="px-4 py-2 text-sm font-medium bg-black text-white rounded-md flex items-center gap-2 hover:bg-black/90">
+          <button 
+            onClick={handleSubmit}
+            className="px-4 py-2 text-sm font-medium bg-black text-white rounded-md flex items-center gap-2 hover:bg-black/90"
+          >
             <Check className="w-4 h-4" />
             Save Category
           </button>
@@ -28,34 +115,6 @@ export default function EditCategory() {
       </div>
 
       <div className="flex gap-6">
-        {/* Left Column - Thumbnail */}
-        <div className="w-[300px] bg-gray-50 rounded-lg p-6">
-          <h3 className="text-sm font-medium mb-2">Thumbnail</h3>
-          <div>
-            <p className="text-xs text-gray-500 mb-2">Photo</p>
-            <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <div className="relative mb-4">
-                <img 
-                  src="/placeholder.svg?height=200&width=200" 
-                  alt="Category thumbnail" 
-                  className="w-full aspect-square object-cover rounded-lg bg-gray-100"
-                />
-                <button className="absolute top-2 right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                  <Check className="w-4 h-4 text-white" />
-                </button>
-              </div>
-              <div className="text-center">
-                <p className="text-sm text-gray-500 mb-1">
-                  Drag and drop image here, or<br />
-                  click change image
-                </p>
-                <button className="text-green-600 text-sm font-medium">
-                  Change Image
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
 
         {/* Right Column - General Information */}
         <div className="flex-1 bg-gray-50 rounded-lg p-6">
@@ -67,7 +126,9 @@ export default function EditCategory() {
               </label>
               <input
                 type="text"
-                defaultValue="Shipping"
+                name="categoryName"
+                value={formData.categoryName}
+                onChange={handleInputChange}
                 className="w-full px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm"
               />
             </div>
@@ -77,7 +138,9 @@ export default function EditCategory() {
               </label>
               <textarea
                 rows={6}
-                defaultValue="Our range of watches are perfect whether you're looking to upgrade."
+                name="description"
+                value={formData.description}
+                onChange={handleInputChange}
                 className="w-full px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm resize-none"
               />
             </div>

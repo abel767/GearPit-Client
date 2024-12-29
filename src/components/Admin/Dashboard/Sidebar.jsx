@@ -1,7 +1,8 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Home, Package, ListIcon as Category, FileText, Tag, Image, Receipt, Users, Settings, LogOut } from 'lucide-react';
 import logo from '../../../assets/user/signup/logo 3.png';
-
+import { logout } from '../../../redux/Slices/authSlice';
+import { useDispatch } from 'react-redux';
 export default function Sidebar() {
   const menuItems = [
     { name: 'Dashboard', icon: Home, path: '/admin/dashboard' },
@@ -14,6 +15,14 @@ export default function Sidebar() {
     { name: 'Customers', icon: Users, path: '/admin/data' },
     { name: 'Settings', icon: Settings, path: '/admin/settings' },
   ];
+
+  const dispatch = useDispatch()
+  const navigate = useNavigate()
+
+  const handleLogout = ()=>{
+    dispatch(logout())
+    navigate('/admin/login')
+  }
 
   return (
     <div className="w-64 min-h-screen bg-black text-white p-4">
@@ -33,7 +42,7 @@ export default function Sidebar() {
           </Link>
         ))}
 
-        <Link to="/logout" className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-800 mt-auto">
+        <Link onClick={handleLogout} to='/logout' className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-800 mt-auto">
           <LogOut className="h-5 w-5" />
           <span>Log-out</span>
         </Link>

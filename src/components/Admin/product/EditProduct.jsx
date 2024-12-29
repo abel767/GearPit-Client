@@ -44,16 +44,7 @@ export default function EditProduct() {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Color
-                </label>
-                <input
-                  type="text"
-                  defaultValue="black"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Description
@@ -114,17 +105,7 @@ export default function EditProduct() {
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Discount Type
-                  </label>
-                  <select 
-                    defaultValue="no-discount"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="no-discount">No Discount</option>
-                  </select>
-                </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Discount Percentage (%)
@@ -169,39 +150,6 @@ export default function EditProduct() {
                   <option value="">Select a category</option>
                 </select>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Product Tags
-                </label>
-                <div className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg">
-                  <span className="bg-gray-100 px-2 py-1 rounded text-sm flex items-center gap-1">
-                    Watch
-                    <X className="w-3 h-3" />
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Status */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Status</h3>
-              <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
-                Published
-              </span>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Product Status
-              </label>
-              <select 
-                defaultValue="published"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="published">Published</option>
-                <option value="draft">Draft</option>
-              </select>
             </div>
           </div>
         </div>
@@ -209,4 +157,3 @@ export default function EditProduct() {
     </div>
   );
 }
-

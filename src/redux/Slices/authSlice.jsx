@@ -1,29 +1,29 @@
-import { createSlice } from '@reduxjs/toolkit';
+import {createSlice} from '@reduxjs/toolkit'
 
 const authSlice = createSlice({
     name: 'auth',
     initialState: {
         isAuthenticated: false,
         user: null,
-        role: null,
+        role: null
     },
     reducers: {
-        login: (state, action) => {
-            const { user, role, profileImage } = action.payload;
+        login: (state, action)=>{
+            const {user, role, profileImage } = action.payload
             
-            state.isAuthenticated = true;
-            state.user = { ...user, profileImage };  // Storing profileImage in Redux state
-            state.role = role;
+            state.isAuthenticated = true
+            state.user = {...user, profileImage};
+            state.role = role
         },
 
-        logout: (state) => {
-            state.isAuthenticated = false;
-            state.user = null;
-            state.role = null;
-        },
-    },
-});
+        logout: (state)=> {
+            state.isAuthenticated = false
+            state.user = null
+            state.role = null
+        }
+    }
+})
 
-export const { login, logout } = authSlice.actions;
+export const {login, logout } = authSlice.actions
 
-export default authSlice.reducer;
+export default authSlice.reducer

@@ -61,7 +61,7 @@ function AdminLogin() {
       if (user) {
         dispatch(login({ user, role }));
         setTimeout(() => {
-          Navigate('/dashboard');
+          Navigate('/admin/dashboard');
         }, 2000);
       } else {
         toast.error('Login Failed');
