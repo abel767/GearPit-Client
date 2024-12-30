@@ -2,43 +2,42 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 
 // Async thunk for fetching profile data
 export const fetchProfileData = createAsyncThunk(
-  'profile/fetchProfileData',
-  async (userId, { rejectWithValue }) => {
-    try {
-      const response = await fetch(`/api/profile/${userId}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch profile data');
+    'profile/fetchProfileData',
+    async (userId, { rejectWithValue }) => {
+      try {
+        const response = await fetch(`/user/profile/${userId}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch profile data');
+        }
+        const data = await response.json();
+        return data.userData;
+      } catch (error) {
+        return rejectWithValue(error.message);
       }
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      return rejectWithValue(error.message);
     }
-  }
-);
-
-// Async thunk for updating profile
-export const updateProfile = createAsyncThunk(
-  'profile/updateProfile',
-  async ({ userId, formData }, { rejectWithValue }) => {
-    try {
-      const response = await fetch(`/api/profile/${userId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ formData }),
-      });
-      if (!response.ok) {
-        throw new Error('Failed to update profile');
+  );
+  
+  export const updateProfile = createAsyncThunk(
+    'profile/updateProfile',
+    async ({ userId, formData }, { rejectWithValue }) => {
+      try {
+        const response = await fetch(`/user/profileupdate/${userId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ formData }),
+        });
+        if (!response.ok) {
+          throw new Error('Failed to update profile');
+        }
+        const data = await response.json();
+        return data.user;
+      } catch (error) {
+        return rejectWithValue(error.message);
       }
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      return rejectWithValue(error.message);
     }
-  }
-);
+  );
 
 const profileSlice = createSlice({
   name: 'profile',
