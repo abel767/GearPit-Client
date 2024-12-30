@@ -9,7 +9,6 @@ const Profile = () => {
     const { user } = useSelector((state) => state.auth);
     const {  error, isEditing } = useSelector((state) => state.profile);
     
-    // Add a specific state for profile image
     const [profileImage, setProfileImage] = useState(user?.profileImage || '');
     const [formData, setFormData] = useState({
       firstName: user?.firstName || '',
@@ -165,8 +164,8 @@ const Profile = () => {
           </p>
         </div>
 
-               {/* Profile Image Section */}
-               <div className="relative group">
+        {/* Profile Image Section */}
+          <div className="relative group">
           <label className="cursor-pointer block">
             <input
               type="file"
@@ -179,7 +178,6 @@ const Profile = () => {
                 src={profileImage || "/api/placeholder/96/96"}
                 alt="Profile"
                 className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg"
-                // Add key to force re-render when image changes
                 key={profileImage}
               />
               <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">

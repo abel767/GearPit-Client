@@ -17,12 +17,14 @@ const persistConfig = {
   storage,
 };
 
+
 const persistAuthReducer = persistReducer(persistConfig, authReducer);
 
 const store = configureStore({
   reducer: {
     auth: persistAuthReducer,
     profile: profileReducer,
+
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
