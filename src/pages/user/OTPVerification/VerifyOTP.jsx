@@ -108,9 +108,8 @@ export default function VerifyOTP() {
         dispatch(login({ user: userId }));
 
         // Redirect to home after 2 seconds delay
-        setTimeout(() => {
-          Navigate('/user/login');
-        }, 2000);
+        Navigate('/user/login');
+
 
       } else {
         alert(response.data.message || "OTP verification failed");
