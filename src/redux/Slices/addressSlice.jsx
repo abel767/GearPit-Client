@@ -21,10 +21,15 @@ export const addAddress = createAsyncThunk(
     async ({ userId, addressData }, { rejectWithValue }) => {
       try {
         const response = await axios.post(`${BASE_URL}/address/${userId}`, addressData);
-        // Make sure we're returning the correct data structure
-        return response.data.data; // fallback to full response if addresses not present
+        console.log('Server response:', response.data);
+        if (response.data.success) {
+          return response.data.data.addresses;
+        } else {
+          return rejectWithValue(response.data.message || 'Failed to add address');
+        }
       } catch (error) {
-        return rejectWithValue(error.response?.data || 'Failed to add address');
+        console.error('Error in addAddress:', error.response?.data || error.message);
+        return rejectWithValue(error.response?.data?.message || 'Failed to add address');
       }
     }
   );

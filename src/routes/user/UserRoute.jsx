@@ -7,28 +7,32 @@ import UserProfile from '../../pages/user/UserProfile/UserProfile';
 import AddressPage from '../../pages/user/Address/AddressPage';
 import StorePage from '../../pages/user/store/StorePage';
 import ProductDetailPage from '../../pages/user/ProductDetail/ProductDetailPage';
+import CheckOut from '../../pages/user/Checkout/CheckOut';
+import PaymentDone from '../../pages/user/Checkout/PaymentDone';
 import { ProtectedRoute,LoginProtect }  from '../../protect/ProtectedRoute';
 
-function UserRoute(){
-    return(
-        <Routes>
-            <Route element={<LoginProtect/>}>
-            <Route path='/signup' element={<Signup/>}/>
-            <Route path='/verify-otp/:userId/:email' element={<VerifyOTP/>}/>
-            <Route path='/login' element={<Login/>}/>
+function UserRoute() {
+    return (
+      <Routes>
+        <Route element={<LoginProtect/>}>
+          <Route path='/signup' element={<Signup/>}/>
+          <Route path='/verify-otp/:userId/:email' element={<VerifyOTP/>}/>
+          <Route path='/login' element={<Login/>}/>
         </Route>
-
+  
         <Route element={<ProtectedRoute/>}>
-        <Route path="/home" element={<Home/>} />
-        <Route path="/Profile" element={<UserProfile/>} />
-        <Route path="/address" element={<AddressPage/>} />
-        <Route path="/store" element={<StorePage/>} />
-        <Route path="/productdetail" element={<ProductDetailPage/>} />
-        
-      </Route>
-    </Routes>
+          <Route path="/home" element={<Home/>} />
+          <Route path="/Profile" element={<UserProfile/>} />
+          <Route path="/address" element={<AddressPage/>} />
+          <Route path="/store" element={<StorePage/>} />
+          <Route path="/product/:id" element={<ProductDetailPage/>} />
+          <Route path="/Checkout" element={<CheckOut/>} />
+          <Route path="/PaymentSuccess" element={<PaymentDone/>} />
+
+        </Route>
+      </Routes>
     )
-}
+  }
 
 export default UserRoute
 

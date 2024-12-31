@@ -41,7 +41,7 @@ const Products = () => {
 
     if (activeFilter === "Low Stock") {
       filtered = filtered.filter((product) =>
-        product.variants.some((variant) => variant.stock > 0 && variant.stock <= 5)
+        product.variants.some((variant) => variant.stock <= 5 && variant.stock > 0)
       );
     } else if (activeFilter === "Out of Stock") {
       filtered = filtered.filter((product) =>
@@ -62,6 +62,7 @@ const Products = () => {
     setProducts(filtered);
   };
 
+  
   const handleDelete = async (productId) => {
     try {
       const response = await fetch(

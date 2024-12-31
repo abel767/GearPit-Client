@@ -4,82 +4,93 @@ import { Plus, Edit2, Trash2, MoreVertical } from 'lucide-react';
 import { fetchAddresses, addAddress, updateAddress, deleteAddress } from '../../redux/Slices/addressSlice';
 
 export default function AddressManager() {
-  const dispatch = useDispatch();
-  const { addresses, loading, error } = useSelector((state) => state.address);
-  const { user } = useSelector((state) => state.auth);
-  const [currentAddress, setCurrentAddress] = useState(null);
-  const [isEditing, setIsEditing] = useState(false);
+    const dispatch = useDispatch();
+    const user = useSelector((state) => state.user); // Assuming you have a user slice
+    const { loading, error } = useSelector((state) => state.address);
+    const [addresses, setAddresses] = useState([]);
+    const [currentAddress, setCurrentAddress] = useState(null);
+    const [isEditing, setIsEditing] = useState(false);
 
-  useEffect(() => {
-    if (user?._id) {
-      dispatch(fetchAddresses(user._id));
-    }
-  }, [dispatch, user?._id]);
+    const handleAddAddress = async (addressData) => {
+        if (user?._id) {
+            try {
+                console.log('Sending address data:', addressData);
+                const result = await dispatch(addAddress({ 
+                    userId: user._id, 
+                    addressData 
+                })).unwrap();
 
-  const handleAddAddress = async (addressData) => {
-    if (user?._id) {
-        try{
-            console.log('Sending address data:', addressData);
-            const result = await dispatch(addAddress({ 
-                userId: user._id, 
-                addressData 
-              })).unwrap();
+                console.log('Address addition result:', result);
 
-              console.log('Address addition result:', result);
+                // Update the addresses state with the correct structure
+                if (result.data && Array.isArray(result.data.addresses)) {
+                    setAddresses(result.data.addresses);
+                } else {
+                    console.error('Unexpected result format:', result);
+                }
 
-              setCurrentAddress(null);
-              setIsEditing(false);
-
-              dispatch(fetchAddresses(user._id));
-
-
-        }catch(error){
-            console.error('Failed to add address:', error);
+                setCurrentAddress(null);
+                setIsEditing(false);
+            } catch (error) {
+                console.error('Failed to add address:', error);
+                alert('Error: ' + (error.message || 'An unknown error occurred'));
+            }
         }
+    };
 
+    useEffect(() => {
+        if (user?._id) {
+            dispatch(fetchAddresses(user._id))
+                .unwrap()
+                .then((fetchedAddresses) => {
+                    if (Array.isArray(fetchedAddresses.data.addresses)) {
+                        setAddresses(fetchedAddresses.data.addresses);
+                    }
+                })
+                .catch((error) => console.error('Failed to fetch addresses:', error));
+        }
+    }, [dispatch, user?._id]);
+
+    const handleUpdateAddress = async (addressData) => {
+        if (user?._id && currentAddress) {
+            await dispatch(updateAddress({
+                userId: user._id,
+                addressId: currentAddress.id,
+                addressData,
+            }));
+            setCurrentAddress(null);
+            setIsEditing(false);
+        }
+    };
+
+    const handleDeleteAddress = async (addressId) => {
+        if (user?._id) {
+            await dispatch(deleteAddress({ userId: user._id, addressId }));
+        }
+    };
+
+    const startEditing = (address) => {
+        setCurrentAddress(address);
+        setIsEditing(true);
+    };
+
+    const startAdding = () => {
+        setCurrentAddress(null);
+        setIsEditing(true);
+    };
+
+    const cancelEditing = () => {
+        setCurrentAddress(null);
+        setIsEditing(false);
+    };
+
+    if (loading) {
+        return <div className="text-center py-4">Loading...</div>;
     }
-  };
 
-  const handleUpdateAddress = async (addressData) => {
-    if (user?._id && currentAddress) {
-      await dispatch(updateAddress({
-        userId: user._id,
-        addressId: currentAddress.id,
-        addressData,
-      }));
-      setCurrentAddress(null);
-      setIsEditing(false);
+    if (error) {
+        return <div className="text-center py-4 text-red-500">{error}</div>;
     }
-  };
-
-  const handleDeleteAddress = async (addressId) => {
-    if (user?._id) {
-      await dispatch(deleteAddress({ userId: user._id, addressId }));
-    }
-  };
-
-  const startEditing = (address) => {
-    setCurrentAddress(address);
-    setIsEditing(true);
-  };
-
-  const startAdding = () => {
-    setCurrentAddress(null);
-    setIsEditing(true);
-  };
-
-  const cancelEditing = () => {
-    setCurrentAddress(null);
-    setIsEditing(false);
-  };
-
-  if (loading) {
-    return <div className="text-center py-4">Loading...</div>;
-  }
-
-  if (error) {
-    return <div className="text-center py-4 text-red-500">{error}</div>;
-  }
 
   return (
     <div className="min-h-screen bg-gray-100 p-4 sm:p-6 lg:p-8">
@@ -130,42 +141,42 @@ export default function AddressManager() {
 
 const AddressForm = ({ address, onSave, onCancel }) => {
     const [formData, setFormData] = useState({
-      firstName: address?.firstName || '',
-      lastName: address?.lastName || '',
-      address: address?.address || '',  // Changed from street to address to match schema
-      country: address?.country || 'India',
-      state: address?.state || '',
-      city: address?.city || '',
-      pincode: address?.pincode || '',  // Changed from pinCode to pincode to match schema
-      phoneNumber: address?.phoneNumber || ''
+        firstName: address?.firstName || '',
+        lastName: address?.lastName || '',
+        address: address?.address || '',
+        country: address?.country || 'India',
+        state: address?.state || '',
+        city: address?.city || '',
+        pincode: address?.pincode || '',
+        phoneNumber: address?.phoneNumber || ''
     });
-  
+
     const handleChange = (e) => {
-      const { name, value } = e.target;
-      setFormData((prev) => ({ ...prev, [name]: value }));
+        const { name, value } = e.target;
+        setFormData((prev) => ({ ...prev, [name]: value }));
     };
-  
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         console.log('Submitting form data:', formData);
-      
+
         // Validate required fields
         const requiredFields = ['firstName', 'lastName', 'address', 'city', 'state', 'pincode', 'phoneNumber'];
         const missingFields = requiredFields.filter(field => !formData[field]);
-      
+
         if (missingFields.length > 0) {
-          console.error('Missing required fields:', missingFields);
-          alert('Please fill in all required fields: ' + missingFields.join(', '));
-          return;
+            console.error('Missing required fields:', missingFields);
+            alert('Please fill in all required fields: ' + missingFields.join(', '));
+            return;
         }
-      
+
         try {
-          await onSave(formData);
-          console.log('Address saved successfully');
+            await onSave(formData);
+            console.log('Address saved successfully');
         } catch (error) {
-          console.error('Error saving address:', error);
+            console.error('Error saving address:', error);
         }
-      };
+    };
       
   
     return (
