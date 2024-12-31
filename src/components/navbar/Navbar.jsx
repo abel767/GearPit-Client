@@ -80,8 +80,8 @@ const Navbar = () => {
             </Link>
 
             <div className="hidden md:flex space-x-6">
-                <Link to="/" className="hover:text-gray-300">Home</Link>
-                <Link to="/store" className="hover:text-gray-300">Store</Link>
+                <Link to="/user/home" className="hover:text-gray-300" >Home</Link>
+                <Link to="/user/store" className="hover:text-gray-300" onClick={()=> navigate('/user/store')}>Store</Link>
                 <Link to="/about" className="hover:text-gray-300">About Us</Link>
                 <Link to="/contact" className="hover:text-gray-300">Contact Us</Link>
             </div>

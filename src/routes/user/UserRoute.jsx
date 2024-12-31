@@ -5,6 +5,8 @@ import Login from "../../pages/user/Login/Login";
 import Home from "../../pages/user/Home/Home";
 import UserProfile from '../../pages/user/UserProfile/UserProfile';
 import AddressPage from '../../pages/user/Address/AddressPage';
+import StorePage from '../../pages/user/store/StorePage';
+import ProductDetailPage from '../../pages/user/ProductDetail/ProductDetailPage';
 import { ProtectedRoute,LoginProtect }  from '../../protect/ProtectedRoute';
 
 function UserRoute(){
@@ -20,6 +22,8 @@ function UserRoute(){
         <Route path="/home" element={<Home/>} />
         <Route path="/Profile" element={<UserProfile/>} />
         <Route path="/address" element={<AddressPage/>} />
+        <Route path="/store" element={<StorePage/>} />
+        <Route path="/productdetail" element={<ProductDetailPage/>} />
         
       </Route>
     </Routes>

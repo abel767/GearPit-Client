@@ -2,7 +2,9 @@
 import Ls2 from '../../assets/user/Helmets/Ls2.png'
 import axor from '../../assets/user/Helmets/axor.png'
 import scala from '../../assets/user/jackets/scala.png'
+import { useNavigate } from 'react-router-dom';
 function Featured() {
+  const navigate = useNavigate()
     return (
       <section className="featured-products py-12 px-6">
         <h2 className="text-center text-3xl font-bold mb-8">Featured Products</h2>
@@ -54,7 +56,7 @@ function Featured() {
             </div>
           </div>
         </div>
-        <button className="block mt-6 mx-auto border-2 border-black bg-white hover:bg-black text-black hover:text-white py-3 px-6 rounded-md transition-all duration-300 ease-in-out">
+        <button onClick={()=> navigate('/user/store')} className="block mt-6 mx-auto border-2 border-black bg-white hover:bg-black text-black hover:text-white py-3 px-6 rounded-md transition-all duration-300 ease-in-out">
           See More →
         </button>
       </section>
