@@ -52,17 +52,26 @@ export default function OrderManagement() {
 
   const updateOrderStatus = async (orderId, newStatus) => {
     try {
-      const response = await fetch(`http://localhost:3000/admin/orders/${orderId}/status`, {
-        method: 'PATCH',
+    const endpoint = newStatus.toLowerCase() === 'cancelled' 
+        ? `http://localhost:3000/user/orders/${orderId}/cancel`
+        : `http://localhost:3000/admin/orders/${orderId}/status`;
+
+      const method = newStatus.toLowerCase() === 'cancelled' ? 'PUT' : 'PATCH';
+      const body = newStatus.toLowerCase() === 'cancelled' 
+        ? {}
+        : { status: newStatus };
+
+      const response = await fetch(endpoint, {
+        method: method,
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify({ status: newStatus })
+        body: JSON.stringify(body)
       });
 
       const data = await response.json();
-      if (data.success) {
+      if (data.success || data.data) {
         setOrders(orders.map(order => 
           order._id === orderId ? { ...order, status: newStatus } : order
         ));

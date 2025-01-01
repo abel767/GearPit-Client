@@ -103,7 +103,8 @@ export default function Store() {
 
   const handlePriceRangeChange = (index, value) => {
     const newRange = [...priceRange];
-    newRange[index] = Number(value);
+    // Convert empty string to 0, otherwise use the number value
+    newRange[index] = value === '' ? 0 : Number(value);
     dispatch(setPriceRange(newRange));
   };
 
@@ -174,34 +175,36 @@ export default function Store() {
 
             {/* Price Range */}
             <div className="mb-6">
-              <h4 className="font-medium mb-4">Price Range</h4>
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    value={priceRange[0]}
-                    onChange={(e) => handlePriceRangeChange(0, e.target.value)}
-                    className="w-24 px-2 py-1 border border-gray-300 rounded text-sm"
-                    placeholder="Min"
-                  />
-                  <MinusIcon className="w-4 h-4 text-gray-400" />
-                  <input
-                    type="number"
-                    value={priceRange[1]}
-                    onChange={(e) => handlePriceRangeChange(1, e.target.value)}
-                    className="w-24 px-2 py-1 border border-gray-300 rounded text-sm"
-                    placeholder="Max"
-                  />
-                </div>
-                <div className="flex justify-center">
-                  <button
-                    onClick={() => dispatch(setPriceRange([0, 10000]))}
-                    className="text-sm text-gray-500 hover:text-gray-700"
-                  >
-                    Reset Price
-                  </button>
-                </div>
-              </div>
+            <h4 className="font-medium mb-4">Price Range</h4>
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <input
+            type="number"
+            value={priceRange[0] === 0 ? '' : priceRange[0]}
+            onChange={(e) => handlePriceRangeChange(0, e.target.value)}
+            className="w-24 px-2 py-1 border border-gray-300 rounded text-sm"
+            placeholder="Min"
+            min="0"
+          />
+          <MinusIcon className="w-4 h-4 text-gray-400" />
+          <input
+            type="number"
+            value={priceRange[1] === 0 ? '' : priceRange[1]}
+            onChange={(e) => handlePriceRangeChange(1, e.target.value)}
+            className="w-24 px-2 py-1 border border-gray-300 rounded text-sm"
+            placeholder="Max"
+            min="0"
+          />
+        </div>
+        <div className="flex justify-center">
+          <button
+            onClick={() => dispatch(setPriceRange([0, 10000]))}
+            className="text-sm text-gray-500 hover:text-gray-700"
+          >
+            Reset Price
+          </button>
+        </div>
+      </div>
             </div>
           </div>
         </div>

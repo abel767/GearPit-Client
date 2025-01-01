@@ -9,6 +9,7 @@ import StorePage from '../../pages/user/store/StorePage';
 import ProductDetailPage from '../../pages/user/ProductDetail/ProductDetailPage';
 import CheckOut from '../../pages/user/Checkout/CheckOut';
 import PaymentDone from '../../pages/user/Checkout/PaymentDone';
+import OrderHistory from '../../pages/user/UserOrderManagement/OrderHistory';
 import { ProtectedRoute,LoginProtect }  from '../../protect/ProtectedRoute';
 
 function UserRoute() {
@@ -28,6 +29,7 @@ function UserRoute() {
           <Route path="/product/:id" element={<ProductDetailPage/>} />
           <Route path="/Checkout" element={<CheckOut/>} />
           <Route path="/PaymentSuccess" element={<PaymentDone/>} />
+          <Route path="/OrderHistory" element={<OrderHistory/>} />
 
         </Route>
       </Routes>

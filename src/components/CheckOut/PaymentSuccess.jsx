@@ -41,10 +41,10 @@ export default function PaymentSuccess() {
 
           <div className="grid grid-cols-2 gap-4">
             <button 
-              onClick={() => navigate(`/user/orders/${location.state?.orderId}`)}
+              onClick={() => navigate(`/user/OrderHistory/${location.state?.orderId}`)}
               className="flex items-center justify-center px-6 py-3 bg-black text-white rounded-xl hover:bg-black/90 transition-colors duration-200"
             >
-              <ShoppingBag className="w-4 h-4 mr-2" />
+              <ShoppingBag  className="w-4 h-4 mr-2" />
               View Order
             </button>
             <button 

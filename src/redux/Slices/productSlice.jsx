@@ -67,7 +67,7 @@ const productSlice = createSlice({
 
       // Apply price range filter
       filtered = filtered.filter(product => {
-        const lowestPrice = Math.min(...product.variants.map(v => v.finalPrice));
+        const lowestPrice = Math.min(...product.variants.map(v => v.finalPrice || v.price));
         return lowestPrice >= state.priceRange[0] && lowestPrice <= state.priceRange[1];
       });
 
@@ -75,19 +75,37 @@ const productSlice = createSlice({
       switch (state.sortBy) {
         case 'price-low-to-high':
           filtered.sort((a, b) => {
-            const aPrice = Math.min(...a.variants.map(v => v.finalPrice));
-            const bPrice = Math.min(...b.variants.map(v => v.finalPrice));
+            const aPrice = Math.min(...a.variants.map(v => v.finalPrice || v.price));
+            const bPrice = Math.min(...b.variants.map(v => v.finalPrice || v.price));
             return aPrice - bPrice;
           });
           break;
         case 'price-high-to-low':
           filtered.sort((a, b) => {
-            const aPrice = Math.min(...a.variants.map(v => v.finalPrice));
-            const bPrice = Math.min(...b.variants.map(v => v.finalPrice));
+            const aPrice = Math.min(...a.variants.map(v => v.finalPrice || v.price));
+            const bPrice = Math.min(...b.variants.map(v => v.finalPrice || v.price));
             return bPrice - aPrice;
           });
           break;
-        // Add other sorting cases as needed
+        case 'a-to-z':
+          filtered.sort((a, b) => a.productName.localeCompare(b.productName));
+          break;
+        case 'z-to-a':
+          filtered.sort((a, b) => b.productName.localeCompare(a.productName));
+          break;
+        case 'new-arrivals':
+          filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+          break;
+        case 'average-ratings':
+          filtered.sort((a, b) => (b.averageRating || 0) - (a.averageRating || 0));
+          break;
+        case 'popularity':
+          filtered.sort((a, b) => (b.salesCount || 0) - (a.salesCount || 0));
+          break;
+        case 'featured':
+        default:
+          // Keep original order for featured items
+          break;
       }
 
       state.filteredProducts = filtered;
