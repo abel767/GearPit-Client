@@ -17,7 +17,9 @@ export default function PaymentMethod() {
 
   const location = useLocation();
   const navigate = useNavigate();
-  const user = useSelector(state => state.auth.user);
+  
+  const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
+  const user = useSelector((state) => state.auth.user);
   const productDetails = location.state?.productDetails;
 
   // Payment methods array
@@ -52,11 +54,29 @@ export default function PaymentMethod() {
   ];
 
   useEffect(() => {
+    const checkAuth = async () => {
+      if (!isAuthenticated || !user) {
+        // Save current location and product details before redirecting
+        navigate('/user/login', { 
+          state: { 
+            from: location.pathname,
+            productDetails: productDetails 
+          } 
+        });
+        return;
+      }
+    };
+
+    checkAuth();
+  }, [isAuthenticated, user, navigate, location.pathname, productDetails]);
+
+
+  useEffect(() => {
     if (!productDetails) {
-      navigate('/store');
+      navigate('/user/store');
       return;
     }
-
+    
     calculateOrderSummary();
   }, [productDetails, selectedPayment]);
 
@@ -89,36 +109,46 @@ export default function PaymentMethod() {
     try {
       setIsSubmitting(true);
 
+      if (!user?._id) {
+        throw new Error('Please log in to place an order');
+      }
+
+      if (!productDetails?.productId || !productDetails?.variantId) {
+        throw new Error('Invalid product details');
+      }
+
       const orderData = {
-        userId: user?._id,
+        userId: user._id,
         items: [{
           productId: productDetails.productId,
           variantId: productDetails.variantId,
           quantity: productDetails.quantity,
           price: productDetails.price
         }],
-        paymentMethod: selectedPayment,
-        totalAmount: orderSummary.total,
-        codFee: orderSummary.codFee
+        paymentMethod: selectedPayment === 'cod' ? 'cod' : 'online',
+        totalAmount: orderSummary.total
       };
-      
+
+      console.log('Submitting order data:', orderData); // Debug log
 
       const response = await fetch('http://localhost:3000/user/orders', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
+        credentials: 'include',
         body: JSON.stringify(orderData)
       });
-
-      const data = await response.json();
 
       if (!response.ok) {
         throw new Error(data.message || 'Failed to create order');
       }
 
-      navigate('/payment-success', {
+      const data = await response.json();
+
+    
+
+      navigate('/user/PaymentSuccess', {
         state: {
           orderId: data.data.orderId,
           orderNumber: data.data.orderNumber
@@ -128,6 +158,7 @@ export default function PaymentMethod() {
     } catch (error) {
       console.error('Order submission failed:', error);
       // Handle error appropriately
+         alert('Failed to create order: ' + error.message);
     } finally {
       setIsSubmitting(false);
     }

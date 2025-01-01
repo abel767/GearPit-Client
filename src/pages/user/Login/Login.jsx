@@ -79,24 +79,38 @@ function Login() {
         headers: {
           "Content-Type": "application/json",  
         },
+        withCredentials: true  // Add this to handle cookies
       });
 
       console.log(response.data);
       
-      toast.success(response.data.message, {
-        position: "top-right",
-        autoClose: 3000,
-        theme: "colored"
-      });
-
-      const { user, role } = response.data;
-      if (user) {
-        setTimeout(() => {
-          dispatch(login({ user, role, profileImage: user.profileImage }));
+      if (response.data.status === 'VERIFIED') {
+        toast.success(response.data.message, {
+          position: "top-right",
+          autoClose: 3000,
+          theme: "colored"
+        });
+  
+        // Correctly structure the user data for Redux
+        dispatch(login({
+          user: {
+            id: response.data.user.id,
+            _id: response.data.user.id, // Include both formats
+            firstName: response.data.user.firstName,
+            lastName: response.data.user.lastName,
+            email: response.data.user.email,
+            profileImage: response.data.user.profileImage,
+            isAdmin: response.data.user.isAdmin
+          }
+        }));
+  
+        // Check for redirect information
+        const { state } = location;
+        if (state?.from && state?.productDetails) {
+          Navigate(state.from, { state: { productDetails: state.productDetails } });
+        } else {
           Navigate('/user/home');
-        }, 2000);
-      } else {
-        console.error("Error dispatch login");
+        }
       }
     } catch(error) {
       toast.error(error.response?.data?.message || "Something went wrong", {
@@ -114,24 +128,7 @@ function Login() {
     }
   };
 
-  useEffect(() => {
-    const checkLoginStatus = async () => {
-      try {
-        const response = await axios.get("http://localhost:3000/auth/login/success", {
-          withCredentials: true
-        });
 
-        if (response.data.user) {
-          dispatch(login({ user: response.data.user, role: response.data.role || 'user' }));
-          Navigate('/user/home');
-        }
-      } catch (error) {
-        console.error("Login check error:", error);
-      }
-    };
-
-    checkLoginStatus();
-  }, [dispatch, Navigate]);
 
   return (
     <div className="flex min-h-screen">
