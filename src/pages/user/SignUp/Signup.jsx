@@ -7,7 +7,7 @@ import { User } from 'lucide-react';
 
 
 // images 
-import bann from '../../../assets/user/signup/bann.jpg'
+import bann from '../../../assets/user/signup/Moto.jpeg'
 import google from '../../../assets/user/signup/googleicon.png'
 import logo from '../../../assets/user/signup/logo 3.png'
 function Signup() {
@@ -161,11 +161,11 @@ function Signup() {
   return (
     <div className="flex min-h-screen">
       {/* Left side - Motorcycle Image */}
-      <div className="hidden md:block w-1/2 relative bg-black">
+      <div className="hidden md:block w-1/2 relative ">
         <img
           src={bann}
           alt="Motorcycle rider"
-          className="h-full w-full object-cover opacity-75 mix-blend-luminosity"
+          className="h-full w-full object-fit  mix-blend-luminosity"
         />
         <div className="absolute inset-0 bg-gradient-to-r from-black/50 to-transparent" />
       </div>
