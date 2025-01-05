@@ -8,18 +8,26 @@ const OrderHistory = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [cancellingOrders, setCancellingOrders] = useState(new Set());
-  const user = useSelector((state) => state.auth.user);
+  
+  // Update to use user slice instead of auth
+  const userState = useSelector((state) => state.user);
+  const userId = userState?.user?._id;
   
   const BASE_URL = 'http://localhost:3000';
 
   useEffect(() => {
-    fetchOrders();
-  }, []);
+    if (userId) {
+      fetchOrders();
+    } else {
+      setError("User not authenticated");
+      setLoading(false);
+    }
+  }, [userId]);
 
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${BASE_URL}/user/orders/user/${user._id}`);
+      const response = await axios.get(`${BASE_URL}/user/orders/user/${userId}`);
       setOrders(response.data.data);
       setError(null);
     } catch (err) {
@@ -32,6 +40,11 @@ const OrderHistory = () => {
   };
 
   const handleCancelOrder = async (orderId) => {
+    if (!userId) {
+      setError("User not authenticated");
+      return;
+    }
+
     try {
       setCancellingOrders(prev => new Set([...prev, orderId]));
       
@@ -66,6 +79,16 @@ const OrderHistory = () => {
       });
     }
   };
+
+  if (!userState.isAuthenticated) {
+    return (
+      <div className="p-8 flex justify-center items-center min-h-screen">
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <p className="text-yellow-700">Please log in to view your order history.</p>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (

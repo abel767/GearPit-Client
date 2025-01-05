@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { logout } from '../../redux/Slices/authSlice';
+import { userLogout } from '../../redux/Slices/userSlice';
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import axios from 'axios';
@@ -15,7 +15,7 @@ const Navbar = () => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
     
-    const { user } = useSelector((state) => state.auth);
+    const { user } = useSelector((state) => state.user);
     
     const toggleDropdown = () => {
         setIsDropdownOpen(!isDropdownOpen);
@@ -40,14 +40,14 @@ const Navbar = () => {
                 console.log('Not a Google session or Google sign-out failed', error);
             }
 
-            dispatch(logout());
+            dispatch(userLogout());
             localStorage.clear();
             sessionStorage.clear();
             navigate("/user/login");
             
         } catch (error) {
             console.error("Logout error:", error);
-            dispatch(logout());
+            dispatch(userLogout());
             localStorage.clear();
             sessionStorage.clear();
             navigate("/user/login");

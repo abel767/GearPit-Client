@@ -2,12 +2,12 @@ import { useNavigate } from 'react-router-dom';
 import { User, History, MapPin, ShoppingCart, Heart, Wallet, LogOut } from 'lucide-react';
 import logo from '../../assets/user/signup/logo 3.png';
 import { useDispatch } from 'react-redux';
-import { logout } from '../../redux/Slices/authSlice';
+import { userLogout } from '../../redux/Slices/userSlice';
 export default function UserSidebar() {
   const navigate = useNavigate();
   const dispatch = useDispatch()
   const handleLogout = ()=>{
-    dispatch(logout())
+    dispatch(userLogout())
     navigate('/user/login')
   }
   return (

@@ -3,10 +3,10 @@ import { Link, useNavigate } from "react-router-dom";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import axios from "axios";
-import { useDispatch } from 'react-redux';
-import { login } from "../../../redux/Slices/authSlice";
+import { useDispatch, useSelector } from 'react-redux';
+import { userLogin } from "../../../redux/Slices/userSlice";
 
-//imgaes
+// Images
 import loginImage from '../../../assets/user/login/banner.jpg'
 import google from '../../../assets/user/signup/googleicon.png'
 import logo from '../../../assets/user/signup/logo 3.png'
@@ -18,7 +18,17 @@ function Login() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   
   const dispatch = useDispatch();
-  const Navigate = useNavigate();
+  const navigate = useNavigate();
+  const isAuthenticated = useSelector(state => state.user.isAuthenticated);
+
+  // Configure axios
+  axios.defaults.withCredentials = true;
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/user/home');
+    }
+  }, [isAuthenticated, navigate]);
 
   const validateForm = () => {
     const newErrors = {};
@@ -40,28 +50,50 @@ function Login() {
     return newErrors;
   };
 
+  // Updated Google Auth function
   const googleAuth = () => {
-    window.open(`http://localhost:3000/auth/google/callback`, "_self");
+    window.open("http://localhost:3000/auth/google", "_self");
+  };
+
+  // Updated checkLoginStatus function
+  const checkLoginStatus = async () => {
+    try {
+      const response = await axios.get("http://localhost:3000/auth/login/success", {
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        }
+      });
+
+      if (response.data.user) {
+        dispatch(userLogin({
+          user: {
+            id: response.data.user.id,
+            _id: response.data.user.id,
+            firstName: response.data.user.firstName,
+            lastName: response.data.user.lastName,
+            email: response.data.user.email,
+            profileImage: response.data.user.profileImage,
+            isAdmin: response.data.user.isAdmin
+          }
+        }));
+        navigate('/user/home');
+      }
+    } catch (error) {
+      if (error.response?.status === 403) {
+        // Silent handling for authentication check
+        console.log("Not authenticated yet");
+      } else {
+        console.error("Login check error:", error);
+      }
+    }
   };
 
   useEffect(() => {
-    const checkLoginStatus = async () => {
-      try {
-        const response = await axios.get("http://localhost:3000/auth/login/success", {
-          withCredentials: true
-        });
-
-        if (response.data.user) {
-          dispatch(login({ user: response.data.user, role: response.data.role || 'user' }));
-          Navigate('/user/home');
-        }
-      } catch (error) {
-        console.error("Login check error:", error);
-      }
-    };
-
-    checkLoginStatus();
-  }, [dispatch, Navigate]);
+    if (!isAuthenticated) {
+      checkLoginStatus();
+    }
+  }, [isAuthenticated, dispatch, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -77,12 +109,9 @@ function Login() {
       const userData = { email, password };
       const response = await axios.post("http://localhost:3000/user/login", userData, {
         headers: {
-          "Content-Type": "application/json",  
-        },
-        withCredentials: true  // Add this to handle cookies
+          "Content-Type": "application/json",
+        }
       });
-
-      console.log(response.data);
       
       if (response.data.status === 'VERIFIED') {
         toast.success(response.data.message, {
@@ -91,11 +120,10 @@ function Login() {
           theme: "colored"
         });
   
-        // Correctly structure the user data for Redux
-        dispatch(login({
+        dispatch(userLogin({
           user: {
             id: response.data.user.id,
-            _id: response.data.user.id, // Include both formats
+            _id: response.data.user.id,
             firstName: response.data.user.firstName,
             lastName: response.data.user.lastName,
             email: response.data.user.email,
@@ -104,13 +132,7 @@ function Login() {
           }
         }));
   
-        // Check for redirect information
-        const { state } = location;
-        if (state?.from && state?.productDetails) {
-          Navigate(state.from, { state: { productDetails: state.productDetails } });
-        } else {
-          Navigate('/user/home');
-        }
+        navigate('/user/home');
       }
     } catch(error) {
       toast.error(error.response?.data?.message || "Something went wrong", {
@@ -123,12 +145,8 @@ function Login() {
       });
     
       console.error("Error response:", error.response);
-      console.error("Error message:", error.message);
-      console.error("Error config:", error.config);
     }
   };
-
-
 
   return (
     <div className="flex min-h-screen">

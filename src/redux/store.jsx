@@ -10,25 +10,34 @@ import {
   REGISTER
 } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
-import authReducer from './Slices/authSlice';
-import profileReducer from './Slices/profileSlice'
-import addressReducer from './Slices/addressSlice'
-import productRedducer from './Slices/productSlice'
-const persistConfig = {
-  key: 'root',
+import profileReducer from './Slices/profileSlice';
+import addressReducer from './Slices/addressSlice';
+import productReducer from './Slices/productSlice';
+import userReducer from './Slices/userSlice';
+import adminReducer from './Slices/adminSlice';
+
+// Create persist configs for both user and admin
+const userPersistConfig = {
+  key: 'user',
   storage,
 };
 
+const adminPersistConfig = {
+  key: 'admin',
+  storage,
+};
 
-const persistAuthReducer = persistReducer(persistConfig, authReducer);
+// Create persisted reducers
+const persistedUserReducer = persistReducer(userPersistConfig, userReducer);
+const persistedAdminReducer = persistReducer(adminPersistConfig, adminReducer);
 
 const store = configureStore({
   reducer: {
-    auth: persistAuthReducer,
+    user: persistedUserReducer,
+    admin: persistedAdminReducer,
     profile: profileReducer,
     address: addressReducer,
-    product: productRedducer,
-  
+    product: productReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

@@ -6,7 +6,7 @@ import ChangePasswordButton from './CahngePasswordButton';
 import uploadImageToCloudinary from '../../services/uploadImageToCloudinary';
 const Profile = () => {
     const dispatch = useDispatch();
-    const { user } = useSelector((state) => state.auth);
+    const { user } = useSelector((state) => state.user);
     const {  error, isEditing } = useSelector((state) => state.profile);
     
     const [profileImage, setProfileImage] = useState(user?.profileImage || '');

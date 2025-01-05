@@ -4,7 +4,7 @@ import { useDispatch } from 'react-redux';
 import { ToastContainer, toast } from 'react-toastify';
 import { Eye, EyeOff } from 'lucide-react';
 import axios from 'axios';
-import { login } from '../../../redux/Slices/authSlice';
+import { adminLogin } from '../../../redux/Slices/adminSlice';
 import image from '../../../assets/admin/helmet 2.jpg'
 import logo from '../../../assets/user/signup/logo 3.png'
 function AdminLogin() {
@@ -60,7 +60,7 @@ function AdminLogin() {
       });
 
       if (user) {
-        dispatch(login({ user, role }));
+        dispatch(adminLogin({ user, role }));
         setTimeout(() => {
           Navigate('/admin/dashboard');
         }, 2000);

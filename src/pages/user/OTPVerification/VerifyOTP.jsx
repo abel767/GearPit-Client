@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useDispatch } from 'react-redux';
-import { login } from "../../../redux/Slices/authSlice";
+import { userLogin } from "../../../redux/Slices/userSlice";
 
 export default function VerifyOTP() {
   const { userId, email } = useParams();
@@ -105,7 +105,7 @@ export default function VerifyOTP() {
         });
 
         // Dispatch login action
-        dispatch(login({ user: userId }));
+        dispatch(userLogin({ user: userId }));
 
         // Redirect to home after 2 seconds delay
         Navigate('/user/login');

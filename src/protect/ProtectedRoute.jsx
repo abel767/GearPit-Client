@@ -2,9 +2,8 @@ import { useSelector } from 'react-redux';
 import { Navigate, Outlet } from 'react-router-dom';
 
 const ProtectedRoute = () => {
-  const { isAuthenticated } = useSelector((state) => state.auth);
+  const { isAuthenticated } = useSelector((state) => state.user);
 
-  // If not authenticated, redirect to login page
   if (!isAuthenticated) {
     return <Navigate to="/user/login" replace />;
   }
@@ -13,9 +12,8 @@ const ProtectedRoute = () => {
 };
 
 const LoginProtect = () => {
-  const { isAuthenticated } = useSelector((state) => state.auth);
+  const { isAuthenticated } = useSelector((state) => state.user);
 
-  // If authenticated, redirect to home page or dashboard
   if (isAuthenticated) {
     return <Navigate to="/user/home" replace />;
   }
@@ -24,9 +22,8 @@ const LoginProtect = () => {
 };
 
 const AdminProtectRoute = () => {
-  const { isAuthenticated } = useSelector((state) => state.auth);
+  const { isAuthenticated } = useSelector((state) => state.admin);
 
-  // If not authenticated, redirect to admin login
   if (!isAuthenticated) {
     return <Navigate to="/admin/login" replace />;
   }
@@ -35,9 +32,8 @@ const AdminProtectRoute = () => {
 };
 
 const AdminProtectRouteLogin = () => {
-  const { isAuthenticated } = useSelector((state) => state.auth);
+  const { isAuthenticated } = useSelector((state) => state.admin);
 
-  // If authenticated, redirect to admin dashboard
   if (isAuthenticated) {
     return <Navigate to="/admin/dashboard" replace />;
   }

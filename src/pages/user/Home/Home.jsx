@@ -1,50 +1,65 @@
 import { useEffect, useState } from "react";
-import Footer from '../../../components/Footer/Fotoer'
+import Footer from '../../../components/Footer/Fotoer';
 import Navbar from "../../../components/navbar/Navbar";
 import axios from "axios";
-import {  useSelector } from "react-redux";
-// components 
-import Hero from '../../../components/userHome/Hero'
-import Featured from '../../../components/userHome/Featured'
-import Banner from '../../../components/userHome/Banner'
-// import Brands from '../../../components/userHome/Brands'
+import { useSelector } from "react-redux";
+import Hero from '../../../components/userHome/Hero';
+import Featured from '../../../components/userHome/Featured';
+import Banner from '../../../components/userHome/Banner';
 
-//images
 function Home() {
-  const userdetail = useSelector((state) => state.auth.user);
-  const [user, setUser] = useState();
-
-
+  // Get user data from the user slice instead of auth slice
+  const userState = useSelector((state) => state.user);
+  const [userData, setUserData] = useState(null);
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const fetchUser = async () => {
+      if (!userState.isAuthenticated || !userState.user) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const userId = userState.user._id || userState.user.id;
+        const response = await axios.get(
+          `http://localhost:3000/user/getuserdata/${userId}`
+        );
+        setUserData(response.data);
+        setError(null);
+      } catch (err) {
+        console.error("Error fetching user:", err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchUser();
-  }, [userdetail.id]);  // Ensure the effect runs only when userdetail.id changes
+  }, [userState.isAuthenticated, userState.user]);
 
- 
-  const fetchUser = async () => {
-    try {
-      const response = await axios.get(
-        `http://localhost:3000/user/getuserdata/${userdetail.id}`
-      );
-      const fetchedUser = response.data;
-      setUser(fetchedUser);
-    } catch (err) {
-      console.error("Error fetching user:", err);
-    }
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
+  if (!userState.isAuthenticated) {
+    return <div>Please log in to access this page</div>;
+  }
 
-  };
+  if (error) {
+    return <div>Error: {error}</div>;
+  }
 
   return (
     <>
-    <Navbar />
-    <Hero/>
-    <Featured/>
-    {/* <Brands/> */}
-    <Banner/>      
-    <Footer />
+      <Navbar />
+      <Hero />
+      <Featured />
+      <Banner />      
+      <Footer />
     </>
   );
 }
 
-export default Home
+export default Home;

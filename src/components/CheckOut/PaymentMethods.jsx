@@ -18,11 +18,32 @@ export default function PaymentMethod() {
   const location = useLocation();
   const navigate = useNavigate();
   
-  const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
-  const user = useSelector((state) => state.auth.user);
+  const isAuthenticated = useSelector((state) => state.user.isAuthenticated);
+  const user = useSelector((state) => state.user.user); // Access user from user.user
   const productDetails = location.state?.productDetails;
 
-  // Payment methods array
+  // Redirect if not authenticated or no product details
+  useEffect(() => {
+    if (!isAuthenticated || !user) {
+      navigate('/user/login', { 
+        state: { 
+          from: location.pathname,
+          productDetails 
+        },
+        replace: true // Use replace to prevent back navigation to payment page when not authenticated
+      });
+      return;
+    }
+
+    if (!productDetails) {
+      navigate('/user/store', { replace: true });
+      return;
+    }
+
+    calculateOrderSummary();
+  }, [isAuthenticated, user, productDetails, navigate, location.pathname]);
+
+  // Payment methods configuration
   const paymentMethods = [
     {
       id: 'card',
@@ -53,33 +74,6 @@ export default function PaymentMethod() {
     }
   ];
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      if (!isAuthenticated || !user) {
-        // Save current location and product details before redirecting
-        navigate('/user/login', { 
-          state: { 
-            from: location.pathname,
-            productDetails: productDetails 
-          } 
-        });
-        return;
-      }
-    };
-
-    checkAuth();
-  }, [isAuthenticated, user, navigate, location.pathname, productDetails]);
-
-
-  useEffect(() => {
-    if (!productDetails) {
-      navigate('/user/store');
-      return;
-    }
-    
-    calculateOrderSummary();
-  }, [productDetails, selectedPayment]);
-
   const calculateOrderSummary = () => {
     if (!productDetails) return;
 
@@ -107,15 +101,23 @@ export default function PaymentMethod() {
 
   const handleSubmitOrder = async () => {
     try {
-      setIsSubmitting(true);
-
-      if (!user?._id) {
-        throw new Error('Please log in to place an order');
+      // Double-check authentication before submitting
+      if (!isAuthenticated || !user?._id) {
+        navigate('/user/login', { 
+          state: { 
+            from: location.pathname,
+            productDetails 
+          },
+          replace: true
+        });
+        return;
       }
 
       if (!productDetails?.productId || !productDetails?.variantId) {
         throw new Error('Invalid product details');
       }
+
+      setIsSubmitting(true);
 
       const orderData = {
         userId: user._id,
@@ -126,10 +128,9 @@ export default function PaymentMethod() {
           price: productDetails.price
         }],
         paymentMethod: selectedPayment === 'cod' ? 'cod' : 'online',
-        totalAmount: orderSummary.total
+        totalAmount: orderSummary.total,
+        ...(couponCode && { couponCode })
       };
-
-      console.log('Submitting order data:', orderData); // Debug log
 
       const response = await fetch('http://localhost:3000/user/orders', {
         method: 'POST',
@@ -140,29 +141,32 @@ export default function PaymentMethod() {
         body: JSON.stringify(orderData)
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
         throw new Error(data.message || 'Failed to create order');
       }
-
-      const data = await response.json();
-
-    
 
       navigate('/user/PaymentSuccess', {
         state: {
           orderId: data.data.orderId,
           orderNumber: data.data.orderNumber
-        }
+        },
+        replace: true
       });
 
     } catch (error) {
       console.error('Order submission failed:', error);
-      // Handle error appropriately
-         alert('Failed to create order: ' + error.message);
+      alert(error.message || 'Failed to create order. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  // If not authenticated or no product details, render nothing while redirecting
+  if (!isAuthenticated || !user || !productDetails) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

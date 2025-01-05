@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { Home, Package, ListIcon as Category, FileText, Tag, Image, Receipt, Users, Settings, LogOut } from 'lucide-react';
 import logo from '../../../assets/user/signup/logo 3.png';
-import { logout } from '../../../redux/Slices/authSlice';
+import { adminLogout } from '../../../redux/Slices/adminSlice';
 import { useDispatch } from 'react-redux';
 export default function Sidebar() {
   const menuItems = [
@@ -20,7 +20,7 @@ export default function Sidebar() {
   const navigate = useNavigate()
 
   const handleLogout = ()=>{
-    dispatch(logout())
+    dispatch(adminLogout())
     navigate('/admin/login')
   }
 
