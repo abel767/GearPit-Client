@@ -7,6 +7,7 @@ const userSlice = createSlice({
         user: null,
         role: 'user',
         isBlocked: false,
+        
     },
     reducers: {
         userLogin: (state, action) => {
