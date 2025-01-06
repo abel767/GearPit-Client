@@ -7,7 +7,7 @@ import axios from 'axios';
 import { User } from 'lucide-react'; // Import User icon for fallback
 
 // Images
-import logo from '../../assets/user/signup/logo 3.png';
+import logo from '../../assets/Logo/logo.png';
 
 const Navbar = () => {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);

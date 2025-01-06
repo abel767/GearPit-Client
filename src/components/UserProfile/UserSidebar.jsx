@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { User, History, MapPin, ShoppingCart, Heart, Wallet, LogOut } from 'lucide-react';
-import logo from '../../assets/user/signup/logo 3.png';
+import logo from '../../assets/Logo/logo.png';
 import { useDispatch } from 'react-redux';
 import { userLogout } from '../../redux/Slices/userSlice';
 export default function UserSidebar() {

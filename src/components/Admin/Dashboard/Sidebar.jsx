@@ -1,8 +1,9 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { Home, Package, ListIcon as Category, FileText, Tag, Image, Receipt, Users, Settings, LogOut } from 'lucide-react';
-import logo from '../../../assets/user/signup/logo 3.png';
+import logo from '../../../assets/Logo/logo.png';
 import { adminLogout } from '../../../redux/Slices/adminSlice';
 import { useDispatch } from 'react-redux';
+import axios from 'axios'
 export default function Sidebar() {
   const menuItems = [
     { name: 'Dashboard', icon: Home, path: '/admin/dashboard' },
@@ -19,10 +20,18 @@ export default function Sidebar() {
   const dispatch = useDispatch()
   const navigate = useNavigate()
 
-  const handleLogout = ()=>{
-    dispatch(adminLogout())
-    navigate('/admin/login')
-  }
+  const handleLogout = async (e) => {
+    e.preventDefault();
+    try {
+        await axios.post('http://localhost:3000/admin/logout', {}, {
+            withCredentials: true  // Important for cookie handling
+        });
+        dispatch(adminLogout());
+        navigate('/admin/login');
+    } catch (error) {
+        console.error('Error during admin logout:', error);
+    }
+};
 
   return (
     <div className="w-64 min-h-screen bg-black text-white p-4">

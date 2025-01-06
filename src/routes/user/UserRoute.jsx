@@ -11,29 +11,28 @@ import CheckOut from '../../pages/user/Checkout/CheckOut';
 import PaymentDone from '../../pages/user/Checkout/PaymentDone';
 import OrderHistory from '../../pages/user/UserOrderManagement/OrderHistory';
 import { ProtectedRoute,LoginProtect }  from '../../protect/ProtectedRoute';
-
+import BlockedUserWrapper from '../../components/BlockUser/BlockUserWrapper';
 function UserRoute() {
-    return (
-      <Routes>
-        <Route element={<LoginProtect/>}>
-          <Route path='/signup' element={<Signup/>}/>
-          <Route path='/verify-otp/:userId/:email' element={<VerifyOTP/>}/>
-          <Route path='/login' element={<Login/>}/>
-        </Route>
-  
-        <Route element={<ProtectedRoute/>}>
-          <Route path="/home" element={<Home/>} />
-          <Route path="/Profile" element={<UserProfile/>} />
-          <Route path="/address" element={<AddressPage/>} />
-          <Route path="/store" element={<StorePage/>} />
-          <Route path="/product/:id" element={<ProductDetailPage/>} />
-          <Route path="/Checkout" element={<CheckOut/>} />
-          <Route path="/PaymentSuccess" element={<PaymentDone/>} />
-          <Route path="/OrderHistory" element={<OrderHistory/>} />
+  return (
+    <Routes>
+      <Route element={<LoginProtect/>}>
+        <Route path='/signup' element={<Signup/>}/>
+        <Route path='/verify-otp/:userId/:email' element={<VerifyOTP/>}/>
+        <Route path='/login' element={<Login/>}/>
+      </Route>
 
-        </Route>
-      </Routes>
-    )
+      <Route element={<ProtectedRoute/>}>
+        <Route path="/home" element={<BlockedUserWrapper><Home/></BlockedUserWrapper>} />
+        <Route path="/Profile" element={<BlockedUserWrapper><UserProfile/></BlockedUserWrapper>} />
+        <Route path="/address" element={<BlockedUserWrapper><AddressPage/></BlockedUserWrapper>} />
+        <Route path="/store" element={<BlockedUserWrapper><StorePage/></BlockedUserWrapper>} />
+        <Route path="/product/:id" element={<BlockedUserWrapper><ProductDetailPage/></BlockedUserWrapper>} />
+        <Route path="/Checkout" element={<BlockedUserWrapper><CheckOut/></BlockedUserWrapper>} />
+        <Route path="/PaymentSuccess" element={<BlockedUserWrapper><PaymentDone/></BlockedUserWrapper>} />
+        <Route path="/OrderHistory" element={<BlockedUserWrapper><OrderHistory/></BlockedUserWrapper>} />
+      </Route>
+    </Routes>
+  )
   }
 
 export default UserRoute

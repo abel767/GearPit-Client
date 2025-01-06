@@ -5,7 +5,7 @@ import { CreditCard, Wallet, ArrowLeft, ShoppingBag, DollarSign } from 'lucide-r
 
 export default function PaymentMethod() {
   const [selectedPayment, setSelectedPayment] = useState('card');
-  const [couponCode, setCouponCode] = useState('');
+  // const [couponCode, setCouponCode] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderSummary, setOrderSummary] = useState({
     subtotal: 0,

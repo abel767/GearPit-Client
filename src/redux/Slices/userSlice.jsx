@@ -5,7 +5,8 @@ const userSlice = createSlice({
     initialState: {
         isAuthenticated: false,
         user: null,
-        role: 'user'
+        role: 'user',
+        isBlocked: false,
     },
     reducers: {
         userLogin: (state, action) => {
@@ -21,6 +22,7 @@ const userSlice = createSlice({
                 profileImage: user.profileImage,
                 verified: user.verified,
                 isAdmin: false,
+                isBlocke: user.isBlocked,
                 ...user
             };
             state.role = 'user';
@@ -29,6 +31,9 @@ const userSlice = createSlice({
             state.isAuthenticated = false;
             state.user = null;
             state.role = 'user';
+        },
+        setBlockedStatus: (state, action) => {
+            state.isBlocked = action.payload;
         },
         updateUserProfile: (state, action) => {
             state.user = {
@@ -39,5 +44,5 @@ const userSlice = createSlice({
     }
 });
 
-export const { userLogin, userLogout, updateUserProfile } = userSlice.actions;
+export const { userLogin, userLogout, updateUserProfile, setBlockedStatus  } = userSlice.actions;
 export default userSlice.reducer;
