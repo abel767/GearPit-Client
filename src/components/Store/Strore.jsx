@@ -15,6 +15,7 @@ import {
   setLoading,
   setError
 } from '../../redux/Slices/productSlice';
+import { addToCart } from '../../redux/Slices/CartSlice';
 import { useNavigate } from 'react-router-dom';
 
 const sortOptions = [
@@ -39,14 +40,15 @@ const getPriceDetails = (variants) => {
 
   return {
     originalPrice: lowestPriceVariant.price,
-    finalPrice: lowestPriceVariant.finalPrice,
+    finalPrice: lowestPriceVariant.finalPrice || lowestPriceVariant.price * (1 - (lowestPriceVariant.discount || 0) / 100),
     discount: lowestPriceVariant.discount
   };
 };
 
 export default function Store() {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
   const dispatch = useDispatch();
+  
   const {
     products,
     filteredProducts,
@@ -59,6 +61,10 @@ export default function Store() {
     isFilterOpen,
     loading,
   } = useSelector(state => state.product);
+  
+  const userId = useSelector(state => state.user.user?._id);
+  const isAuthenticated = useSelector(state => state.user.isAuthenticated);
+  const cartItems = useSelector(state => state.cart.items);
 
   const productsPerPage = 8;
   const indexOfLastProduct = currentPage * productsPerPage;
@@ -103,9 +109,89 @@ export default function Store() {
 
   const handlePriceRangeChange = (index, value) => {
     const newRange = [...priceRange];
-    // Convert empty string to 0, otherwise use the number value
     newRange[index] = value === '' ? 0 : Number(value);
     dispatch(setPriceRange(newRange));
+  };
+
+  const handleAddToCart = async (product) => {
+    if (!isAuthenticated) {
+      navigate('/user/login');
+      return;
+    }
+  
+    try {
+      // Find default variant with lowest price
+      const defaultVariant = product.variants.reduce((lowest, current) => {
+        const currentFinalPrice = current.finalPrice || current.price * (1 - (current.discount || 0) / 100);
+        const lowestFinalPrice = lowest.finalPrice || lowest.price * (1 - (lowest.discount || 0) / 100);
+        return currentFinalPrice < lowestFinalPrice ? current : lowest;
+      }, product.variants[0]);
+  
+      if (!defaultVariant) {
+        alert('No variant available for this product');
+        return;
+      }
+  
+      if (!userId) {
+        alert('User ID not found');
+        return;
+      }
+  
+      // Log the request data for debugging
+      console.log('Sending cart request with data:', {
+        userId,
+        productId: product._id,
+        variantId: defaultVariant._id,
+        quantity: 1
+      });
+  
+      const response = await axios.post('http://localhost:3000/user/cart/add', {
+        userId,
+        productId: product._id,
+        variantId: defaultVariant._id,
+        quantity: 1
+      }, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+  
+      if (response.status === 200) {
+        dispatch(addToCart({
+          product,
+          quantity: 1,
+          variant: defaultVariant
+        }));
+  
+        // Check if item already exists in cart
+        const existingCartItem = cartItems.find(
+          item => item.productId === product._id && item.variantId === defaultVariant._id
+        );
+  
+        const message = existingCartItem 
+          ? 'Product quantity updated in cart'
+          : 'Product added to cart successfully';
+        alert(message);
+      }
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      // More detailed error message
+      if (error.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        console.error('Error response data:', error.response.data);
+        console.error('Error response status:', error.response.status);
+        alert(`Failed to add product to cart: ${error.response.data.message || 'Unknown error'}`);
+      } else if (error.request) {
+        // The request was made but no response was received
+        console.error('No response received:', error.request);
+        alert('Failed to add product to cart: No response from server');
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        console.error('Error setting up request:', error.message);
+        alert('Failed to add product to cart: Request setup error');
+      }
+    }
   };
 
   if (loading) {
@@ -286,9 +372,12 @@ export default function Store() {
                   </div>
 
                   <div className="flex gap-2 mt-2">
-                    <button onClick={()=>navigate('/user/cart')} className="flex-1 bg-black hover:bg-gray-800 text-white py-2 px-4 text-sm rounded">
-                      Add to Cart
-                    </button>
+                <button 
+                  onClick={() => handleAddToCart(product)} 
+                  className="flex-1 bg-black hover:bg-gray-800 text-white py-2 px-4 text-sm rounded"
+                >
+                  Add to Cart
+                </button>
                     <button  onClick={() => navigate(`/user/product/${product._id}`)} className="flex-1 bg-black hover:bg-gray-800 text-white py-2 px-4 text-sm rounded">
                       Detail
                     </button>

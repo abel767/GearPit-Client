@@ -12,6 +12,7 @@ import PaymentDone from '../../pages/user/Checkout/PaymentDone';
 import OrderHistory from '../../pages/user/UserOrderManagement/OrderHistory';
 import { ProtectedRoute,LoginProtect }  from '../../protect/ProtectedRoute';
 import BlockedUserWrapper from '../../components/BlockUser/BlockUserWrapper';
+import Cart from '../../pages/user/Cart/Cart';
 function UserRoute() {
   return (
     <Routes>
@@ -30,6 +31,7 @@ function UserRoute() {
         <Route path="/Checkout" element={<BlockedUserWrapper><CheckOut/></BlockedUserWrapper>} />
         <Route path="/PaymentSuccess" element={<BlockedUserWrapper><PaymentDone/></BlockedUserWrapper>} />
         <Route path="/OrderHistory" element={<BlockedUserWrapper><OrderHistory/></BlockedUserWrapper>} />
+        <Route path="/cart" element={<BlockedUserWrapper><Cart/></BlockedUserWrapper>} />
       </Route>
     </Routes>
   )

@@ -19,7 +19,7 @@ export default function UserSidebar() {
           { icon: User, text: "Account Details", to: "/user/profile", active: true },
           { icon: History, text: "Order History", to: "/user/OrderHistory" },
           { icon: MapPin, text: "Track Order", to: "/track-order" },
-          { icon: ShoppingCart, text: "Shopping Cart", to: "/shopping-cart" },
+          { icon: ShoppingCart, text: "Shopping Cart", to: "/user/cart" },
           { icon: Heart, text: "Wishlist", to: "/wishlist" },
           { icon: MapPin, text: "Address", to: "/user/address" },
           { icon: Wallet, text: "Wallet", to: "/wallet" },

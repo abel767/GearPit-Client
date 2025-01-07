@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Star, Minus, Plus, ShoppingCart } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { addToCart } from '../../redux/Slices/CartSlice';
+import { useDispatch, useSelector } from 'react-redux';
+import axios from 'axios'
 export default function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -13,7 +16,9 @@ export default function ProductDetail() {
   const [selectedVariant, setSelectedVariant] = useState(null);
   const [relatedProducts, setRelatedProducts] = useState([]);
 
-  
+  const dispatch = useDispatch();
+  const isAuthenticated = useSelector((state) => state.user.isAuthenticated);
+  const userId = useSelector((state) => state.user.userData?._id);
   
   useEffect(() => {
     const fetchProduct = async () => {
@@ -68,6 +73,8 @@ export default function ProductDetail() {
       fetchProduct();
     }
   }, [id]);
+
+  
   
   if (loading) {
     return (
@@ -105,12 +112,42 @@ export default function ProductDetail() {
     );
   }
 
+  
+  const handleAddToCart = async () => {
+    if (!selectedVariant) return;
+
+    try {
+      const response = await axios.post('http://localhost:3000/cart/add', {
+        userId,
+        productId: product._id,
+        variantId: selectedVariant._id,
+        quantity
+      });
+
+      if (response.status === 200) {
+        // Update Redux store
+        dispatch(addToCart({
+          product,
+          quantity,
+          variant: selectedVariant
+        }));
+
+        // Show success message or notification
+        alert('Product added to cart successfully');
+      }
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      alert('Failed to add product to cart');
+    }
+  };
  
 
 
   const getFinalPrice = (variant) => {
     return variant.finalPrice || variant.price * (1 - (variant.discount || 0) / 100);
   };
+
+
 
 
   return (
@@ -226,30 +263,33 @@ export default function ProductDetail() {
             </>
           )}
 
-          <div className="flex gap-4 mb-8">
-            <button className="flex-1 bg-black text-white py-3 px-6 hover:bg-gray-800 flex items-center justify-center gap-2">
-              <ShoppingCart className="w-5 h-5" />
-              ADD TO CART
-            </button>
-            <button 
-  onClick={() => navigate('/user/Checkout', {
-    state: {
-      productDetails: {
-        productId: product._id,
-        productName: product.productName,
-        price: getFinalPrice(selectedVariant),
-        quantity,
-        variantId: selectedVariant._id,
-        size: selectedVariant.size,
-        discount: selectedVariant.discount,
-      }
-    }
-  })} 
-  className="flex-1 border border-black py-3 px-6 hover:bg-gray-100"
->
-  BUY NOW
-</button>
-          </div>
+<div className="flex gap-4 mb-8">
+        <button 
+          onClick={handleAddToCart}
+          className="flex-1 bg-black text-white py-3 px-6 hover:bg-gray-800 flex items-center justify-center gap-2"
+        >
+          <ShoppingCart className="w-5 h-5" />
+          ADD TO CART
+        </button>
+        <button 
+          onClick={() => navigate('/user/Checkout', {
+            state: {
+              productDetails: {
+                productId: product._id,
+                productName: product.productName,
+                price: getFinalPrice(selectedVariant),
+                quantity,
+                variantId: selectedVariant._id,
+                size: selectedVariant.size,
+                discount: selectedVariant.discount,
+              }
+            }
+          })} 
+          className="flex-1 border border-black py-3 px-6 hover:bg-gray-100"
+        >
+          BUY NOW
+        </button>
+      </div>
 
           <div className="border-t pt-8">
             <div className="flex gap-4 mb-4">

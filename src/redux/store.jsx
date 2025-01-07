@@ -15,6 +15,7 @@ import addressReducer from './Slices/addressSlice';
 import productReducer from './Slices/productSlice';
 import userReducer from './Slices/userSlice';
 import adminReducer from './Slices/adminSlice';
+import cartReducer from './Slices/CartSlice'
 
 // Create persist configs for both user and admin
 const userPersistConfig = {
@@ -38,6 +39,7 @@ const store = configureStore({
     profile: profileReducer,
     address: addressReducer,
     product: productReducer,
+    cart: cartReducer
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

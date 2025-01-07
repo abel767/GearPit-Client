@@ -5,7 +5,6 @@ import { CreditCard, Wallet, ArrowLeft, ShoppingBag, DollarSign } from 'lucide-r
 
 export default function PaymentMethod() {
   const [selectedPayment, setSelectedPayment] = useState('card');
-  // const [couponCode, setCouponCode] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderSummary, setOrderSummary] = useState({
     subtotal: 0,
@@ -19,10 +18,9 @@ export default function PaymentMethod() {
   const navigate = useNavigate();
   
   const isAuthenticated = useSelector((state) => state.user.isAuthenticated);
-  const user = useSelector((state) => state.user.user); // Access user from user.user
+  const user = useSelector((state) => state.user.user);
   const productDetails = location.state?.productDetails;
 
-  // Redirect if not authenticated or no product details
   useEffect(() => {
     if (!isAuthenticated || !user) {
       navigate('/user/login', { 
@@ -30,7 +28,7 @@ export default function PaymentMethod() {
           from: location.pathname,
           productDetails 
         },
-        replace: true // Use replace to prevent back navigation to payment page when not authenticated
+        replace: true
       });
       return;
     }
@@ -43,7 +41,6 @@ export default function PaymentMethod() {
     calculateOrderSummary();
   }, [isAuthenticated, user, productDetails, navigate, location.pathname]);
 
-  // Payment methods configuration
   const paymentMethods = [
     {
       id: 'card',
@@ -80,7 +77,7 @@ export default function PaymentMethod() {
     const subtotal = productDetails.price * productDetails.quantity;
     const shipping = 0;
     const codFee = selectedPayment === 'cod' ? 49 : 0;
-    const discount = calculateDiscount(subtotal, couponCode);
+    const discount = productDetails?.discount || 0;
     const total = subtotal + shipping + codFee - discount;
 
     setOrderSummary({
@@ -92,16 +89,12 @@ export default function PaymentMethod() {
     });
   };
 
-  const calculateDiscount = (subtotal, code) => {
-    if (code === 'WELCOME10') {
-      return Math.min(subtotal * 0.1, 100);
-    }
-    return productDetails?.discount || 0;
-  };
+  useEffect(() => {
+    calculateOrderSummary();
+  }, [selectedPayment]);
 
   const handleSubmitOrder = async () => {
     try {
-      // Double-check authentication before submitting
       if (!isAuthenticated || !user?._id) {
         navigate('/user/login', { 
           state: { 
@@ -128,8 +121,7 @@ export default function PaymentMethod() {
           price: productDetails.price
         }],
         paymentMethod: selectedPayment === 'cod' ? 'cod' : 'online',
-        totalAmount: orderSummary.total,
-        ...(couponCode && { couponCode })
+        totalAmount: orderSummary.total
       };
 
       const response = await fetch('http://localhost:3000/user/orders', {
@@ -163,7 +155,6 @@ export default function PaymentMethod() {
     }
   };
 
-  // If not authenticated or no product details, render nothing while redirecting
   if (!isAuthenticated || !user || !productDetails) {
     return null;
   }
