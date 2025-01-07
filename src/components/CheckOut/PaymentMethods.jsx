@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useSelector } from 'react-redux';
-import { CreditCard, Wallet, ArrowLeft, ShoppingBag, DollarSign } from 'lucide-react';
+import { useSelector, useDispatch } from 'react-redux';
+import { CreditCard, Wallet, ArrowLeft, ShoppingBag, DollarSign, MapPin } from 'lucide-react';
+import { fetchAddresses } from '../../redux/Slices/addressSlice';
 
 export default function PaymentMethod() {
   const [selectedPayment, setSelectedPayment] = useState('card');
@@ -13,14 +14,20 @@ export default function PaymentMethod() {
     codFee: 0,
     total: 0
   });
+  const [selectedAddress, setSelectedAddress] = useState(null);
+
 
   const location = useLocation();
   const navigate = useNavigate();
+  const dispatch = useDispatch()
   
   const isAuthenticated = useSelector((state) => state.user.isAuthenticated);
   const user = useSelector((state) => state.user.user);
   const productDetails = location.state?.productDetails;
   const cartDetails = location.state?.productDetails;
+  const { addresses, loading: addressesLoading, error: addressesError } = useSelector((state) => state.address);
+  const [selectedAddressId, setSelectedAddressId] = useState(null);
+
 
   useEffect(() => {
     if (!isAuthenticated || !user) {
@@ -40,9 +47,22 @@ export default function PaymentMethod() {
       return;
     }
 
+
+    if (user?._id) {
+      dispatch(fetchAddresses(user._id));
+    }
+
+    
+
     calculateOrderSummary();
   }, [isAuthenticated, user, cartDetails, productDetails, navigate, location.pathname]);
 
+  useEffect(() => {
+    if (addresses?.length > 0 && !selectedAddressId) {
+      setSelectedAddressId(addresses[0]._id);
+      setSelectedAddress(addresses[0]);
+    }
+  }, [addresses]);
 
   
 
@@ -111,6 +131,11 @@ export default function PaymentMethod() {
 
   const handleSubmitOrder = async () => {
     try {
+      if (!selectedAddress) {
+        alert('Please select a delivery address');
+        return;
+      }
+
       if (!isAuthenticated || !user?._id) {
         navigate('/user/login', { 
           state: { 
@@ -150,7 +175,9 @@ export default function PaymentMethod() {
         userId: user._id,
         items: orderItems,
         paymentMethod: selectedPayment === 'cod' ? 'cod' : 'online',
-        totalAmount: orderSummary.total
+        totalAmount: orderSummary.total,
+        shippingAddress: selectedAddress
+
       };
 
       const response = await fetch('http://localhost:3000/user/orders', {
@@ -199,17 +226,76 @@ export default function PaymentMethod() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <button 
-          onClick={() => navigate(-1)}
-          className="flex items-center text-gray-600 hover:text-gray-900 mb-8"
-        >
-          <ArrowLeft className="w-5 h-5 mr-2" />
-          Back to Product
-        </button>
-
+        {/* Back button remains the same */}
+        
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Payment Options Section */}
           <div className="space-y-6">
+            {/* Shipping Address Section */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+              <div className="p-6 border-b border-gray-100">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <MapPin className="w-6 h-6 text-gray-800" />
+                    <h2 className="text-xl font-semibold text-gray-800">Shipping Address</h2>
+                  </div>
+                  <button
+                    onClick={() => navigate('/user/address')}
+                    className="text-sm text-blue-600 hover:text-blue-700"
+                  >
+                    Add New Address
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-6 space-y-4">
+                {addressesLoading ? (
+                  <div className="text-center py-4">Loading addresses...</div>
+                ) : addressesError ? (
+                  <div className="text-center text-red-500 py-4">{addressesError}</div>
+                ) : addresses?.length === 0 ? (
+                  <div className="text-center py-4">No addresses found. Please add a new address.</div>
+                ) : (
+                  addresses.map((address) => (
+                    <div
+                      key={address._id}
+                      className={`relative flex items-start p-4 rounded-xl border-2 transition-all cursor-pointer
+                        ${selectedAddressId === address._id ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}
+                      onClick={() => {
+                        setSelectedAddressId(address._id);
+                        setSelectedAddress(address);
+                      }}
+                    >
+                      <input
+                        type="radio"
+                        name="address"
+                        checked={selectedAddressId === address._id}
+                        onChange={() => {
+                          setSelectedAddressId(address._id);
+                          setSelectedAddress(address);
+                        }}
+                        className="h-4 w-4 text-blue-600 border-gray-300 mt-1"
+                      />
+                      <div className="ml-4">
+                        <p className="font-medium text-gray-900">
+                          {address.firstName} {address.lastName}
+                        </p>
+                        <p className="text-gray-500 text-sm mt-1">
+                          {address.address}
+                        </p>
+                        <p className="text-gray-500 text-sm">
+                          {address.city}, {address.state} {address.pincode}
+                        </p>
+                        <p className="text-gray-500 text-sm">
+                          Phone: {address.phoneNumber}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+            
+            {/* Payment Options Section */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100">
               <div className="p-6 border-b border-gray-100">
                 <div className="flex items-center space-x-3">
@@ -217,7 +303,7 @@ export default function PaymentMethod() {
                   <h2 className="text-xl font-semibold text-gray-800">Payment Options</h2>
                 </div>
               </div>
-
+  
               <div className="p-6 space-y-4">
                 {paymentMethods.map((method) => (
                   <div
@@ -255,49 +341,51 @@ export default function PaymentMethod() {
               </div>
             </div>
           </div>
-
+  
           {/* Order Summary Section */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h2 className="text-xl font-semibold mb-6">Order Summary</h2>
-            
-            <div className="space-y-4">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Subtotal</span>
-                <span>₹{orderSummary.subtotal.toFixed(2)}</span>
-              </div>
-
-              <div className="flex justify-between">
-                <span className="text-gray-600">Shipping</span>
-                <span className="text-green-600">Free</span>
-              </div>
-
-              {selectedPayment === 'cod' && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+              <h2 className="text-xl font-semibold mb-6">Order Summary</h2>
+              
+              <div className="space-y-4">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">COD Fee</span>
-                  <span>₹{orderSummary.codFee.toFixed(2)}</span>
+                  <span className="text-gray-600">Subtotal</span>
+                  <span>₹{orderSummary.subtotal.toFixed(2)}</span>
                 </div>
-              )}
-
-              {orderSummary.discount > 0 && (
+  
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Discount</span>
-                  <span className="text-red-600">-₹{orderSummary.discount.toFixed(2)}</span>
+                  <span className="text-gray-600">Shipping</span>
+                  <span className="text-green-600">Free</span>
                 </div>
-              )}
-
-              <div className="pt-4 border-t">
-                <div className="flex justify-between items-center mb-6">
-                  <span className="text-lg font-medium">Total</span>
-                  <span className="text-xl font-bold">₹{orderSummary.total.toFixed(2)}</span>
+  
+                {selectedPayment === 'cod' && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">COD Fee</span>
+                    <span>₹{orderSummary.codFee.toFixed(2)}</span>
+                  </div>
+                )}
+  
+                {orderSummary.discount > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Discount</span>
+                    <span className="text-red-600">-₹{orderSummary.discount.toFixed(2)}</span>
+                  </div>
+                )}
+  
+                <div className="pt-4 border-t">
+                  <div className="flex justify-between items-center mb-6">
+                    <span className="text-lg font-medium">Total</span>
+                    <span className="text-xl font-bold">₹{orderSummary.total.toFixed(2)}</span>
+                  </div>
+  
+                  <button 
+                    onClick={handleSubmitOrder}
+                    disabled={isSubmitting}
+                    className="w-full py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
+                  >
+                    {isSubmitting ? 'Processing...' : 'Place Order'}
+                  </button>
                 </div>
-
-                <button 
-                  onClick={handleSubmitOrder}
-                  disabled={isSubmitting}
-                  className="w-full py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
-                >
-                  {isSubmitting ? 'Processing...' : 'Place Order'}
-                </button>
               </div>
             </div>
           </div>

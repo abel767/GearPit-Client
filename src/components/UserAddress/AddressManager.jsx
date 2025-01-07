@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Plus, Edit2, Trash2, MoreVertical } from 'lucide-react';
 import { fetchAddresses, addAddress, updateAddress, deleteAddress } from '../../redux/Slices/addressSlice';
+import PropTypes from 'prop-types';
 
 function AddressMenu({ onEdit, onDelete }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -36,6 +37,12 @@ function AddressMenu({ onEdit, onDelete }) {
   );
 }
 
+AddressMenu.propTypes = {
+  onEdit: PropTypes.func.isRequired,
+  onDelete: PropTypes.func.isRequired,
+};
+
+
 
 const AddressForm = ({ address, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
@@ -48,6 +55,27 @@ const AddressForm = ({ address, onSave, onCancel }) => {
       pincode: address?.pincode || '',
       phoneNumber: address?.phoneNumber || ''
   });
+
+  AddressForm.propTypes = {
+    address: PropTypes.shape({
+        firstName: PropTypes.string,
+        lastName: PropTypes.string,
+        address: PropTypes.string,
+        country: PropTypes.string,
+        state: PropTypes.string,
+        city: PropTypes.string,
+        pincode: PropTypes.string,
+        phoneNumber: PropTypes.string
+    }),
+    onSave: PropTypes.func.isRequired,
+    onCancel: PropTypes.func.isRequired
+};
+
+AddressForm.defaultProps = {
+    address: {
+        country: 'India'
+    }
+};
 
   const handleChange = (e) => {
       const { name, value } = e.target;
