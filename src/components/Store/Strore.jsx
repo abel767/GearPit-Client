@@ -175,19 +175,14 @@ export default function Store() {
       }
     } catch (error) {
       console.error('Error adding to cart:', error);
-      // More detailed error message
       if (error.response) {
-        // The request was made and the server responded with a status code
-        // that falls out of the range of 2xx
         console.error('Error response data:', error.response.data);
         console.error('Error response status:', error.response.status);
         alert(`Failed to add product to cart: ${error.response.data.message || 'Unknown error'}`);
       } else if (error.request) {
-        // The request was made but no response was received
         console.error('No response received:', error.request);
         alert('Failed to add product to cart: No response from server');
       } else {
-        // Something happened in setting up the request that triggered an Error
         console.error('Error setting up request:', error.message);
         alert('Failed to add product to cart: Request setup error');
       }

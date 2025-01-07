@@ -6,7 +6,10 @@ import { useDispatch, useSelector } from 'react-redux';
 import axios from 'axios'
 export default function ProductDetail() {
   const { id } = useParams();
+
   const navigate = useNavigate();
+  const dispatch = useDispatch()
+  
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -15,10 +18,12 @@ export default function ProductDetail() {
   const [activeTab, setActiveTab] = useState('DETAILS');
   const [selectedVariant, setSelectedVariant] = useState(null);
   const [relatedProducts, setRelatedProducts] = useState([]);
+  
 
-  const dispatch = useDispatch();
-  const isAuthenticated = useSelector((state) => state.user.isAuthenticated);
-  const userId = useSelector((state) => state.user.userData?._id);
+  const userId = useSelector(state => state.user.user?._id);
+  const isAuthenticated = useSelector(state => state.user.isAuthenticated);
+  const cartItems = useSelector(state => state.cart.items);
+
   
   useEffect(() => {
     const fetchProduct = async () => {
@@ -113,31 +118,79 @@ export default function ProductDetail() {
   }
 
   
-  const handleAddToCart = async () => {
-    if (!selectedVariant) return;
-
+  const handleAddToCart = async (product) => {
+    if (!isAuthenticated) {
+      navigate('/user/login');
+      return;
+    }
+  
     try {
-      const response = await axios.post('http://localhost:3000/cart/add', {
+      // Find default variant with lowest price
+      const defaultVariant = product.variants.reduce((lowest, current) => {
+        const currentFinalPrice = current.finalPrice || current.price * (1 - (current.discount || 0) / 100);
+        const lowestFinalPrice = lowest.finalPrice || lowest.price * (1 - (lowest.discount || 0) / 100);
+        return currentFinalPrice < lowestFinalPrice ? current : lowest;
+      }, product.variants[0]);
+  
+      if (!defaultVariant) {
+        alert('No variant available for this product');
+        return;
+      }
+  
+      if (!userId) {
+        alert('User ID not found');
+        return;
+      }
+  
+      // Log the request data for debugging
+      console.log('Sending cart request with data:', {
         userId,
         productId: product._id,
-        variantId: selectedVariant._id,
-        quantity
+        variantId: defaultVariant._id,
+        quantity: 1
       });
-
+  
+      const response = await axios.post('http://localhost:3000/user/cart/add', {
+        userId,
+        productId: product._id,
+        variantId: defaultVariant._id,
+        quantity: 1
+      }, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+  
       if (response.status === 200) {
-        // Update Redux store
         dispatch(addToCart({
           product,
-          quantity,
-          variant: selectedVariant
+          quantity: 1,
+          variant: defaultVariant
         }));
-
-        // Show success message or notification
-        alert('Product added to cart successfully');
+  
+        // Check if item already exists in cart
+        const existingCartItem = cartItems.find(
+          item => item.productId === product._id && item.variantId === defaultVariant._id
+        );
+  
+        const message = existingCartItem 
+          ? 'Product quantity updated in cart'
+          : 'Product added to cart successfully';
+        alert(message);
       }
     } catch (error) {
       console.error('Error adding to cart:', error);
-      alert('Failed to add product to cart');
+      if (error.response) {
+        console.error('Error response data:', error.response.data);
+        console.error('Error response status:', error.response.status);
+        alert(`Failed to add product to cart: ${error.response.data.message || 'Unknown error'}`);
+      } else if (error.request) {
+        console.error('No response received:', error.request);
+        alert('Failed to add product to cart: No response from server');
+      } else {
+        console.error('Error setting up request:', error.message);
+        alert('Failed to add product to cart: Request setup error');
+      }
     }
   };
  
@@ -265,7 +318,7 @@ export default function ProductDetail() {
 
 <div className="flex gap-4 mb-8">
         <button 
-          onClick={handleAddToCart}
+          onClick={()=>handleAddToCart(product)}
           className="flex-1 bg-black text-white py-3 px-6 hover:bg-gray-800 flex items-center justify-center gap-2"
         >
           <ShoppingCart className="w-5 h-5" />

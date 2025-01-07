@@ -20,26 +20,31 @@ export default function PaymentMethod() {
   const isAuthenticated = useSelector((state) => state.user.isAuthenticated);
   const user = useSelector((state) => state.user.user);
   const productDetails = location.state?.productDetails;
+  const cartDetails = location.state?.productDetails;
 
   useEffect(() => {
     if (!isAuthenticated || !user) {
       navigate('/user/login', { 
         state: { 
           from: location.pathname,
-          productDetails 
+          productDetails,
+          cartDetails 
         },
         replace: true
       });
       return;
     }
 
-    if (!productDetails) {
+    if (!productDetails && !cartDetails?.items?.length) {
       navigate('/user/store', { replace: true });
       return;
     }
 
     calculateOrderSummary();
-  }, [isAuthenticated, user, productDetails, navigate, location.pathname]);
+  }, [isAuthenticated, user, cartDetails, productDetails, navigate, location.pathname]);
+
+
+  
 
   const paymentMethods = [
     {
@@ -72,12 +77,21 @@ export default function PaymentMethod() {
   ];
 
   const calculateOrderSummary = () => {
-    if (!productDetails) return;
+    let subtotal = 0;
+    let discount = 0;
 
-    const subtotal = productDetails.price * productDetails.quantity;
+    if (cartDetails?.items?.length) {
+      // Calculate for cart items
+      subtotal = cartDetails.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      discount = cartDetails.discount || 0;
+    } else if (productDetails) {
+      // Calculate for single product
+      subtotal = productDetails.price * productDetails.quantity;
+      discount = productDetails.discount || 0;
+    }
+
     const shipping = 0;
     const codFee = selectedPayment === 'cod' ? 49 : 0;
-    const discount = productDetails?.discount || 0;
     const total = subtotal + shipping + codFee - discount;
 
     setOrderSummary({
@@ -93,33 +107,48 @@ export default function PaymentMethod() {
     calculateOrderSummary();
   }, [selectedPayment]);
 
+  
+
   const handleSubmitOrder = async () => {
     try {
       if (!isAuthenticated || !user?._id) {
         navigate('/user/login', { 
           state: { 
             from: location.pathname,
-            productDetails 
+            productDetails,
+            cartDetails
           },
           replace: true
         });
         return;
       }
 
-      if (!productDetails?.productId || !productDetails?.variantId) {
-        throw new Error('Invalid product details');
-      }
-
       setIsSubmitting(true);
 
-      const orderData = {
-        userId: user._id,
-        items: [{
+      let orderItems = [];
+      if (cartDetails?.items?.length) {
+        // Handle cart purchase
+        orderItems = cartDetails.items.map(item => ({
+          productId: item.productId,
+          variantId: item.variantId,
+          quantity: item.quantity,
+          price: item.price
+        }));
+      } else if (productDetails?.productId) {
+        // Handle single product purchase
+        orderItems = [{
           productId: productDetails.productId,
           variantId: productDetails.variantId,
           quantity: productDetails.quantity,
           price: productDetails.price
-        }],
+        }];
+      } else {
+        throw new Error('Invalid order details');
+      }
+
+      const orderData = {
+        userId: user._id,
+        items: orderItems,
         paymentMethod: selectedPayment === 'cod' ? 'cod' : 'online',
         totalAmount: orderSummary.total
       };
@@ -139,6 +168,14 @@ export default function PaymentMethod() {
         throw new Error(data.message || 'Failed to create order');
       }
 
+      // Clear cart after successful order if it was a cart purchase
+      if (cartDetails?.items?.length) {
+        await fetch(`http://localhost:3000/user/cart/clear/${user._id}`, {
+          method: 'DELETE',
+          credentials: 'include'
+        });
+      }
+
       navigate('/user/PaymentSuccess', {
         state: {
           orderId: data.data.orderId,
@@ -155,7 +192,7 @@ export default function PaymentMethod() {
     }
   };
 
-  if (!isAuthenticated || !user || !productDetails) {
+  if (!isAuthenticated || !user || (!productDetails && !cartDetails?.items?.length)) {
     return null;
   }
 

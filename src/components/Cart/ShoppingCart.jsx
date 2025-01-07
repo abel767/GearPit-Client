@@ -1,14 +1,17 @@
 import { useState, useEffect } from 'react'
-import { MinusIcon, PlusIcon, ShoppingCartIcon, TagIcon, Trash2Icon } from 'lucide-react'
+import { MinusIcon, PlusIcon, ShoppingCartIcon, Trash2Icon } from 'lucide-react'
 import { useDispatch, useSelector } from 'react-redux'
 import { updateQuantity, removeFromCart, addToCart } from '../../redux/Slices/CartSlice'
 import axios from 'axios'
 
+import { useNavigate } from 'react-router-dom'
+
 export default function ShoppingCart() {
   const dispatch = useDispatch()
+  const navigate = useNavigate()
+
   const items = useSelector(state => state.cart.items)
   const userId = useSelector(state => state.user.user?._id)
-  const [couponCode, setCouponCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [initialLoading, setInitialLoading] = useState(true)
 
@@ -116,6 +119,29 @@ export default function ShoppingCart() {
     )
   }
 
+  const handleCheckout = () => {
+    const cartItems = items.map(item => ({
+      productId: item.productId,
+      variantId: item.variantId,
+      quantity: item.quantity,
+      price: item.finalPrice,
+      name: item.name,
+      size: item.size,
+      color: item.color
+    }));
+
+    navigate('/user/Checkout', {
+      state: {
+        productDetails: {
+          items: cartItems,
+          subtotal,
+          discount,
+          total
+        }
+      }
+    });
+  };
+
   if (!userId) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -123,6 +149,8 @@ export default function ShoppingCart() {
       </div>
     )
   }
+
+
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -201,7 +229,7 @@ export default function ShoppingCart() {
             </div>
 
             <div className="mt-8">
-              <button className="text-blue-600 hover:text-blue-800 font-medium flex items-center transition-colors duration-200">
+              <button onClick={()=>navigate('/user/store')} className="text-blue-600 hover:text-blue-800 font-medium flex items-center transition-colors duration-200">
                 <ShoppingCartIcon size={20} className="mr-2" />
                 Continue Shopping
               </button>
@@ -229,32 +257,19 @@ export default function ShoppingCart() {
               </div>
 
               <div className="pt-4 border-t border-gray-700">
-                <p className="text-sm mb-3 text-gray-300">Apply Your GearPro Coupon Code Here for Exclusive Discounts</p>
-                <div className="flex space-x-2">
-                  <input
-                    type="text"
-                    value={couponCode}
-                    onChange={(e) => setCouponCode(e.target.value)}
-                    placeholder="Coupon Code"
-                    className="flex-1 px-3 py-2 rounded-l bg-gray-800 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
-                  />
-                  <button className="px-4 py-2 bg-blue-600 text-white rounded-r hover:bg-blue-700 transition-colors duration-200 flex items-center">
-                    <TagIcon size={16} className="mr-2" />
-                    Apply
-                  </button>
-                </div>
-              </div>
-
-              <div className="pt-4 border-t border-gray-700">
                 <div className="flex justify-between items-center mb-6">
                   <span className="text-lg">Total</span>
                   <span className="text-2xl font-bold">₹{total.toFixed(2)}</span>
                 </div>
 
-                <button className="w-full py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors duration-200 font-medium flex items-center justify-center">
-                  <ShoppingCartIcon size={20} className="mr-2" />
-                  PROCEED TO CHECKOUT
-                </button>
+                <button 
+          onClick={handleCheckout}
+          disabled={items.length === 0}
+          className="w-full py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors duration-200 font-medium flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <ShoppingCartIcon size={20} className="mr-2" />
+          PROCEED TO CHECKOUT
+        </button>
               </div>
             </div>
           </div>
