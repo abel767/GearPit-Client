@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Heart, ChevronDown, ChevronRight, MinusIcon } from 'lucide-react';
 import axios from 'axios';
+import { toast } from 'react-hot-toast';
 import {
   setProducts,
   setCategories,
@@ -45,6 +46,22 @@ const getPriceDetails = (variants) => {
   };
 };
 
+const isProductOutOfStock = (variants) => {
+  // Return true if variants array is empty or undefined
+  if (!variants || variants.length === 0) {
+    return true;
+  }
+
+  // Check if ALL variants have 0 or undefined quantity
+  const allOutOfStock = variants.every(variant => {
+    const quantity = Number(variant.stock); // Convert to number to handle string values
+    return quantity <= 0 || isNaN(quantity);
+  });
+
+  return allOutOfStock;
+};
+
+// Rest of the code remains the same...
 export default function Store() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -114,80 +131,67 @@ export default function Store() {
   };
 
   const handleAddToCart = async (product) => {
+    const outOfStock = isProductOutOfStock(product.variants);
+    
+    if (outOfStock) {
+      toast.error('This product is currently out of stock');
+      return;
+    }
+
     if (!isAuthenticated) {
       navigate('/user/login');
       return;
     }
   
     try {
-      // Find default variant with lowest price
-      const defaultVariant = product.variants.reduce((lowest, current) => {
-        const currentFinalPrice = current.finalPrice || current.price * (1 - (current.discount || 0) / 100);
-        const lowestFinalPrice = lowest.finalPrice || lowest.price * (1 - (lowest.discount || 0) / 100);
-        return currentFinalPrice < lowestFinalPrice ? current : lowest;
-      }, product.variants[0]);
-  
-      if (!defaultVariant) {
-        alert('No variant available for this product');
+      // Find first variant with stock > 0
+      const availableVariant = product.variants.find(variant => {
+        const stock = Number(variant.stock);
+        return !isNaN(stock) && stock > 0;
+      });
+      
+      if (!availableVariant) {
+        toast.error('No available variants for this product');
         return;
       }
   
       if (!userId) {
-        alert('User ID not found');
+        toast.error('Please log in to add items to cart');
         return;
       }
-  
-      // Log the request data for debugging
-      console.log('Sending cart request with data:', {
-        userId,
-        productId: product._id,
-        variantId: defaultVariant._id,
-        quantity: 1
-      });
   
       const response = await axios.post('http://localhost:3000/user/cart/add', {
         userId,
         productId: product._id,
-        variantId: defaultVariant._id,
+        variantId: availableVariant._id,
         quantity: 1
-      }, {
-        headers: {
-          'Content-Type': 'application/json'
-        }
       });
   
       if (response.status === 200) {
         dispatch(addToCart({
           product,
           quantity: 1,
-          variant: defaultVariant
+          variant: availableVariant
         }));
   
-        // Check if item already exists in cart
         const existingCartItem = cartItems.find(
-          item => item.productId === product._id && item.variantId === defaultVariant._id
+          item => item.productId === product._id && item.variantId === availableVariant._id
         );
   
-        const message = existingCartItem 
+        toast.success(existingCartItem 
           ? 'Product quantity updated in cart'
-          : 'Product added to cart successfully';
-        alert(message);
+          : 'Product added to cart successfully');
       }
     } catch (error) {
       console.error('Error adding to cart:', error);
-      if (error.response) {
-        console.error('Error response data:', error.response.data);
-        console.error('Error response status:', error.response.status);
-        alert(`Failed to add product to cart: ${error.response.data.message || 'Unknown error'}`);
-      } else if (error.request) {
-        console.error('No response received:', error.request);
-        alert('Failed to add product to cart: No response from server');
-      } else {
-        console.error('Error setting up request:', error.message);
-        alert('Failed to add product to cart: Request setup error');
-      }
+      const errorMessage = error.response?.data?.message || 'Failed to add product to cart';
+      toast.error(errorMessage);
     }
   };
+
+
+
+  
 
   if (loading) {
     return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
@@ -200,7 +204,7 @@ export default function Store() {
       </h1>
       
       <div className="flex gap-6">
-        {/* Filters Sidebar */}
+        {/* Filters Sidebar - keeping it unchanged */}
         <div className="w-64 flex-shrink-0">
           <div className="bg-white rounded-lg shadow p-4">
             <h3 className="font-semibold mb-4">Filters</h3>
@@ -256,36 +260,36 @@ export default function Store() {
 
             {/* Price Range */}
             <div className="mb-6">
-            <h4 className="font-medium mb-4">Price Range</h4>
-      <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <input
-            type="number"
-            value={priceRange[0] === 0 ? '' : priceRange[0]}
-            onChange={(e) => handlePriceRangeChange(0, e.target.value)}
-            className="w-24 px-2 py-1 border border-gray-300 rounded text-sm"
-            placeholder="Min"
-            min="0"
-          />
-          <MinusIcon className="w-4 h-4 text-gray-400" />
-          <input
-            type="number"
-            value={priceRange[1] === 0 ? '' : priceRange[1]}
-            onChange={(e) => handlePriceRangeChange(1, e.target.value)}
-            className="w-24 px-2 py-1 border border-gray-300 rounded text-sm"
-            placeholder="Max"
-            min="0"
-          />
-        </div>
-        <div className="flex justify-center">
-          <button
-            onClick={() => dispatch(setPriceRange([0, 10000]))}
-            className="text-sm text-gray-500 hover:text-gray-700"
-          >
-            Reset Price
-          </button>
-        </div>
-      </div>
+              <h4 className="font-medium mb-4">Price Range</h4>
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    value={priceRange[0] === 0 ? '' : priceRange[0]}
+                    onChange={(e) => handlePriceRangeChange(0, e.target.value)}
+                    className="w-24 px-2 py-1 border border-gray-300 rounded text-sm"
+                    placeholder="Min"
+                    min="0"
+                  />
+                  <MinusIcon className="w-4 h-4 text-gray-400" />
+                  <input
+                    type="number"
+                    value={priceRange[1] === 0 ? '' : priceRange[1]}
+                    onChange={(e) => handlePriceRangeChange(1, e.target.value)}
+                    className="w-24 px-2 py-1 border border-gray-300 rounded text-sm"
+                    placeholder="Max"
+                    min="0"
+                  />
+                </div>
+                <div className="flex justify-center">
+                  <button
+                    onClick={() => dispatch(setPriceRange([0, 10000]))}
+                    className="text-sm text-gray-500 hover:text-gray-700"
+                  >
+                    Reset Price
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -325,61 +329,92 @@ export default function Store() {
 
           {/* Products Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {currentProducts.map((product) => (
-              <div key={product._id} className="group relative bg-white p-2 rounded-lg shadow">
-                <button className="absolute top-2 right-2 z-10 bg-white rounded-full p-1">
-                  <Heart className="w-5 h-5 text-gray-400 hover:text-red-500" />
-                </button>
-                <div className="relative aspect-square mb-3">
-                  <img
-                    src={product.images[0]}
-                    alt={product.productName}
-                    className="w-full h-full object-contain"
-                  />
-                </div>
-                <div className="text-center">
-                  <h3 className="text-sm font-medium mb-2 line-clamp-2 h-10">
-                    {product.productName}
-                  </h3>
-                  <div className="mb-2 flex flex-col items-center">
-                    {(() => {
-                      const { originalPrice, finalPrice, discount } = getPriceDetails(product.variants);
-                      return (
-                        <>
-                          <div className="flex items-center gap-2 justify-center">
-                            <span className="text-lg font-bold text-gray-900">
-                              ₹{finalPrice.toFixed(2)}
-                            </span>
-                            {discount > 0 && (
-                              <span className="text-sm text-gray-500 line-through">
-                                ₹{originalPrice.toFixed(2)}
-                              </span>
-                            )}
-                          </div>
-                          {discount > 0 && (
-                            <span className="text-sm text-green-600">
-                              {discount}% off
-                            </span>
-                          )}
-                        </>
-                      );
-                    })()}
+            {currentProducts.map((product) => {
+              const outOfStock = isProductOutOfStock(product.variants);
+              const { originalPrice, finalPrice, discount } = getPriceDetails(product.variants);
+              
+              return (
+                <div 
+                  key={product._id} 
+                  className={`group relative bg-white p-2 rounded-lg shadow ${
+                    outOfStock ? 'opacity-90' : ''
+                  }`}
+                >
+                  {/* Wishlist Heart Button */}
+                  <button className="absolute top-2 right-2 z-10 bg-white rounded-full p-1 shadow-sm">
+                    <Heart className="w-5 h-5 text-gray-400 hover:text-red-500" />
+                  </button>
+                  
+                  {/* Product Image Container */}
+                  <div className="relative aspect-square mb-3">
+                    <img
+                      src={product.images[0]}
+                      alt={product.productName}
+                      className={`w-full h-full object-contain ${
+                        outOfStock ? 'opacity-60' : ''
+                      }`}
+                    />
+                    {/* Out of Stock Badge */}
+                    {outOfStock && (
+                      <div className="absolute top-2 left-2">
+                        <span className="bg-red-100 text-red-600 px-3 py-1 rounded-md text-xs font-semibold">
+                          Out of Stock
+                        </span>
+                      </div>
+                    )}
                   </div>
 
-                  <div className="flex gap-2 mt-2">
-                <button 
-                  onClick={() => handleAddToCart(product)} 
-                  className="flex-1 bg-black hover:bg-gray-800 text-white py-2 px-4 text-sm rounded"
-                >
-                  Add to Cart
-                </button>
-                    <button  onClick={() => navigate(`/user/product/${product._id}`)} className="flex-1 bg-black hover:bg-gray-800 text-white py-2 px-4 text-sm rounded">
-                      Detail
-                    </button>
+                  {/* Product Details */}
+                  <div className="text-center">
+                    <h3 className="text-sm font-medium mb-2 line-clamp-2 h-10">
+                      {product.productName}
+                    </h3>
+                    
+                    {/* Price Section */}
+                    <div className="mb-2 flex flex-col items-center">
+                      <div className="flex items-center gap-2 justify-center">
+                        <span className={`text-lg font-bold ${outOfStock ? 'text-gray-500' : 'text-gray-900'}`}>
+                          ₹{finalPrice.toFixed(2)}
+                        </span>
+                        {discount > 0 && (
+                          <span className="text-sm text-gray-500 line-through">
+                            ₹{originalPrice.toFixed(2)}
+                          </span>
+                        )}
+                      </div>
+                      {discount > 0 && !outOfStock && (
+                        <span className="text-sm text-green-600">
+                          {discount}% off
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-2 mt-2">
+                      <button 
+                        onClick={() => !outOfStock && handleAddToCart(product)}
+                        disabled={outOfStock}
+                        className={`
+                          flex-1 py-2 px-4 text-sm rounded transition-all duration-200
+                          ${outOfStock 
+                            ? 'bg-red-50 text-red-500 border border-red-300 cursor-not-allowed hover:bg-red-100'
+                            : 'bg-black hover:bg-gray-800 text-white'
+                          }
+                        `}
+                      >
+                        {outOfStock ? 'Out of Stock' : 'Add to Cart'}
+                      </button>
+                      <button 
+                        onClick={() => navigate(`/user/product/${product._id}`)} 
+                        className="flex-1 bg-black hover:bg-gray-800 text-white py-2 px-4 text-sm rounded transition-colors duration-200"
+                      >
+                        Detail
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Pagination */}

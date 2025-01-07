@@ -1,28 +1,37 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { userLogout } from '../../redux/Slices/userSlice';
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import axios from 'axios';
-import { User } from 'lucide-react'; // Import User icon for fallback
-
-// Images
-import logo from '../../assets/Logo/logo.png';
+import { User, Menu, X, Home, Phone, Info, Store, ShoppingCart, Heart, LogOut } from 'lucide-react';
 
 const Navbar = () => {
-    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-    const [imageError, setImageError] = useState(false);
+    const [isNavOpen, setIsNavOpen] = useState(false);
+    const [hamburgerColor, setHamburgerColor] = useState('white');
     const dispatch = useDispatch();
     const navigate = useNavigate();
     
     const { user } = useSelector((state) => state.user);
     
-    const toggleDropdown = () => {
-        setIsDropdownOpen(!isDropdownOpen);
-    };
+    useEffect(() => {
+        const changeNavbarColor = () => {
+            if (window.scrollY >= 80) {
+                setHamburgerColor('black');
+            } else {
+                setHamburgerColor('white');
+            }
+        };
 
-    const handleImageError = () => {
-        setImageError(true);
+        window.addEventListener('scroll', changeNavbarColor);
+
+        return () => {
+            window.removeEventListener('scroll', changeNavbarColor);
+        };
+    }, []);
+
+    const toggleNav = () => {
+        setIsNavOpen(!isNavOpen);
     };
 
     const handleLogout = async () => {
@@ -54,63 +63,115 @@ const Navbar = () => {
         }
     };
 
-    const renderProfileImage = () => {
-        if (imageError || !user?.profileImage) {
-            return (
-                <div className="h-6 w-6 rounded-full bg-gray-200 flex items-center justify-center">
-                    <User className="h-4 w-4 text-gray-600" />
-                </div>
-            );
-        }
-
-        return (
-            <img
-                src={user.profileImage}
-                alt="Profile"
-                className="h-7 w-7 rounded-full object-cover"
-                onError={handleImageError}
-            />
-        );
-    };
-
     return (
-        <nav className="bg-black text-white px-6 py-4 flex justify-between items-center sticky top-0 z-50">
-            <Link to="/user/home">
-                <img src={logo} alt="GearPit Logo" className="h-20" />
-            </Link>
+        <>
+            {/* Hamburger/Close button */}
+            <button 
+                onClick={toggleNav} 
+                className={`fixed top-4 right-4 z-50 focus:outline-none transition-all duration-300 ease-in-out ${isNavOpen ? 'transform rotate-180' : ''}`}
+                style={{ color: isNavOpen ? 'white' : hamburgerColor }}
+            >
+                {isNavOpen ? (
+                    <X size={24} className="transform rotate-180" />
+                ) : (
+                    <Menu size={24} />
+                )}
+            </button>
 
-            <div className="hidden md:flex space-x-6">
-                <Link to="/user/home" className="hover:text-gray-300" >Home</Link>
-                <Link to="/user/store" className="hover:text-gray-300" onClick={()=> navigate('/user/store')}>Store</Link>
-                <Link to="/about" className="hover:text-gray-300">About Us</Link>
-                <Link to="/contact" className="hover:text-gray-300">Contact Us</Link>
-            </div>
-
-            <div className="relative">
-                <div
-                    onClick={toggleDropdown}
-                    className="cursor-pointer bg-white text-black py-2 px-4 rounded-lg flex items-center space-x-2"
-                >
-                    {renderProfileImage()}
-                    <span>{user?.userName || 'Profile'}</span>
-                </div>
-
-                {isDropdownOpen && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white text-black shadow-lg rounded-lg">
-                        <Link to="/user/profile" className="block px-4 py-2 hover:bg-gray-100">Profile</Link>
-                        <Link to="/user/cart" className="block px-4 py-2 hover:bg-gray-100">Cart</Link>
-                        <Link to="/wishlist" className="block px-4 py-2 hover:bg-gray-100">Wishlist</Link>
-                        <button 
-                            onClick={handleLogout}
-                            className="w-full text-left px-4 py-2 hover:bg-gray-100"
+            {/* Side Navigation */}
+            <div className={`fixed top-0 right-0 h-full w-64 bg-black text-white transform ${isNavOpen ? 'translate-x-0' : 'translate-x-full'} transition-transform duration-300 ease-in-out z-40`}>
+                <div className="flex flex-col h-full p-4">
+                    {/* Navigation links */}
+                    <div className="space-y-6 mt-16">
+                        <Link to="/user/home" 
+                            className="flex items-center space-x-3 text-white hover:text-gray-300" 
+                            onClick={toggleNav}
                         >
-                            Logout
+                            <Home size={20} />
+                            <span>Home</span>
+                        </Link>
+
+                        <Link to="/contact" 
+                            className="flex items-center space-x-3 text-white hover:text-gray-300" 
+                            onClick={toggleNav}
+                        >
+                            <Phone size={20} />
+                            <span>Contact us</span>
+                        </Link>
+
+                        <Link to="/about" 
+                            className="flex items-center space-x-3 text-white hover:text-gray-300" 
+                            onClick={toggleNav}
+                        >
+                            <Info size={20} />
+                            <span>About Us</span>
+                        </Link>
+
+                        <Link to="/user/store" 
+                            className="flex items-center space-x-3 text-white hover:text-gray-300" 
+                            onClick={() => { toggleNav(); navigate('/user/store'); }}
+                        >
+                            <Store size={20} />
+                            <span>Store</span>
+                        </Link>
+
+                        <Link to="/user/cart" 
+                            className="flex items-center space-x-3 text-white hover:text-gray-300" 
+                            onClick={toggleNav}
+                        >
+                            <ShoppingCart size={20} />
+                            <span>Cart</span>
+                        </Link>
+
+                        <Link to="/wishlist" 
+                            className="flex items-center space-x-3 text-white hover:text-gray-300" 
+                            onClick={toggleNav}
+                        >
+                            <Heart size={20} />
+                            <span>Wishlist</span>
+                        </Link>
+
+                        <button 
+                            onClick={() => { handleLogout(); toggleNav(); }}
+                            className="flex items-center space-x-3 text-white hover:text-gray-300 w-full"
+                        >
+                            <LogOut size={20} />
+                            <span>Log-out</span>
                         </button>
                     </div>
-                )}
+
+                    {/* User profile at bottom */}
+                    <div className="mt-auto pt-6 border-t border-gray-800">
+                        <div className="flex items-center space-x-3">
+                            {user?.profileImage ? (
+                                <img
+                                    src={user.profileImage}
+                                    alt="Profile"
+                                    className="h-8 w-8 rounded-full object-cover"
+                                    onError={(e) => {
+                                        e.target.onerror = null;
+                                        e.target.src = 'data:image/svg+xml,...'; // Fallback to User icon
+                                    }}
+                                />
+                            ) : (
+                                <div className="h-8 w-8 rounded-full bg-gray-800 flex items-center justify-center">
+                                    <User size={20} className="text-gray-400" />
+                                </div>
+                            )}
+                            <Link 
+                                to="/user/profile" 
+                                className="text-sm text-white hover:text-gray-300 font-bold"
+                                onClick={toggleNav}
+                            >
+                                {user?.firstName || 'Profile'}
+                            </Link>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </nav>
+        </>
     );
 };
 
 export default Navbar;
+
