@@ -120,7 +120,7 @@ const InventoryManagement = () => {
                     <ArrowUpDown className="ml-2 h-4 w-4" />
                   </button>
                 </th>
-                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">Status</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">Stock Status</th>
                 <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">Actions</th>
               </tr>
             </thead>

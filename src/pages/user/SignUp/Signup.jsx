@@ -113,7 +113,7 @@ function Signup() {
           headers: {
             'Content-Type': 'multipart/form-data',
           },
-          withCredentials: false // Disable credentials
+          withCredentials: false 
         }
       );
       const profileImageUrl = cloudinaryResponse.data.secure_url;

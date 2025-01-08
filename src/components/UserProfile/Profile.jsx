@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import axios from 'axios'
 import { useDispatch, useSelector } from 'react-redux';
 import { Edit2, Package, CheckCircle, Clock, Camera, Save } from 'lucide-react';
 import { setEditing } from '../../redux/Slices/profileSlice';
@@ -17,12 +18,43 @@ const Profile = () => {
       email: user?.email || '',
       phone: user?.phone || '',
     });
+
+    const [orders, setOrders] = useState([]);
+
   
     useEffect(() => {
       if (user?.id) {
         fetchUserData();
       }
     }, [user?.id]);
+    
+    // fetching order data
+    useEffect(() => {
+      const fetchOrders = async () => {
+        if (user?._id) {
+          try {
+            const response = await axios.get(`http://localhost:3000/user/orders/user/${user._id}`);
+            setOrders(response.data.data);
+          } catch (err) {
+            console.error('Error fetching orders:', err);
+          }
+        }
+      };
+      fetchOrders();
+    }, [user?._id]);
+
+    const orderStats = {
+      total: orders.length,
+      pending: orders.filter(order => 
+        order.status.toUpperCase() === 'PENDING' || 
+        order.status.toUpperCase() === 'PROCESSING' ||
+        order.status.toUpperCase() === 'SHIPPED'
+      ).length,
+      completed: orders.filter(order => 
+        order.status.toUpperCase() === 'DELIVERED'
+      ).length
+    };
+
   
     // Update profileImage when user data changes
     useEffect(() => {
@@ -190,43 +222,42 @@ const Profile = () => {
 
       {/* Order Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        {/* Stats cards remain the same */}
-        <div className="bg-blue-50 rounded-xl p-6">
-          <div className="flex items-center gap-4">
-            <div className="p-3 rounded-lg bg-blue-100">
-              <Package className="w-6 h-6 text-blue-600" />
+          <div className="bg-blue-50 rounded-xl p-6">
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-lg bg-blue-100">
+                <Package className="w-6 h-6 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900">{orderStats.total}</p>
+                <p className="text-sm text-gray-600">Total Orders</p>
+              </div>
             </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">0</p>
-              <p className="text-sm text-gray-600">Total Orders</p>
+          </div>
+          
+          <div className="bg-orange-50 rounded-xl p-6">
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-lg bg-orange-100">
+                <Clock className="w-6 h-6 text-orange-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900">{orderStats.pending}</p>
+                <p className="text-sm text-gray-600">Pending Orders</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-green-50 rounded-xl p-6">
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-lg bg-green-100">
+                <CheckCircle className="w-6 h-6 text-green-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900">{orderStats.completed}</p>
+                <p className="text-sm text-gray-600">Completed Orders</p>
+              </div>
             </div>
           </div>
         </div>
-        
-        <div className="bg-orange-50 rounded-xl p-6">
-          <div className="flex items-center gap-4">
-            <div className="p-3 rounded-lg bg-orange-100">
-              <Clock className="w-6 h-6 text-orange-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">0</p>
-              <p className="text-sm text-gray-600">Pending Orders</p>
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-green-50 rounded-xl p-6">
-          <div className="flex items-center gap-4">
-            <div className="p-3 rounded-lg bg-green-100">
-              <CheckCircle className="w-6 h-6 text-green-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">0</p>
-              <p className="text-sm text-gray-600">Completed Orders</p>
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Profile Information Card */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-8">
