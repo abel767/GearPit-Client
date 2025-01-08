@@ -12,7 +12,8 @@ const initialState = {
   productsPerPage: 8,
   isFilterOpen: false,
   loading: false,
-  error: null
+  error: null,
+  searchTerm: '', // Added search term to state
 };
 
 const productSlice = createSlice({
@@ -52,9 +53,23 @@ const productSlice = createSlice({
     setFilterOpen: (state, action) => {
       state.isFilterOpen = action.payload;
     },
+    setSearchTerm: (state, action) => {
+      state.searchTerm = action.payload;
+      state.currentPage = 1; // Reset to first page when searching
+    },
     filterProducts: (state) => {
       let filtered = [...state.products];
       
+      // Apply search filter
+      if (state.searchTerm.trim()) {
+        const searchLower = state.searchTerm.toLowerCase();
+        filtered = filtered.filter(product => 
+          product.productName.toLowerCase().includes(searchLower) ||
+          product.description?.toLowerCase().includes(searchLower) ||
+          product.brand?.toLowerCase().includes(searchLower)
+        );
+      }
+
       // Apply category filter
       if (state.selectedCategories.length > 0) {
         filtered = filtered.filter(product => {
@@ -109,13 +124,19 @@ const productSlice = createSlice({
       }
 
       state.filteredProducts = filtered;
-      state.currentPage = 1;
     },
     setLoading: (state, action) => {
       state.loading = action.payload;
     },
     setError: (state, action) => {
       state.error = action.payload;
+    },
+    clearFilters: (state) => {
+      state.selectedCategories = [];
+      state.priceRange = [0, 10000];
+      state.sortBy = 'featured';
+      state.searchTerm = '';
+      state.currentPage = 1;
     }
   }
 });
@@ -131,7 +152,9 @@ export const {
   setFilterOpen,
   filterProducts,
   setLoading,
-  setError
+  setError,
+  setSearchTerm,
+  clearFilters
 } = productSlice.actions;
 
 export default productSlice.reducer;

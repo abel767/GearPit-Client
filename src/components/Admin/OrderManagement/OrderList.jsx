@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { 
-   
   Download, 
   Calendar, 
   SlidersHorizontal, 
@@ -52,7 +51,7 @@ export default function OrderManagement() {
 
   const updateOrderStatus = async (orderId, newStatus) => {
     try {
-    const endpoint = newStatus.toLowerCase() === 'cancelled' 
+      const endpoint = newStatus.toLowerCase() === 'cancelled' 
         ? `http://localhost:3000/user/orders/${orderId}/cancel`
         : `http://localhost:3000/admin/orders/${orderId}/status`;
 
@@ -283,34 +282,36 @@ export default function OrderManagement() {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="relative dropdown-container">
-                        <button 
-                          className="p-2 hover:bg-gray-100 rounded-lg"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setOpenDropdownId(openDropdownId === order._id ? null : order._id);
-                          }}
-                        >
-                          <ChevronDown className="w-4 h-4 text-gray-500" />
-                        </button>
-                        {openDropdownId === order._id && (
-                          <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-1 z-10">
-                            {statusOptions.map((status) => (
-                              <button
-                                key={status}
-                                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                                onClick={() => {
-                                  setSelectedOrder(order);
-                                  setShowStatusDialog(true);
-                                  setOpenDropdownId(null);
-                                }}
-                              >
-                                Mark as {status}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+                      {order.status?.toLowerCase() !== 'cancelled' && (
+                        <div className="relative dropdown-container">
+                          <button 
+                            className="p-2 hover:bg-gray-100 rounded-lg"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenDropdownId(openDropdownId === order._id ? null : order._id);
+                            }}
+                          >
+                            <ChevronDown className="w-4 h-4 text-gray-500" />
+                          </button>
+                          {openDropdownId === order._id && (
+                            <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-1 z-10">
+                              {statusOptions.map((status) => (
+                                <button
+                                  key={status}
+                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                  onClick={() => {
+                                    setSelectedOrder(order);
+                                    setShowStatusDialog(true);
+                                    setOpenDropdownId(null);
+                                  }}
+                                >
+                                  Mark as {status}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))
@@ -333,5 +334,4 @@ export default function OrderManagement() {
       />
     </div>
   );
-  
 }

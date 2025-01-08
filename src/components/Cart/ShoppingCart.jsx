@@ -29,20 +29,28 @@ export default function ShoppingCart() {
         if (response.status === 200 && response.data?.items) {
           // Clear existing cart items and add fetched items
           dispatch({ type: 'cart/clearCart' })
+
+          
           
           response.data.items.forEach(item => {
+
+            if (!item.productId || !item.productId.variants) {
+              console.warn('Invalid product data:', item);
+              return; // Skip this item
+            }
+            
             const variant = item.productId.variants.find(v => v._id === item.variantId)
             if (variant) {
               dispatch(addToCart({
                 product: {
                   _id: item.productId._id,
                   productName: item.productId.productName,
-                  images: item.productId.images
+                  images: item.productId.images || []
                 },
                 quantity: item.quantity,
                 variant: {
                   _id: variant._id,
-                  price: variant.price,
+                  price: variant.price || 0,
                   finalPrice: variant.finalPrice,
                   discount: variant.discount,
                   size: variant.size,

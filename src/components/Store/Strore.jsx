@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { Heart, ChevronDown, ChevronRight, MinusIcon } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
+import AnimatedSearch from '../SerachBarForStore/AnimatedSearch';
 import {
   setProducts,
   setCategories,
@@ -18,6 +19,9 @@ import {
 } from '../../redux/Slices/productSlice';
 import { addToCart } from '../../redux/Slices/CartSlice';
 import { useNavigate } from 'react-router-dom';
+
+
+
 
 const sortOptions = [
   { label: 'Popularity', value: 'popularity' },
@@ -65,6 +69,8 @@ const isProductOutOfStock = (variants) => {
 export default function Store() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+
+
   
   const {
     products,
@@ -199,103 +205,105 @@ export default function Store() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold text-center mb-8">
-        Discover Top-Quality Riding Gear for Every Adventure
-      </h1>
-      
-      <div className="flex gap-6">
-        {/* Filters Sidebar - keeping it unchanged */}
-        <div className="w-64 flex-shrink-0">
-          <div className="bg-white rounded-lg shadow p-4">
-            <h3 className="font-semibold mb-4">Filters</h3>
-            
-            {/* Categories */}
-            <div className="mb-6">
-              <h4 className="font-medium mb-2">Categories</h4>
-              <div className="space-y-2">
-                {categories.map(category => (
-                  <div key={category._id} className="space-y-1">
-                    <div className="flex items-center justify-between">
-                      <label className="flex items-center space-x-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={selectedCategories.includes(category._id)}
-                          onChange={() => handleToggleCategoryFilter(category._id)}
-                          className="rounded border-gray-300"
-                        />
-                        <span className="text-sm">{category.categoryName}</span>
-                      </label>
-                      {category.subcategories?.length > 0 && (
-                        <button
-                          onClick={() => handleToggleCategory(category._id)}
-                          className="p-1 hover:bg-gray-100 rounded"
-                        >
-                          {expandedCategories[category._id] ? (
-                            <ChevronDown className="w-4 h-4" />
-                          ) : (
-                            <ChevronRight className="w-4 h-4" />
-                          )}
-                        </button>
-                      )}
-                    </div>
-                    {expandedCategories[category._id] && category.subcategories?.length > 0 && (
-                      <div className="ml-4 space-y-1">
-                        {category.subcategories.map(sub => (
-                          <label key={sub._id} className="flex items-center space-x-2 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={selectedCategories.includes(sub._id)}
-                              onChange={() => handleToggleCategoryFilter(sub._id)}
-                              className="rounded border-gray-300"
-                            />
-                            <span className="text-sm">{sub.name}</span>
-                          </label>
-                        ))}
-                      </div>
+    <h1 className="text-2xl font-bold text-center mb-8">
+      Discover Top-Quality Riding Gear for Every Adventure
+    </h1>
+    
+    <div className="flex gap-6">
+      {/* Filters Sidebar - now with full height and black background */}
+      <div className="w-64 flex-shrink-0">
+        <div className="bg-black text-white rounded-lg shadow p-4 h-screen overflow-y-auto sticky top-0">
+          <h3 className="font-semibold mb-4 text-xl">Filters</h3>
+          
+          {/* Categories */}
+          <div className="mb-6">
+            <h4 className="font-medium mb-2 text-gray-300">Categories</h4>
+            <div className="space-y-2">
+              {categories.map(category => (
+                <div key={category._id} className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <label className="flex items-center space-x-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedCategories.includes(category._id)}
+                        onChange={() => handleToggleCategoryFilter(category._id)}
+                        className="rounded border-gray-600 text-blue-500 focus:ring-blue-500 focus:ring-offset-black"
+                      />
+                      <span className="text-sm text-gray-300">{category.categoryName}</span>
+                    </label>
+                    {category.subcategories?.length > 0 && (
+                      <button
+                        onClick={() => handleToggleCategory(category._id)}
+                        className="p-1 hover:bg-gray-800 rounded text-gray-400 hover:text-white"
+                      >
+                        {expandedCategories[category._id] ? (
+                          <ChevronDown className="w-4 h-4" />
+                        ) : (
+                          <ChevronRight className="w-4 h-4" />
+                        )}
+                      </button>
                     )}
                   </div>
-                ))}
-              </div>
+                  {expandedCategories[category._id] && category.subcategories?.length > 0 && (
+                    <div className="ml-4 space-y-1">
+                      {category.subcategories.map(sub => (
+                        <label key={sub._id} className="flex items-center space-x-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={selectedCategories.includes(sub._id)}
+                            onChange={() => handleToggleCategoryFilter(sub._id)}
+                            className="rounded border-gray-600 text-blue-500 focus:ring-blue-500 focus:ring-offset-black"
+                          />
+                          <span className="text-sm text-gray-400">{sub.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
+          </div>
 
-            {/* Price Range */}
-            <div className="mb-6">
-              <h4 className="font-medium mb-4">Price Range</h4>
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    value={priceRange[0] === 0 ? '' : priceRange[0]}
-                    onChange={(e) => handlePriceRangeChange(0, e.target.value)}
-                    className="w-24 px-2 py-1 border border-gray-300 rounded text-sm"
-                    placeholder="Min"
-                    min="0"
-                  />
-                  <MinusIcon className="w-4 h-4 text-gray-400" />
-                  <input
-                    type="number"
-                    value={priceRange[1] === 0 ? '' : priceRange[1]}
-                    onChange={(e) => handlePriceRangeChange(1, e.target.value)}
-                    className="w-24 px-2 py-1 border border-gray-300 rounded text-sm"
-                    placeholder="Max"
-                    min="0"
-                  />
-                </div>
-                <div className="flex justify-center">
-                  <button
-                    onClick={() => dispatch(setPriceRange([0, 10000]))}
-                    className="text-sm text-gray-500 hover:text-gray-700"
-                  >
-                    Reset Price
-                  </button>
-                </div>
+          {/* Price Range */}
+          <div className="mb-6">
+            <h4 className="font-medium mb-4 text-gray-300">Price Range</h4>
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  value={priceRange[0] === 0 ? '' : priceRange[0]}
+                  onChange={(e) => handlePriceRangeChange(0, e.target.value)}
+                  className="w-24 px-2 py-1 bg-gray-800 border border-gray-600 rounded text-sm text-white placeholder-gray-400"
+                  placeholder="Min"
+                  min="0"
+                />
+                <MinusIcon className="w-4 h-4 text-gray-400" />
+                <input
+                  type="number"
+                  value={priceRange[1] === 0 ? '' : priceRange[1]}
+                  onChange={(e) => handlePriceRangeChange(1, e.target.value)}
+                  className="w-24 px-2 py-1 bg-gray-800 border border-gray-600 rounded text-sm text-white placeholder-gray-400"
+                  placeholder="Max"
+                  min="0"
+                />
+              </div>
+              <div className="flex justify-center">
+                <button
+                  onClick={() => dispatch(setPriceRange([0, 10000]))}
+                  className="text-sm text-blue-400 hover:text-blue-300"
+                >
+                  Reset Price
+                </button>
               </div>
             </div>
           </div>
         </div>
+      </div>
 
         {/* Main Content */}
         <div className="flex-1">
+        <AnimatedSearch/>
+
           {/* Sort Dropdown */}
           <div className="flex justify-end mb-6">
             <div className="relative">

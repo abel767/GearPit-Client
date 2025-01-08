@@ -9,6 +9,7 @@ export default function Sidebar() {
     { name: 'Dashboard', icon: Home, path: '/admin/dashboard' },
     { name: 'Products', icon: Package, path: '/admin/productdata' },
     { name: 'Category', icon: Category, path: '/admin/categorydata' },
+    { name: 'Inventory', icon: Package, path: '/admin/inventory' },
     { name: 'Orders', icon: FileText, path: '/admin/orders' },
     { name: 'Coupon', icon: Tag, path: '/admin/coupon' },
     { name: 'Banner', icon: Image, path: '/admin/banner' },

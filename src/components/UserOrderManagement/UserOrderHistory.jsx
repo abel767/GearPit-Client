@@ -9,11 +9,27 @@ const OrderHistory = () => {
   const [error, setError] = useState(null);
   const [cancellingOrders, setCancellingOrders] = useState(new Set());
   
-  // Update to use user slice instead of auth
   const userState = useSelector((state) => state.user);
   const userId = userState?.user?._id;
   
   const BASE_URL = 'http://localhost:3000';
+
+  const getStatusColor = (status) => {
+    switch (status?.toUpperCase()) {
+      case 'PENDING':
+        return 'text-yellow-500 bg-yellow-50';
+      case 'PROCESSING':
+        return 'text-orange-500 bg-orange-50';
+      case 'SHIPPED':
+        return 'text-blue-500 bg-blue-50';
+      case 'DELIVERED':
+        return 'text-green-500 bg-green-50';
+      case 'CANCELLED':
+        return 'text-red-500 bg-red-50';
+      default:
+        return 'text-gray-500 bg-gray-50';
+    }
+  };
 
   useEffect(() => {
     if (userId) {
@@ -145,15 +161,7 @@ const OrderHistory = () => {
                   {order.items.map(item => item.productId.productName).join(', ')}
                 </div>
                 <div>
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      order.status === 'DELIVERED'
-                        ? 'text-green-600 bg-green-50'
-                        : order.status === 'CANCELLED'
-                        ? 'text-red-600 bg-red-50'
-                        : 'text-blue-600 bg-blue-50'
-                    }`}
-                  >
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
                     {order.status}
                   </span>
                 </div>
@@ -170,11 +178,11 @@ const OrderHistory = () => {
                   ₹{order.totalAmount.toLocaleString('en-IN')} ({order.items.length} Items)
                 </div>
                 <div>
-                  {order.status !== 'CANCELLED' && order.status !== 'DELIVERED' && (
+                  {order.status.toUpperCase() !== 'CANCELLED' && order.status.toUpperCase() !== 'DELIVERED' && (
                     <button
                       onClick={() => handleCancelOrder(order._id)}
                       disabled={cancellingOrders.has(order._id)}
-                      className={`px-3 py-1 text-sm font-medium text-white rounded-full transition-colors ${
+                      className={`px-3 py-1 rounded-lg text-sm font-medium text-white transition-colors ${
                         cancellingOrders.has(order._id)
                           ? 'bg-gray-400 cursor-not-allowed'
                           : 'bg-red-600 hover:bg-red-700'

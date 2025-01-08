@@ -15,6 +15,9 @@ import EditCategories from '../../pages/admin/Dashboard/Categories/EditCategorie
 //order 
 import OrderManagement from '../../pages/admin/OrderManagement/OrderManagement'
 
+//inventory 
+import Inventory from '../../pages/admin/Inventory/Inventory'
+
 function AdminRoute(){
     return(
         <Routes>
@@ -30,6 +33,10 @@ function AdminRoute(){
             <Route path='/addproduct' element={<ProductAdd />} />
             <Route path='/editproduct/:id' element={<ProductEdit />} />
 
+            
+            {/* inventory management */}
+            <Route path='/inventory' element={<Inventory />} />
+
             {/* category */}
             <Route path='/categorydata' element={<CategoriesTable />} />
             <Route path='/addcategorydata' element={<AddCategories />} />
@@ -38,6 +45,7 @@ function AdminRoute(){
             {/* Order Management */}
             <Route path='/Orders' element={<OrderManagement />} />
 
+ 
             </Route>
         </Routes>
     )
