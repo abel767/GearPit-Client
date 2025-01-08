@@ -106,7 +106,10 @@ export default function Store() {
           axios.get('http://localhost:3000/admin/categorydata-addproduct')
         ]);
         
-        const activeProducts = productsRes.data.filter(product => !product.isDeleted);
+        // Filter out both deleted AND blocked products
+        const activeProducts = productsRes.data.filter(product => 
+          !product.isDeleted && !product.isBlocked
+        );
         dispatch(setProducts(activeProducts));
         dispatch(setCategories(categoriesRes.data.activeCategories));
       } catch (error) {

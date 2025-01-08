@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
-import { Eye, Edit, Trash } from "lucide-react";
+import { Eye, Edit, Ban, Play } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 
@@ -48,7 +48,9 @@ const Products = () => {
         product.variants.every((variant) => variant.stock === 0)
       );
     } else if (activeFilter === "Published") {
-      filtered = filtered.filter((product) => !product.isDeleted);
+      filtered = filtered.filter((product) => !product.isBlocked);
+    } else if (activeFilter === "Blocked") {
+      filtered = filtered.filter((product) => product.isBlocked);
     }
 
     if (selectedDate) {
@@ -62,27 +64,28 @@ const Products = () => {
     setProducts(filtered);
   };
 
-  
-  const handleDelete = async (productId) => {
+  const handleToggleStatus = async (productId) => {
     try {
       const response = await fetch(
-        `http://localhost:3000/admin/softdeleteproduct/${productId}`,
+        `http://localhost:3000/admin/toggleproductstatus/${productId}`,
         {
           method: 'PUT',
           credentials: 'include'
         }
       );
+      
       if (response.ok) {
+        const { product } = await response.json();
         setAllProducts(allProducts.map((p) => 
-          p._id === productId ? { ...p, isDeleted: true } : p
+          p._id === productId ? { ...p, isBlocked: product.isBlocked } : p
         ));
-        toast.success("Product deleted successfully");
+        toast.success(`Product ${product.isBlocked ? 'blocked' : 'unblocked'} successfully`);
       } else {
-        throw new Error('Failed to delete product');
+        throw new Error('Failed to update product status');
       }
     } catch (error) {
-      console.error("Error deleting product:", error);
-      toast.error("Failed to delete product");
+      console.error("Error updating product status:", error);
+      toast.error("Failed to update product status");
     }
   };
 
@@ -131,7 +134,7 @@ const Products = () => {
 
       <div className="flex justify-between mb-6">
         <div className="flex space-x-2">
-          {["All Products", "Published", "Low Stock", "Out of Stock"].map((filter) => (
+          {["All Products", "Published", "Blocked", "Low Stock", "Out of Stock"].map((filter) => (
             <button
               key={filter}
               onClick={() => setActiveFilter(filter)}
@@ -166,6 +169,7 @@ const Products = () => {
               <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Discount</th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Final Price</th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Added</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Status</th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Action</th>
             </tr>
           </thead>
@@ -195,6 +199,17 @@ const Products = () => {
                   {product.createdAt ? format(new Date(product.createdAt), "dd MMM yyyy") : "N/A"}
                 </td>
                 <td className="px-4 py-3">
+                  <span 
+                    className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      product.isBlocked 
+                        ? 'bg-red-100 text-red-600' 
+                        : 'bg-green-100 text-green-600'
+                    }`}
+                  >
+                    {product.isBlocked ? 'Blocked' : 'Active'}
+                  </span>
+                </td>
+                <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
                     <button className="p-2 bg-gray-100 rounded-lg">
                       <Eye size={16} />
@@ -203,10 +218,13 @@ const Products = () => {
                       <Edit size={16} />
                     </button>
                     <button
-                      className="p-2 bg-gray-100 rounded-lg text-red-600"
-                      onClick={() => handleDelete(product._id)}
+                      className={`p-2 bg-gray-100 rounded-lg ${
+                        product.isBlocked ? 'text-green-600' : 'text-red-600'
+                      }`}
+                      onClick={() => handleToggleStatus(product._id)}
+                      title={product.isBlocked ? 'Unblock Product' : 'Block Product'}
                     >
-                      <Trash size={16} />
+                      {product.isBlocked ? <Play size={16} /> : <Ban size={16} />}
                     </button>
                   </div>
                 </td>

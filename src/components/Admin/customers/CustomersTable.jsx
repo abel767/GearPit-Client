@@ -9,20 +9,21 @@ export default function CustomersTable() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('All');
 
-  useEffect(() => {
-    async function fetchUsers() {
-      try {
-        const response = await axios.get('http://localhost:3000/admin/data', { withCredentials: true });
-        const usersWithDefaults = response.data.map(user => ({
-          ...user,
-          userName: user.userName || 'Unknown User', // Retaining userName
-        }));
-        setAllUsers(usersWithDefaults);
-        setFilteredUsers(usersWithDefaults);
-      } catch (error) {
-        console.error('Error fetching users:', error);
-      }
+  const fetchUsers = async () => {
+    try {
+      const response = await axios.get('http://localhost:3000/admin/data', { withCredentials: true });
+      const usersWithDefaults = response.data.map(user => ({
+        ...user,
+        userName: user.userName || 'Unknown User',
+      }));
+      setAllUsers(usersWithDefaults);
+      setFilteredUsers(usersWithDefaults);
+    } catch (error) {
+      console.error('Error fetching users:', error);
     }
+  };
+
+  useEffect(() => {
     fetchUsers();
   }, []);
 
@@ -34,7 +35,7 @@ export default function CustomersTable() {
     const lowercasedQuery = searchQuery.toLowerCase();
     const filtered = allUsers.filter(user => {
       const matchesSearch =
-        user.userName.toLowerCase().includes(lowercasedQuery) || // Retained userName
+        user.userName.toLowerCase().includes(lowercasedQuery) ||
         user.email.toLowerCase().includes(lowercasedQuery) ||
         (user.phone && user.phone.toLowerCase().includes(lowercasedQuery));
 
@@ -50,26 +51,14 @@ export default function CustomersTable() {
 
   const handleBlockUnblock = async (userId, isBlocked) => {
     try {
-      // Send the PATCH request to toggle the isBlocked status
-      const response = await axios.put(
-        `http://localhost:3000/admin/block/${userId}`,  // Use `userId` instead of `id`
-        { isBlocked: !isBlocked }, // Toggle the block status
+      await axios.put(
+        `http://localhost:3000/admin/block/${userId}`,
+        { isBlocked: !isBlocked },
         { withCredentials: true }
       );
-  
-      const updatedUser = response.data; // Get the updated user from the response
-  
-      // Update the user status locally after the patch request
-      setAllUsers(prevUsers =>
-        prevUsers.map(user =>
-          user._id === userId ? { ...user, isBlocked: updatedUser.isBlocked } : user
-        )
-      );
-      setFilteredUsers(prevUsers =>
-        prevUsers.map(user =>
-          user._id === userId ? { ...user, isBlocked: updatedUser.isBlocked } : user
-        )
-      );
+      
+      // Fetch fresh data after the update
+      await fetchUsers();
     } catch (error) {
       console.error('Error updating user status:', error);
     }
