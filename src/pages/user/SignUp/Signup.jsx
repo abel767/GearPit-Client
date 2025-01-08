@@ -108,7 +108,13 @@ function Signup() {
       // Upload to Cloudinary
       const cloudinaryResponse = await axios.post(
         "https://api.cloudinary.com/v1_1/dxdsvdd7l/image/upload",
-        formData
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+          withCredentials: false // Disable credentials
+        }
       );
       const profileImageUrl = cloudinaryResponse.data.secure_url;
 
@@ -126,6 +132,7 @@ function Signup() {
         headers: {
           "Content-Type": "application/json",
         },
+        
       });
 
       toast.success(response.data.message, {

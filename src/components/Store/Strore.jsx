@@ -2,7 +2,9 @@ import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Heart, ChevronDown, ChevronRight, MinusIcon } from 'lucide-react';
 import axios from 'axios';
-import { toast } from 'react-hot-toast';
+import {  toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+
 import AnimatedSearch from '../SerachBarForStore/AnimatedSearch';
 import {
   setProducts,
@@ -143,14 +145,13 @@ export default function Store() {
       toast.error('This product is currently out of stock');
       return;
     }
-
+  
     if (!isAuthenticated) {
       navigate('/user/login');
       return;
     }
   
     try {
-      // Find first variant with stock > 0
       const availableVariant = product.variants.find(variant => {
         const stock = Number(variant.stock);
         return !isNaN(stock) && stock > 0;
@@ -185,8 +186,17 @@ export default function Store() {
         );
   
         toast.success(existingCartItem 
-          ? 'Product quantity updated in cart'
-          : 'Product added to cart successfully');
+          ? `${product.productName} quantity updated in cart!` 
+          : `${product.productName} added to cart!`, 
+          {
+            duration: 3000,
+            position: 'top-center',
+            style: {
+              backgroundColor: '#4CAF50',
+              color: 'white',
+            }
+          }
+        );
       }
     } catch (error) {
       console.error('Error adding to cart:', error);
@@ -205,56 +215,97 @@ export default function Store() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-    <h1 className="text-2xl font-bold text-center mb-8">
+    {/* <h1 className="text-2xl font-bold text-center mb-8">
       Discover Top-Quality Riding Gear for Every Adventure
-    </h1>
+    </h1> */}
     
     <div className="flex gap-6">
       {/* Filters Sidebar - now with full height and black background */}
-      <div className="w-64 flex-shrink-0">
-        <div className="bg-black text-white rounded-lg shadow p-4 h-screen overflow-y-auto sticky top-0">
+           {/* Filters Sidebar - now with white background */}
+           <div className="w-64 flex-shrink-0">
+        <div className="bg-white text-black rounded-lg shadow p-4 h-screen overflow-y-auto sticky top-0">
           <h3 className="font-semibold mb-4 text-xl">Filters</h3>
           
-          {/* Categories */}
-          <div className="mb-6">
-            <h4 className="font-medium mb-2 text-gray-300">Categories</h4>
-            <div className="space-y-2">
+          {/* Categories Section */}
+          <div className="mb-8">
+            <h4 className="text-lg font-semibold text-gray-700 mb-4">Categories</h4>
+            <div className="space-y-3">
               {categories.map(category => (
-                <div key={category._id} className="space-y-1">
-                  <div className="flex items-center justify-between">
-                    <label className="flex items-center space-x-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={selectedCategories.includes(category._id)}
-                        onChange={() => handleToggleCategoryFilter(category._id)}
-                        className="rounded border-gray-600 text-blue-500 focus:ring-blue-500 focus:ring-offset-black"
-                      />
-                      <span className="text-sm text-gray-300">{category.categoryName}</span>
+                <div key={category._id} className="space-y-2">
+                  <div className="flex items-center justify-between group">
+                    <label className="flex items-center space-x-3 cursor-pointer w-full">
+                      <div className="relative">
+                        <input
+                          type="checkbox"
+                          checked={selectedCategories.includes(category._id)}
+                          onChange={() => handleToggleCategoryFilter(category._id)}
+                          className="peer sr-only"
+                        />
+                        <div className="w-5 h-5 border-2 border-gray-300 rounded-md peer-checked:bg-blue-500 peer-checked:border-blue-500 transition-all">
+                          <svg
+                            className={`w-4 h-4 text-white absolute top-0.5 left-0.5 ${
+                              selectedCategories.includes(category._id) ? 'opacity-100' : 'opacity-0'
+                            }`}
+                            fill="none"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                      </div>
+                      <span className="text-gray-700 hover:text-gray-900 transition-colors">
+                        {category.categoryName}
+                      </span>
                     </label>
                     {category.subcategories?.length > 0 && (
                       <button
                         onClick={() => handleToggleCategory(category._id)}
-                        className="p-1 hover:bg-gray-800 rounded text-gray-400 hover:text-white"
+                        className="p-1.5 hover:bg-gray-100 rounded-full transition-colors"
                       >
                         {expandedCategories[category._id] ? (
-                          <ChevronDown className="w-4 h-4" />
+                          <ChevronDown className="w-4 h-4 text-gray-600" />
                         ) : (
-                          <ChevronRight className="w-4 h-4" />
+                          <ChevronRight className="w-4 h-4 text-gray-600" />
                         )}
                       </button>
                     )}
                   </div>
+                  
+                  {/* Subcategories */}
                   {expandedCategories[category._id] && category.subcategories?.length > 0 && (
-                    <div className="ml-4 space-y-1">
+                    <div className="ml-8 space-y-2">
                       {category.subcategories.map(sub => (
-                        <label key={sub._id} className="flex items-center space-x-2 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={selectedCategories.includes(sub._id)}
-                            onChange={() => handleToggleCategoryFilter(sub._id)}
-                            className="rounded border-gray-600 text-blue-500 focus:ring-blue-500 focus:ring-offset-black"
-                          />
-                          <span className="text-sm text-gray-400">{sub.name}</span>
+                        <label key={sub._id} className="flex items-center space-x-3 cursor-pointer">
+                          <div className="relative">
+                            <input
+                              type="checkbox"
+                              checked={selectedCategories.includes(sub._id)}
+                              onChange={() => handleToggleCategoryFilter(sub._id)}
+                              className="peer sr-only"
+                            />
+                            <div className="w-4 h-4 border-2 border-gray-300 rounded peer-checked:bg-blue-500 peer-checked:border-blue-500 transition-all">
+                              <svg
+                                className={`w-3 h-3 text-white absolute top-0.5 left-0.5 ${
+                                  selectedCategories.includes(sub._id) ? 'opacity-100' : 'opacity-0'
+                                }`}
+                                fill="none"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path d="M5 13l4 4L19 7" />
+                              </svg>
+                            </div>
+                          </div>
+                          <span className="text-gray-600 hover:text-gray-800 text-sm transition-colors">
+                            {sub.name}
+                          </span>
                         </label>
                       ))}
                     </div>
@@ -263,42 +314,45 @@ export default function Store() {
               ))}
             </div>
           </div>
-
-          {/* Price Range */}
-          <div className="mb-6">
-            <h4 className="font-medium mb-4 text-gray-300">Price Range</h4>
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  value={priceRange[0] === 0 ? '' : priceRange[0]}
-                  onChange={(e) => handlePriceRangeChange(0, e.target.value)}
-                  className="w-24 px-2 py-1 bg-gray-800 border border-gray-600 rounded text-sm text-white placeholder-gray-400"
-                  placeholder="Min"
-                  min="0"
-                />
-                <MinusIcon className="w-4 h-4 text-gray-400" />
-                <input
-                  type="number"
-                  value={priceRange[1] === 0 ? '' : priceRange[1]}
-                  onChange={(e) => handlePriceRangeChange(1, e.target.value)}
-                  className="w-24 px-2 py-1 bg-gray-800 border border-gray-600 rounded text-sm text-white placeholder-gray-400"
-                  placeholder="Max"
-                  min="0"
-                />
+          
+          {/* Price Range Section */}
+          <div className="mb-8">
+            <h4 className="text-lg font-semibold text-gray-700 mb-4">Price Range</h4>
+            <div className="space-y-6">
+              <div className="flex items-center gap-4">
+                <div className="relative flex-1">
+                  <input
+                    type="number"
+                    value={priceRange[0] === 0 ? '' : priceRange[0]}
+                    onChange={(e) => handlePriceRangeChange(0, e.target.value)}
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    placeholder="Min"
+                    min="0"
+                  />
+                </div>
+                <MinusIcon className="w-5 h-5 text-gray-600" />
+                <div className="relative flex-1">
+                  <input
+                    type="number"
+                    value={priceRange[1] === 0 ? '' : priceRange[1]}
+                    onChange={(e) => handlePriceRangeChange(1, e.target.value)}
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    placeholder="Max"
+                    min="0"
+                  />
+                </div>
               </div>
-              <div className="flex justify-center">
-                <button
-                  onClick={() => dispatch(setPriceRange([0, 10000]))}
-                  className="text-sm text-blue-400 hover:text-blue-300"
-                >
-                  Reset Price
-                </button>
-              </div>
+              <button
+                onClick={() => dispatch(setPriceRange([0, 10000]))}
+                className="w-full py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-900 rounded-lg transition-colors text-sm font-medium"
+              >
+                Reset Price
+              </button>
             </div>
           </div>
         </div>
       </div>
+
 
         {/* Main Content */}
         <div className="flex-1">
