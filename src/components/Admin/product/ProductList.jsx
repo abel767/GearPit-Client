@@ -9,6 +9,7 @@ const Products = () => {
   const [products, setProducts] = useState([]);
   const [activeFilter, setActiveFilter] = useState("All Products");
   const [selectedDate, setSelectedDate] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
   const handleEdit = (id) => {
@@ -17,16 +18,24 @@ const Products = () => {
   
   useEffect(() => {
     async function fetchData() {
+      setIsLoading(true);
       try {
         const response = await fetch("http://localhost:3000/admin/productdata", {
           credentials: 'include'
         });
+        if (!response.ok) {
+          throw new Error('Failed to fetch products');
+        }
         const data = await response.json();
         console.log("Products data received:", data);
-        setAllProducts(data || []);
+        // Ensure data is always an array
+        setAllProducts(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error("Error fetching products:", error);
         toast.error("Failed to fetch products");
+        setAllProducts([]); // Set empty array on error
+      } finally {
+        setIsLoading(false);
       }
     }
     fetchData();
@@ -37,15 +46,21 @@ const Products = () => {
   }, [allProducts, activeFilter, selectedDate]);
 
   const filterProducts = () => {
+    // Guard against non-array allProducts
+    if (!Array.isArray(allProducts)) {
+      setProducts([]);
+      return;
+    }
+
     let filtered = [...allProducts];
 
     if (activeFilter === "Low Stock") {
       filtered = filtered.filter((product) =>
-        product.variants.some((variant) => variant.stock <= 5 && variant.stock > 0)
+        product.variants?.some((variant) => variant.stock <= 5 && variant.stock > 0)
       );
     } else if (activeFilter === "Out of Stock") {
       filtered = filtered.filter((product) =>
-        product.variants.every((variant) => variant.stock === 0)
+        product.variants?.every((variant) => variant.stock === 0)
       );
     } else if (activeFilter === "Published") {
       filtered = filtered.filter((product) => !product.isBlocked);
@@ -89,36 +104,45 @@ const Products = () => {
     }
   };
 
-  const calculateStock = (variants) =>
-    variants.reduce((total, variant) => total + (variant.stock || 0), 0);
+  // Helper functions with null checks
+  const calculateStock = (variants = []) =>
+    variants.reduce((total, variant) => total + (variant?.stock || 0), 0);
 
-  const getLowestPrice = (variants) => {
-    if (!variants || variants.length === 0) return 0;
+  const getLowestPrice = (variants = []) => {
+    if (!variants.length) return 0;
     return variants.reduce((lowest, current) => 
-      (current.price < lowest.price) ? current : lowest
-    , variants[0]).price;
+      ((current?.price || 0) < (lowest?.price || 0)) ? current : lowest
+    , variants[0])?.price || 0;
   };
 
-  const getHighestDiscount = (variants) => {
-    if (!variants || variants.length === 0) return 0;
+  const getHighestDiscount = (variants = []) => {
+    if (!variants.length) return 0;
     return variants.reduce((highest, current) => 
-      (current.discount > highest) ? current.discount : highest
+      (current?.discount || 0) > highest ? (current.discount || 0) : highest
     , 0);
   };
   
-  const getLowestFinalPrice = (variants) => {
-    if (!variants || variants.length === 0) return 0;
+  const getLowestFinalPrice = (variants = []) => {
+    if (!variants.length) return 0;
     return variants.reduce((lowest, current) => {
-      const currentFinalPrice = current.finalPrice || current.price * (1 - (current.discount || 0) / 100);
-      const lowestPrice = lowest.finalPrice || lowest.price * (1 - (lowest.discount || 0) / 100);
+      const currentFinalPrice = current?.finalPrice || (current?.price || 0) * (1 - (current?.discount || 0) / 100);
+      const lowestPrice = lowest?.finalPrice || (lowest?.price || 0) * (1 - (lowest?.discount || 0) / 100);
       return currentFinalPrice < lowestPrice ? current : lowest;
-    }, variants[0]).finalPrice;
+    }, variants[0])?.finalPrice || 0;
   };
 
   const getCategoryName = (category) => {
     if (!category) return "N/A";
     return typeof category === 'string' ? category : category.categoryName || "N/A";
   };
+
+  if (isLoading) {
+    return (
+      <div className="p-6 flex justify-center items-center">
+        <div className="text-xl">Loading products...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
@@ -158,81 +182,85 @@ const Products = () => {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg border border-gray-200">
-        <table className="w-full">
-          <thead>
-            <tr>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Product</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Category</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Stock</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Base Price</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Discount</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Final Price</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Added</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Status</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {products.map((product) => (
-              <tr key={product._id} className="border-b border-gray-200 hover:bg-gray-50">
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    {product.images && product.images[0] && (
-                      <img
-                        src={product.images[0]}
-                        alt={product.productName}
-                        className="w-12 h-12 rounded-lg object-cover"
-                      />
-                    )}
-                    <span className="font-medium text-gray-900">{product.productName}</span>
-                  </div>
-                </td>
-                <td className="px-4 py-3">{getCategoryName(product.category)}</td>
-                <td className="px-4 py-3">{calculateStock(product.variants)}</td>
-                <td className="px-4 py-3">₹{getLowestPrice(product.variants)}</td>
-                <td className="px-4 py-3">
-                  {getHighestDiscount(product.variants)}%
-                </td>
-                <td className="px-4 py-3">₹{getLowestFinalPrice(product.variants)}</td>
-                <td className="px-4 py-3">
-                  {product.createdAt ? format(new Date(product.createdAt), "dd MMM yyyy") : "N/A"}
-                </td>
-                <td className="px-4 py-3">
-                  <span 
-                    className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      product.isBlocked 
-                        ? 'bg-red-100 text-red-600' 
-                        : 'bg-green-100 text-green-600'
-                    }`}
-                  >
-                    {product.isBlocked ? 'Blocked' : 'Active'}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <button className="p-2 bg-gray-100 rounded-lg">
-                      <Eye size={16} />
-                    </button>
-                    <button onClick={() => handleEdit(product._id)} className="p-2 bg-gray-100 rounded-lg">
-                      <Edit size={16} />
-                    </button>
-                    <button
-                      className={`p-2 bg-gray-100 rounded-lg ${
-                        product.isBlocked ? 'text-green-600' : 'text-red-600'
-                      }`}
-                      onClick={() => handleToggleStatus(product._id)}
-                      title={product.isBlocked ? 'Unblock Product' : 'Block Product'}
-                    >
-                      {product.isBlocked ? <Play size={16} /> : <Ban size={16} />}
-                    </button>
-                  </div>
-                </td>
+      {products.length === 0 ? (
+        <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
+          <p className="text-gray-500">No products found. Click the Add Product button to add your first product.</p>
+        </div>
+      ) : (
+        <div className="bg-white rounded-lg border border-gray-200">
+          <table className="w-full">
+            <thead>
+              <tr>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Product</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Category</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Stock</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Base Price</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Discount</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Final Price</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Added</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Status</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Action</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {products.map((product) => (
+                <tr key={product._id} className="border-b border-gray-200 hover:bg-gray-50">
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      {product.images?.[0] && (
+                        <img
+                          src={product.images[0]}
+                          alt={product.productName}
+                          className="w-12 h-12 rounded-lg object-cover"
+                        />
+                      )}
+                      <span className="font-medium text-gray-900">{product.productName}</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">{getCategoryName(product.category)}</td>
+                  <td className="px-4 py-3">{calculateStock(product.variants)}</td>
+                  <td className="px-4 py-3">₹{getLowestPrice(product.variants)}</td>
+                  <td className="px-4 py-3">{getHighestDiscount(product.variants)}%</td>
+                  <td className="px-4 py-3">₹{getLowestFinalPrice(product.variants)}</td>
+                  <td className="px-4 py-3">
+                    {product.createdAt ? format(new Date(product.createdAt), "dd MMM yyyy") : "N/A"}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span 
+                      className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        product.isBlocked 
+                          ? 'bg-red-100 text-red-600' 
+                          : 'bg-green-100 text-green-600'
+                      }`}
+                    >
+                      {product.isBlocked ? 'Blocked' : 'Active'}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <button className="p-2 bg-gray-100 rounded-lg">
+                        <Eye size={16} />
+                      </button>
+                      <button onClick={() => handleEdit(product._id)} className="p-2 bg-gray-100 rounded-lg">
+                        <Edit size={16} />
+                      </button>
+                      <button
+                        className={`p-2 bg-gray-100 rounded-lg ${
+                          product.isBlocked ? 'text-green-600' : 'text-red-600'
+                        }`}
+                        onClick={() => handleToggleStatus(product._id)}
+                        title={product.isBlocked ? 'Unblock Product' : 'Block Product'}
+                      >
+                        {product.isBlocked ? <Play size={16} /> : <Ban size={16} />}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 };
