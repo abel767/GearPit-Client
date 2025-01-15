@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Heart, ChevronDown } from 'lucide-react';
+import { Heart, ChevronDown, Tag  } from 'lucide-react';
 import axios from 'axios';
 import {  toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -47,7 +47,7 @@ const predefinedPriceRanges = [
 const sizeOptions = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 
 
-const getPriceDetails = (variants) => {
+const getPriceDetails = (variants, offer) => {
   if (!variants || variants.length === 0) return { originalPrice: 0, finalPrice: 0, discount: 0 };
   
   const lowestPriceVariant = variants.reduce((lowest, current) => {
@@ -56,12 +56,37 @@ const getPriceDetails = (variants) => {
     return currentFinalPrice < lowestFinalPrice ? current : lowest;
   }, variants[0]);
 
+  let finalPrice = lowestPriceVariant.price;
+  let totalDiscount = 0;
+
+  // Apply variant discount
+  if (lowestPriceVariant.discount > 0) {
+    totalDiscount = lowestPriceVariant.discount;
+    finalPrice *= (1 - lowestPriceVariant.discount / 100);
+  }
+
+  // Apply offer discount if active
+  if (offer?.isActive && offer?.percentage > 0) {
+    totalDiscount = totalDiscount > 0 ? totalDiscount + offer.percentage : offer.percentage;
+    finalPrice *= (1 - offer.percentage / 100);
+  }
+
   return {
     originalPrice: lowestPriceVariant.price,
-    finalPrice: lowestPriceVariant.finalPrice || lowestPriceVariant.price * (1 - (lowestPriceVariant.discount || 0) / 100),
-    discount: lowestPriceVariant.discount
+    finalPrice: Math.round(finalPrice * 100) / 100,
+    discount: totalDiscount
   };
 };
+
+
+const formatDate = (dateString) => {
+  return new Date(dateString).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  });
+};
+
 
 const isProductOutOfStock = (variants) => {
   // Return true if variants array is empty or undefined
@@ -399,95 +424,105 @@ export default function Store() {
             </div>
           </div>
 
-          {/* Products Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {currentProducts.map((product) => {
-              const outOfStock = isProductOutOfStock(product.variants);
-              const { originalPrice, finalPrice, discount } = getPriceDetails(product.variants);
+        {currentProducts.map((product) => {
+          const outOfStock = isProductOutOfStock(product.variants);
+          const { originalPrice, finalPrice, discount } = getPriceDetails(product.variants, product.offer);
+          const hasOffer = product.offer?.isActive && product.offer?.percentage > 0;
+          
+          return (
+            <div 
+              key={product._id} 
+              className="group relative bg-white p-2 rounded-lg"
+            >
+              {/* Wishlist Heart Button */}
+              <button className="absolute top-2 right-2 z-10 bg-white rounded-full p-1 shadow-sm">
+                <Heart className="w-5 h-5 text-gray-400 hover:text-red-500" />
+              </button>
               
-              return (
-                <div 
-                  key={product._id} 
-                  className={`group relative bg-white p-2 rounded-lg  ${
-                    outOfStock ? 'opacity-90' : ''
-                  }`}
-                >
-                  {/* Wishlist Heart Button */}
-                  <button className="absolute top-2 right-2 z-10 bg-white rounded-full p-1 shadow-sm">
-                    <Heart className="w-5 h-5 text-gray-400 hover:text-red-500" />
-                  </button>
-                  
-                  {/* Product Image Container */}
-                  <div className="relative aspect-square mb-3">
-                    <img
-                      src={product.images[0]}
-                      alt={product.productName}
-                      className={`w-full h-full object-contain ${
-                        outOfStock ? 'opacity-60' : ''
-                      }`}
-                    />
-                    {/* Out of Stock Badge */}
-                    {outOfStock && (
-                      <div className="absolute top-2 left-2">
-                        <span className="bg-red-100 text-red-600 px-3 py-1 rounded-md text-xs font-semibold">
-                          Out of Stock
-                        </span>
-                      </div>
-                    )}
+              {/* Offer Tag */}
+              {hasOffer && (
+                <div className="absolute top-2 left-2 z-10">
+                  <div className="flex items-center gap-1 bg-red-500 text-white px-2 py-1 rounded-md">
+                    <Tag className="w-4 h-4" />
+                    <span className="text-xs font-semibold">
+                      {product.offer.percentage}% OFF
+                    </span>
                   </div>
-
-                  {/* Product Details */}
-                  <div className="text-center">
-                    <h3 className="text-sm font-medium mb-2 line-clamp-2 h-10">
-                      {product.productName}
-                    </h3>
-                    
-                    {/* Price Section */}
-                    <div className="mb-2 flex flex-col items-center">
-                      <div className="flex items-center gap-2 justify-center">
-                        <span className={`text-lg font-bold ${outOfStock ? 'text-gray-500' : 'text-gray-900'}`}>
-                          ₹{finalPrice.toFixed(2)}
-                        </span>
-                        {discount > 0 && (
-                          <span className="text-sm text-gray-500 line-through">
-                            ₹{originalPrice.toFixed(2)}
-                          </span>
-                        )}
-                      </div>
-                      {discount > 0 && !outOfStock && (
-                        <span className="text-sm text-green-600">
-                          {discount}% off
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="flex gap-2 mt-2">
-                      <button 
-                        onClick={() => !outOfStock && handleAddToCart(product)}
-                        disabled={outOfStock}
-                        className={`
-                          flex-1 py-2 px-4 text-sm rounded transition-all duration-200
-                          ${outOfStock 
-                            ? 'bg-red-50 text-red-500 border border-red-300 cursor-not-allowed hover:bg-red-100'
-                            : 'bg-black hover:bg-gray-800 text-white'
-                          }
-                        `}
-                      >
-                        {outOfStock ? 'Out of Stock' : 'Add to Cart'}
-                      </button>
-                      <button 
-                        onClick={() => navigate(`/user/product/${product._id}`)} 
-                        className="flex-1 bg-black hover:bg-gray-800 text-white py-2 px-4 text-sm rounded transition-colors duration-200"
-                      >
-                        View
-                      </button>
-                    </div>
+                  <div className="text-xs text-gray-600 bg-white px-2 py-1 mt-1 rounded-md shadow-sm">
+                    Ends {formatDate(product.offer.endDate)}
                   </div>
                 </div>
-              );
-            })}
-          </div>
+              )}
+              
+              {/* Product Image */}
+              <div className="relative aspect-square mb-3">
+                <img
+                  src={product.images[0]}
+                  alt={product.productName}
+                  className={`w-full h-full object-contain ${outOfStock ? 'opacity-60' : ''}`}
+                />
+                {outOfStock && (
+                  <div className="absolute top-2 left-2">
+                    <span className="bg-red-100 text-red-600 px-3 py-1 rounded-md text-xs font-semibold">
+                      Out of Stock
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Product Details */}
+              <div className="text-center">
+                <h3 className="text-sm font-medium mb-2 line-clamp-2 h-10">
+                  {product.productName}
+                </h3>
+                
+                {/* Price Section */}
+                <div className="mb-2 flex flex-col items-center">
+                  <div className="flex items-center gap-2 justify-center">
+                    <span className={`text-lg font-bold ${outOfStock ? 'text-gray-500' : 'text-gray-900'}`}>
+                      ₹{finalPrice.toFixed(2)}
+                    </span>
+                    {discount > 0 && (
+                      <span className="text-sm text-gray-500 line-through">
+                        ₹{originalPrice.toFixed(2)}
+                      </span>
+                    )}
+                  </div>
+                  {discount > 0 && !outOfStock && (
+                    <span className="text-sm text-green-600">
+                      {discount}% off
+                    </span>
+                  )}
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-2 mt-2">
+                  <button 
+                    onClick={() => !outOfStock && handleAddToCart(product)}
+                    disabled={outOfStock}
+                    className={`
+                      flex-1 py-2 px-4 text-sm rounded transition-all duration-200
+                      ${outOfStock 
+                        ? 'bg-red-50 text-red-500 border border-red-300 cursor-not-allowed hover:bg-red-100'
+                        : 'bg-black hover:bg-gray-800 text-white'
+                      }
+                    `}
+                  >
+                    {outOfStock ? 'Out of Stock' : 'Add to Cart'}
+                  </button>
+                  <button 
+                    onClick={() => navigate(`/user/product/${product._id}`)} 
+                    className="flex-1 bg-black hover:bg-gray-800 text-white py-2 px-4 text-sm rounded transition-colors duration-200"
+                  >
+                    View
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
 
           {/* Pagination */}
           <div className="flex justify-center gap-1 mt-8">
