@@ -14,7 +14,7 @@ export default function Sidebar() {
     { name: 'Offer', icon: Tag, path: '/admin/offermanagement' },
     { name: 'Inventory', icon: Package, path: '/admin/inventory' },
     { name: 'Orders', icon: FileText, path: '/admin/orders' },
-    { name: 'Coupon', icon: Tag, path: '/admin/coupon' },
+    { name: 'Coupons', icon: Tag, path: '/admin/coupons' },
     { name: 'Banner', icon: Image, path: '/admin/banner' },
     { name: 'Transaction', icon: Receipt, path: '/admin/transaction' },
     { name: 'Customers', icon: Users, path: '/admin/data' },

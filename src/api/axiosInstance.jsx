@@ -1,44 +1,44 @@
-import axios from 'axios'
+// utils/axiosConfig.js
+import axios from 'axios';
 
 const axiosInstance = axios.create({
     baseURL: import.meta.env.VITE_BACKEND_URL,
-    withCredentials: true
-})
-
-console.log("Backend URL:", import.meta.env.VITE_BACKEND_URL);
-
+    withCredentials: true // Important for sending cookies
+});
 
 axiosInstance.interceptors.response.use(
     (response) => response,
-    async (error)=>{
-        const originalRequest = error.config
-        console.log('Error from refresh request', error)
+    async (error) => {
+        const originalRequest = error.config;
 
-        if(error.response?.status === 403 && !originalRequest._retry){
-            originalRequest._retry = true
+        // Don't retry if it's already been retried or it's a 401 from the refresh endpoint
+        if (error.response?.status === 401 && 
+            !originalRequest._retry && 
+            !originalRequest.url?.includes('refresh-token')) {
+            
+            originalRequest._retry = true;
 
-            try{
-                const refreshResponse = await axios.post(
+            try {
+                // The refresh endpoint will automatically set new cookies
+                await axios.post(
                     `${import.meta.env.VITE_BACKEND_URL}/user/refresh-token`,
                     {},
-                    {withCredentials: true}
-                )
+                    { withCredentials: true }
+                );
 
-                const newAccessToken = refreshResponse.date.accesToken
-                console.log('newAccessToken', newAccessToken)
-
-                axiosInstance.defaults.headers.common['Authorization'] =   `Bearer ${newAccessToken}`
-                originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`
-                
-                return axiosInstance(originalRequest)
-
-            }catch(refreshError){
-                console.error('failed to refresh token', refreshError)
-                return Promise.reject(refreshError)
+                // Retry the original request
+                return axiosInstance(originalRequest);
+            } catch (refreshError) {
+                // Handle refresh failure (e.g., redirect to login)
+                window.dispatchEvent(new CustomEvent('auth-error', {
+                    detail: { message: 'Session expired. Please login again.' }
+                }));
+                return Promise.reject(refreshError);
             }
         }
+
+        return Promise.reject(error);
     }
-)
+);
 
-
-export default axiosInstance
+export default axiosInstance;

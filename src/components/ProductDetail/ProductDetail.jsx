@@ -139,7 +139,7 @@ export default function ProductDetail() {
       </div>
     );
   }
-
+   
   
   const handleAddToCart = async (product) => {
     if (!isAuthenticated) {
