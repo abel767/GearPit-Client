@@ -23,6 +23,9 @@ import CouponPage from '../../pages/admin/Dashboard/Coupon/CouponPage'
 import AddCouponPage from '../../pages/admin/Dashboard/Coupon/AddCouponPage'
 
 
+//sales report
+import SalesReportPage from '../../pages/admin/Dashboard/salesReport/SalesReportPage'
+
 //offer management
 import OfferPage from '../../pages/admin/Dashboard/Offers/OfferPage'
 import AddCategoryOfferPage from '../../pages/admin/Dashboard/Offers/AddCategoryOfferPage'
@@ -62,6 +65,10 @@ function AdminRoute(){
             <Route path='/offermanagement' element={<OfferPage />} />
             <Route path='/addproductoffer' element={<AddProductOfferPage />} />
             <Route path='/addcategoryoffer' element={<AddCategoryOfferPage />} />
+
+            {/* sales report */}
+            <Route path='/salesreport' element={<SalesReportPage />} />
+
 
  
             </Route>

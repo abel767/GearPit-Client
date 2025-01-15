@@ -8,7 +8,6 @@ function UserWallet() {
     console.log('Redux State:', state); // Debug Redux state
     return state.user;
   });
-  
   const [walletData, setWalletData] = useState({
     balance: 0,
     monthlySpending: 0,
