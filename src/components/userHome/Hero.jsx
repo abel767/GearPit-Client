@@ -1,30 +1,51 @@
-import image1 from '../../assets/user/Helmets/Ls2.png'
-import image2 from '../../assets/user/Helmets/agv 46.png'
+import image1 from '../../assets/user/Helmets/hero.png'
 
 function Hero() {
     return (
-        <section className="relative bg-gradient-to-t from-custom-red  to-black text-white min-h-[600px] overflow-hidden">
+      <>
+      
+    
+        <section className="relative bg-heroBlack text-white min-h-screen overflow-hidden">
           {/* Main Content Container */}
-          <div className="container mx-auto px-20 py-16 relative z-10">
-            <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
-              {/* Text Content */}
-              <div className="relative max-w-2xl">
-                <span className="absolute -left-12 top-0 text-red-600 font-bold rotate-[-90deg] text-xl ">
-                  BEST
-                </span>
-                <h1 className="text-[220px] font-bold leading-none tracking-tighter">
-                  <span className=" text-Hero-title font-FontSpring  ">GEARPIT</span>
-                  <span className="block text-6xl italic font-normal -mt-6 ml-24">Ride</span>
+          <div className="container mx-auto px-4 md:px-6 py-16 relative">
+            {/* Center Content Wrapper */}
+            <div className="flex flex-col items-center justify-center min-h-[calc(100vh-8rem)] relative">
+              {/* BEST Text */}
+              <span className="absolute left-20 top-25 text-red-600 font-bold text-sm tracking-wide">
+                BEST
+              </span>
+
+              {/* Main Title Group - Lower z-index */}
+              <div className="relative w-full text-center z-0">
+                <h1 className="text-[clamp(8rem,25vw,16rem)] font-bold leading-none tracking-tighter text-[#f5f5f4] font-Roboto-font">
+                  GEARPIT
+                  <span className="block text-[clamp(2rem,5vw,3rem)] italic font-light text-red-600 absolute bottom-0 right-80 transform translate-y-1/2">
+                    Ride
+                  </span>
                 </h1>
-                <p className="text-xl mt-6 max-w-xl font-Roboto-font ">
+              </div>
+
+              {/* Helmet Image - Higher z-index */}
+              <div className="absolute top-1/2 left-1/2 transform -translate-y-1/2 -translate-x-1/3 w-[90%] max-w-xl z-10">
+              <img
+                src={image1}
+                alt="Motorcycle Helmet"
+                className="w-full h-auto object-contain mix-blend-lighten animate-hover1"
+              />
+              </div>
+
+              {/* Bottom Left Content */}
+              <div className="absolute bottom-0 left-0 max-w-xl">
+                <p className="text-sm md:text-base font-light  text-zinc-400 tracking-wide font-anonymous-pro">
                   Gear Up for the Ultimate Ride with Premium Biking Gear and 
                   Accessories from GearPit—Your Adventure Awaits!
                 </p>
-                <button className="mt-8 bg-orange-600 hover:bg-orange-700 text-white px-8 py-3 rounded-md flex items-center group transition-all">
+                
+                <button className="mt-8 border border-zinc-800 hover:bg-white/5 text-white px-6 py-2.5 rounded-sm flex items-center group transition-all text-sm">
                   Discover more
                   <svg 
                     xmlns="http://www.w3.org/2000/svg" 
-                    className="h-5 w-5 ml-2 group-hover:translate-x-1 transition-transform" 
+                    className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" 
                     fill="none" 
                     viewBox="0 0 24 24" 
                     stroke="currentColor"
@@ -32,43 +53,20 @@ function Hero() {
                     <path 
                       strokeLinecap="round" 
                       strokeLinejoin="round" 
-                      strokeWidth={2} 
-                      d="M9 5l7 7-7 7" 
+                      strokeWidth={1.5} 
+                      d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" 
                     />
                   </svg>
                 </button>
               </div>
-    
-              {/* Helmet Images */}
-              <div className="relative w-full max-w-2xl">
-                <div className="flex justify-center items-center gap-4">
-                  <img
-                    src={image1}
-                    alt="Just1 Helmet"
-                    className="w-[400px] object-contain transform -rotate-12 animate-hover1"
-                  />
-                  <img
-                    src={image2}
-                    alt="AGV Helmet"
-                    className="w-[400px] object-contain transform rotate-12 translate-y-8 animate-hover2"
-                  />
-                </div>
-              </div>
             </div>
           </div>
-    
-          {/* Background Gradient Overlay */}
-          <div 
-            className="absolute inset-0 bg-gradient-to-br from-red-900/20 via-black/50 to-black/80"
-            style={{
-              maskImage: 'radial-gradient(circle at center, black, transparent)',
-              WebkitMaskImage: 'radial-gradient(circle at center, black, transparent)'
-            }}
-          />
+          
         </section>
-      )
-    }
-    
-  
-  export default Hero;
-  
+
+        </>
+    )
+}
+
+export default Hero
+

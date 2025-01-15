@@ -6,17 +6,23 @@ import {
   Search, 
   ChevronDown,
   Check,
-  X 
+  X,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 
 export default function OrderManagement() {
   const [selectedStatus, setSelectedStatus] = useState('All Status');
+  const [selectedNewStatus, setSelectedNewStatus] = useState(null);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showStatusDialog, setShowStatusDialog] = useState(false);
   const [openDropdownId, setOpenDropdownId] = useState(null);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const ordersPerPage = 5;
 
   const statusTabs = ['All Status', 'Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'];
   const statusOptions = ['Processing', 'Shipped', 'Delivered', 'Cancelled'];
@@ -32,6 +38,12 @@ export default function OrderManagement() {
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedStatus, searchTerm]);
+
+  
 
   const fetchOrders = async () => {
     try {
@@ -49,30 +61,24 @@ export default function OrderManagement() {
     }
   };
 
+
+
+
   const updateOrderStatus = async (orderId, newStatus) => {
     try {
-      const endpoint = newStatus.toLowerCase() === 'cancelled' 
-        ? `http://localhost:3000/user/orders/${orderId}/cancel`
-        : `http://localhost:3000/admin/orders/${orderId}/status`;
-
-      const method = newStatus.toLowerCase() === 'cancelled' ? 'PUT' : 'PATCH';
-      const body = newStatus.toLowerCase() === 'cancelled' 
-        ? {}
-        : { status: newStatus };
-
-      const response = await fetch(endpoint, {
-        method: method,
+      const response = await fetch(`http://localhost:3000/admin/orders/${orderId}/status`, {
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify(body)
+        body: JSON.stringify({ status: newStatus.toLowerCase() })
       });
-
+  
       const data = await response.json();
-      if (data.success || data.data) {
+      if (data.success) {
         setOrders(orders.map(order => 
-          order._id === orderId ? { ...order, status: newStatus } : order
+          order._id === orderId ? { ...order, status: newStatus.toLowerCase() } : order
         ));
       }
     } catch (error) {
@@ -97,13 +103,7 @@ export default function OrderManagement() {
     }
   };
 
-  const filteredOrders = orders.filter(order => {
-    const matchesStatus = selectedStatus === 'All Status' || order.status === selectedStatus;
-    const matchesSearch = 
-      order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.userId?.name?.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesStatus && matchesSearch;
-  });
+
 
   const handleExport = () => {
     const csv = [
@@ -128,9 +128,59 @@ export default function OrderManagement() {
     window.URL.revokeObjectURL(url);
   };
 
+  const filteredOrders = orders.filter(order => {
+    const matchesStatus = selectedStatus === 'All Status' || order.status === selectedStatus;
+    const matchesSearch = 
+      order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.userId?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesStatus && matchesSearch;
+  });
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredOrders.length / ordersPerPage);
+  const indexOfLastOrder = currentPage * ordersPerPage;
+  const indexOfFirstOrder = indexOfLastOrder - ordersPerPage;
+  const currentOrders = filteredOrders.slice(indexOfFirstOrder, indexOfLastOrder);
+
+  // Generate page numbers
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisiblePages = 5;
+    
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) {
+          pages.push(i);
+        }
+        pages.push('...');
+        pages.push(totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        pages.push(1);
+        pages.push('...');
+        for (let i = totalPages - 3; i <= totalPages; i++) {
+          pages.push(i);
+        }
+      } else {
+        pages.push(1);
+        pages.push('...');
+        pages.push(currentPage - 1);
+        pages.push(currentPage);
+        pages.push(currentPage + 1);
+        pages.push('...');
+        pages.push(totalPages);
+      }
+    }
+    return pages;
+  };
+
   // Modal component using Tailwind
   const StatusUpdateModal = ({ show, onClose, onConfirm, orderNumber }) => {
     if (!show) return null;
+
 
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
@@ -138,7 +188,7 @@ export default function OrderManagement() {
           <div className="mb-4">
             <h3 className="text-lg font-semibold">Update Order Status</h3>
             <p className="text-gray-600 mt-2">
-              Are you sure you want to update the status of order #{orderNumber}?
+              Are you sure you want to update the status of order #{orderNumber} to {selectedNewStatus}?
               This action cannot be undone.
             </p>
           </div>
@@ -162,6 +212,7 @@ export default function OrderManagement() {
       </div>
     );
   };
+
 
   return (
     <div className="p-6">
@@ -243,12 +294,12 @@ export default function OrderManagement() {
                 <tr>
                   <td colSpan="8" className="text-center py-8">Loading orders...</td>
                 </tr>
-              ) : filteredOrders.length === 0 ? (
+              ) : currentOrders.length === 0 ? (
                 <tr>
                   <td colSpan="8" className="text-center py-8">No orders found</td>
                 </tr>
               ) : (
-                filteredOrders.map((order) => (
+                currentOrders.map((order) => (
                   <tr key={order._id} className="border-b">
                     <td className="px-6 py-4 text-sm font-medium">{order.orderNumber}</td>
                     <td className="px-6 py-4 text-sm">
@@ -301,6 +352,7 @@ export default function OrderManagement() {
                                   className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                                   onClick={() => {
                                     setSelectedOrder(order);
+                                    setSelectedNewStatus(status); // Set the new status here
                                     setShowStatusDialog(true);
                                     setOpenDropdownId(null);
                                   }}
@@ -319,19 +371,75 @@ export default function OrderManagement() {
             </tbody>
           </table>
         </div>
+
+     {/* Pagination Controls */}
+     {!loading && filteredOrders.length > 0 && (
+          <div className="flex items-center justify-between px-6 py-4 border-t">
+            <div className="text-sm text-gray-500">
+              Showing {indexOfFirstOrder + 1} to {Math.min(indexOfLastOrder, filteredOrders.length)} of {filteredOrders.length} orders
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className={`p-2 rounded-lg ${
+                  currentPage === 1 
+                    ? 'text-gray-300 cursor-not-allowed' 
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              
+              {getPageNumbers().map((page, index) => (
+                <button
+                  key={index}
+                  onClick={() => page !== '...' && setCurrentPage(page)}
+                  className={`px-3 py-1 rounded-lg ${
+                    page === currentPage
+                      ? 'bg-black text-white'
+                      : page === '...'
+                      ? 'text-gray-500 cursor-default'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className={`p-2 rounded-lg ${
+                  currentPage === totalPages 
+                    ? 'text-gray-300 cursor-not-allowed' 
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
+
+      
   
       <StatusUpdateModal
-        show={showStatusDialog}
-        onClose={() => setShowStatusDialog(false)}
-        onConfirm={() => {
-          if (selectedOrder) {
-            updateOrderStatus(selectedOrder._id, selectedStatus);
-          }
-          setShowStatusDialog(false);
-        }}
-        orderNumber={selectedOrder?.orderNumber}
-      />
+    show={showStatusDialog}
+    onClose={() => {
+      setShowStatusDialog(false);
+      setSelectedNewStatus(null);
+    }}
+    onConfirm={() => {
+      if (selectedOrder && selectedNewStatus) {
+        updateOrderStatus(selectedOrder._id, selectedNewStatus);
+      }
+      setShowStatusDialog(false);
+      setSelectedNewStatus(null);
+    }}
+    orderNumber={selectedOrder?.orderNumber}
+  />
     </div>
   );
 }

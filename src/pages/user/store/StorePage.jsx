@@ -4,11 +4,13 @@ import Footer from '../../../components/Footer/Fotoer'
 
 function StorePage() {
   return (
-    <>
-    <Navbar />
-    <Store/>      
-    <Footer />
-    </>
+    <div className="flex flex-col min-h-screen">
+      <Navbar />
+      <main className="flex-1 pt-16"> {/* pt-16 accounts for the navbar height */}
+        <Store />
+      </main>
+      <Footer />
+    </div>
   )
 }
 

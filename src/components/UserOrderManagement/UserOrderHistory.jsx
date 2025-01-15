@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { AlertCircle, X } from 'lucide-react';
 
@@ -7,7 +8,7 @@ const OrderHistory = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [cancellingOrders, setCancellingOrders] = useState(new Set());
+  const navigate = useNavigate();
   
   const userState = useSelector((state) => state.user);
   const userId = userState?.user?._id;
@@ -55,45 +56,8 @@ const OrderHistory = () => {
     }
   };
 
-  const handleCancelOrder = async (orderId) => {
-    if (!userId) {
-      setError("User not authenticated");
-      return;
-    }
-
-    try {
-      setCancellingOrders(prev => new Set([...prev, orderId]));
-      
-      const response = await axios.put(`${BASE_URL}/user/orders/${orderId}/cancel`, {}, {
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.data) {
-        setOrders(orders.map(order => 
-          order._id === orderId 
-            ? { ...order, status: 'CANCELLED' }
-            : order
-        ));
-        setError(null);
-      }
-    } catch (err) {
-      const errorMessage = err.response?.data?.message || 'Failed to cancel order. Please try again later.';
-      setError(`Error cancelling order #${orderId}: ${errorMessage}`);
-      console.error('Error cancelling order:', {
-        orderId,
-        error: err,
-        response: err.response?.data,
-        status: err.response?.status
-      });
-    } finally {
-      setCancellingOrders(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(orderId);
-        return newSet;
-      });
-    }
+  const handleViewOrderDetails = (orderId) => {
+    navigate('/user/OrderDetail', { state: { orderId } });
   };
 
   if (!userState.isAuthenticated) {
@@ -178,19 +142,12 @@ const OrderHistory = () => {
                   ₹{order.totalAmount.toLocaleString('en-IN')} ({order.items.length} Items)
                 </div>
                 <div>
-                  {order.status.toUpperCase() !== 'CANCELLED' && order.status.toUpperCase() !== 'DELIVERED' && (
-                    <button
-                      onClick={() => handleCancelOrder(order._id)}
-                      disabled={cancellingOrders.has(order._id)}
-                      className={`px-3 py-1 rounded-lg text-sm font-medium text-white transition-colors ${
-                        cancellingOrders.has(order._id)
-                          ? 'bg-gray-400 cursor-not-allowed'
-                          : 'bg-red-600 hover:bg-red-700'
-                      }`}
-                    >
-                      {cancellingOrders.has(order._id) ? 'Cancelling...' : 'Cancel'}
-                    </button>
-                  )}
+                  <button
+                    onClick={() => handleViewOrderDetails(order._id)}
+                    className="px-3 py-1 rounded-lg text-sm font-medium text-blue-600 hover:bg-blue-50 transition-colors border border-blue-600"
+                  >
+                    View Details
+                  </button>
                 </div>
               </div>
             ))

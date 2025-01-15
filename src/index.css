@@ -1,4 +1,4 @@
-
+@import url('https://fonts.googleapis.com/css2?family=Duru+Sans&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -22,7 +22,8 @@
   
 body{
   overflow-x: hidden;
-  font-family: "Poppins", serif;
+  font-family: "Duru Sans", serif;
+  /* font-family: "Anonymous Pro", serif; */
   font-weight: 300;
 
 }

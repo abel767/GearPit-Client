@@ -4,6 +4,7 @@ const initialState = {
   products: [],
   filteredProducts: [],
   categories: [],
+  selectedSizes: [],
   selectedCategories: [],
   expandedCategories: {},
   priceRange: [0, 10000],
@@ -26,6 +27,14 @@ const productSlice = createSlice({
     },
     setCategories: (state, action) => {
       state.categories = action.payload;
+    },
+    setSizeFilter: (state, action) => {
+      const size = action.payload;
+      if (state.selectedSizes.includes(size)) {
+        state.selectedSizes = state.selectedSizes.filter(s => s !== size);
+      } else {
+        state.selectedSizes.push(size);
+      }
     },
     toggleCategory: (state, action) => {
       state.expandedCategories = {
@@ -77,6 +86,14 @@ const productSlice = createSlice({
             ? product.category 
             : product.category?._id;
           return state.selectedCategories.includes(productCategoryId);
+        });
+      }
+
+      if (state.selectedSizes.length > 0) {
+        filtered = filtered.filter(product => {
+          return product.variants.some(variant => 
+            state.selectedSizes.includes(variant.size)
+          );
         });
       }
 
@@ -154,7 +171,8 @@ export const {
   setLoading,
   setError,
   setSearchTerm,
-  clearFilters
+  clearFilters,
+  setSizeFilter
 } = productSlice.actions;
 
 export default productSlice.reducer;

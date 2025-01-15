@@ -50,13 +50,13 @@ function Featured() {
             <div className="p-4">
               <h3 className="font-bold text-lg">Scala Brave Motorcycle Jacket</h3>
               <p className="text-gray-500 mt-2">₹21,200.00</p>
-              <button className="mt-4 bg-black text-white py-2 px-4 rounded-md w-full hover:bg-white hover:text-black hover:border hover:border-black transition-all duration-300 ease-in-out">
+              <button className="mt-4  bg-black text-white py-2 px-4 rounded-md w-full hover:bg-white hover:text-black hover:border hover:border-black transition-all duration-300 ease-in-out">
                 Buy Now
               </button>
             </div>
           </div>
         </div>
-        <button onClick={()=> navigate('/user/store')} className="block mt-6 mx-auto border-2 border-black bg-white hover:bg-black text-black hover:text-white py-3 px-6 rounded-md transition-all duration-300 ease-in-out">
+        <button onClick={()=> navigate('/user/store')} className="block mt-6 mx-auto border-2 border-black bg-white hover:bg-black text-black hover:text-white py-3 px-6 rounded-md transition-all duration-300 ease-in-out font-anonymous-pro">
           See More →
         </button>
       </section>

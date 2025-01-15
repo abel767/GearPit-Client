@@ -18,6 +18,15 @@ import OrderManagement from '../../pages/admin/OrderManagement/OrderManagement'
 //inventory 
 import Inventory from '../../pages/admin/Inventory/Inventory'
 
+//Coupons
+import CouponPage from '../../pages/admin/Dashboard/Coupon/CouponPage'
+import AddCouponPage from '../../pages/admin/Dashboard/Coupon/AddCouponPage'
+
+
+//offer management
+import OfferPage from '../../pages/admin/Dashboard/Offers/OfferPage'
+import AddCategoryOfferPage from '../../pages/admin/Dashboard/Offers/AddCategoryOfferPage'
+import AddProductOfferPage from '../../pages/admin/Dashboard/Offers/AddProductOfferPage'
 function AdminRoute(){
     return(
         <Routes>
@@ -44,6 +53,15 @@ function AdminRoute(){
 
             {/* Order Management */}
             <Route path='/Orders' element={<OrderManagement />} />
+            
+            {/* Coupon */}
+            <Route path='/coupons' element={<CouponPage />} />
+            <Route path='/addcoupons' element={<AddCouponPage />} />
+
+            {/* offer */}
+            <Route path='/offermanagement' element={<OfferPage />} />
+            <Route path='/addproductoffer' element={<AddProductOfferPage />} />
+            <Route path='/addcategoryoffer' element={<AddCategoryOfferPage />} />
 
  
             </Route>

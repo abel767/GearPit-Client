@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Heart, ChevronDown, ChevronRight, MinusIcon } from 'lucide-react';
+import { Heart, ChevronDown } from 'lucide-react';
 import axios from 'axios';
 import {  toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -9,7 +9,6 @@ import AnimatedSearch from '../SerachBarForStore/AnimatedSearch';
 import {
   setProducts,
   setCategories,
-  toggleCategory,
   toggleCategoryFilter,
   setPriceRange,
   setSortBy,
@@ -17,7 +16,8 @@ import {
   setFilterOpen,
   filterProducts,
   setLoading,
-  setError
+  setError,
+  setSizeFilter
 } from '../../redux/Slices/productSlice';
 import { addToCart } from '../../redux/Slices/CartSlice';
 import { useNavigate } from 'react-router-dom';
@@ -35,6 +35,17 @@ const sortOptions = [
   { label: 'A - Z', value: 'a-to-z' },
   { label: 'Z - A', value: 'z-to-a' },
 ];
+
+const predefinedPriceRanges = [
+  { label: '₹0 - ₹1000', min: 0, max: 1000 },
+  { label: '₹1000 - ₹2000', min: 1000, max: 2000 },
+  { label: '₹2000 - ₹3000', min: 2000, max: 3000 },
+  { label: '₹3000 - ₹4000', min: 3000, max: 4000 },
+  { label: '₹4000+', min: 4000, max: 100000 },
+];
+
+const sizeOptions = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+
 
 const getPriceDetails = (variants) => {
   if (!variants || variants.length === 0) return { originalPrice: 0, finalPrice: 0, discount: 0 };
@@ -72,6 +83,11 @@ export default function Store() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
+  const [expandedSections, setExpandedSections] = useState({
+    category: true,
+    size: true,
+    priceRange: true
+  });
 
   
   const {
@@ -79,13 +95,22 @@ export default function Store() {
     filteredProducts,
     categories,
     selectedCategories,
-    expandedCategories,
     priceRange,
     sortBy,
     currentPage,
     isFilterOpen,
     loading,
+    selectedSizes
   } = useSelector(state => state.product);
+
+  
+  const handleToggleSection = (section) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
+
   
   const userId = useSelector(state => state.user.user?._id);
   const isAuthenticated = useSelector(state => state.user.isAuthenticated);
@@ -127,9 +152,9 @@ export default function Store() {
     dispatch(filterProducts());
   }, [selectedCategories, priceRange, sortBy, products, dispatch]);
 
-  const handleToggleCategory = (categoryId) => {
-    dispatch(toggleCategory(categoryId));
-  };
+  // const handleToggleCategory = (categoryId) => {
+  //   dispatch(toggleCategory(categoryId));
+  // };
 
   const handleToggleCategoryFilter = (categoryId) => {
     dispatch(toggleCategoryFilter(categoryId));
@@ -208,9 +233,14 @@ export default function Store() {
     }
   };
 
+  const handleSizeToggle = (size) => {
+    dispatch(setSizeFilter(size));
+  };
 
+  const handlePriceRangeSelect = (min, max) => {
+    dispatch(setPriceRange([min, max]));
+  };
 
-  
 
   if (loading) {
     return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
@@ -223,138 +253,115 @@ export default function Store() {
     </h1> */}
     
     <div className="flex gap-6">
-      {/* Filters Sidebar - now with full height and black background */}
-           {/* Filters Sidebar - now with white background */}
+      {/* Filters Sidebar */}
            <div className="w-64 flex-shrink-0">
-        <div className="bg-white text-black rounded-lg shadow p-4 h-screen overflow-y-auto sticky top-0">
-          <h3 className="font-semibold mb-4 text-xl">Filters</h3>
+          <div className="bg-white rounded-lg p-4 h-screen overflow-y-auto sticky top-0">
+            <h3 className="font-semibold mb-4 text-xl">Filters</h3>
           
-          {/* Categories Section */}
-          <div className="mb-8">
-            <h4 className="text-lg font-semibold text-gray-700 mb-4">Categories</h4>
-            <div className="space-y-3">
-              {categories.map(category => (
-                <div key={category._id} className="space-y-2">
-                  <div className="flex items-center justify-between group">
-                    <label className="flex items-center space-x-3 cursor-pointer w-full">
-                      <div className="relative">
-                        <input
-                          type="checkbox"
-                          checked={selectedCategories.includes(category._id)}
-                          onChange={() => handleToggleCategoryFilter(category._id)}
-                          className="peer sr-only"
-                        />
-                        <div className="w-5 h-5 border-2 border-gray-300 rounded-md peer-checked:bg-blue-500 peer-checked:border-blue-500 transition-all">
-                          <svg
-                            className={`w-4 h-4 text-white absolute top-0.5 left-0.5 ${
-                              selectedCategories.includes(category._id) ? 'opacity-100' : 'opacity-0'
-                            }`}
-                            fill="none"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path d="M5 13l4 4L19 7" />
-                          </svg>
-                        </div>
-                      </div>
-                      <span className="text-gray-700 hover:text-gray-900 transition-colors">
-                        {category.categoryName}
-                      </span>
-                    </label>
-                    {category.subcategories?.length > 0 && (
-                      <button
-                        onClick={() => handleToggleCategory(category._id)}
-                        className="p-1.5 hover:bg-gray-100 rounded-full transition-colors"
-                      >
-                        {expandedCategories[category._id] ? (
-                          <ChevronDown className="w-4 h-4 text-gray-600" />
-                        ) : (
-                          <ChevronRight className="w-4 h-4 text-gray-600" />
-                        )}
-                      </button>
-                    )}
-                  </div>
-                  
-                  {/* Subcategories */}
-                  {expandedCategories[category._id] && category.subcategories?.length > 0 && (
-                    <div className="ml-8 space-y-2">
-                      {category.subcategories.map(sub => (
-                        <label key={sub._id} className="flex items-center space-x-3 cursor-pointer">
-                          <div className="relative">
-                            <input
-                              type="checkbox"
-                              checked={selectedCategories.includes(sub._id)}
-                              onChange={() => handleToggleCategoryFilter(sub._id)}
-                              className="peer sr-only"
-                            />
-                            <div className="w-4 h-4 border-2 border-gray-300 rounded peer-checked:bg-blue-500 peer-checked:border-blue-500 transition-all">
-                              <svg
-                                className={`w-3 h-3 text-white absolute top-0.5 left-0.5 ${
-                                  selectedCategories.includes(sub._id) ? 'opacity-100' : 'opacity-0'
-                                }`}
-                                fill="none"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth="2"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                              >
-                                <path d="M5 13l4 4L19 7" />
-                              </svg>
-                            </div>
-                          </div>
-                          <span className="text-gray-600 hover:text-gray-800 text-sm transition-colors">
-                            {sub.name}
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
+            <div className="border-b pb-4 mb-4">
+              <button 
+                className="w-full flex items-center justify-between text-sm font-medium py-2"
+                onClick={() => handleToggleSection('category')}
+              >
+                CATEGORY
+                <ChevronDown className="w-4 h-4" />
+              </button>
+              <div className={`mt-2 space-y-2 ${expandedSections.category ? '' : 'hidden'}`}>
+                {categories.map(category => (
+                  <label key={category._id} className="flex items-center space-x-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={selectedCategories.includes(category._id)}
+                      onChange={() => handleToggleCategoryFilter(category._id)}
+                      className="rounded border-gray-300"
+                    />
+                    <span>{category.categoryName}</span>
+                  </label>
+                ))}
+              </div>
             </div>
-          </div>
-          
-          {/* Price Range Section */}
-          <div className="mb-8">
-            <h4 className="text-lg font-semibold text-gray-700 mb-4">Price Range</h4>
-            <div className="space-y-6">
-              <div className="flex items-center gap-4">
-                <div className="relative flex-1">
-                  <input
-                    type="number"
-                    value={priceRange[0] === 0 ? '' : priceRange[0]}
-                    onChange={(e) => handlePriceRangeChange(0, e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                    placeholder="Min"
-                    min="0"
-                  />
+
+            {/* Size Section */}
+            <div className="border-b pb-4 mb-4">
+              <button 
+                className="w-full flex items-center justify-between text-sm font-medium py-2"
+                onClick={() => handleToggleSection('size')}
+              >
+                SIZE
+                <ChevronDown className="w-4 h-4" />
+              </button>
+              <div className={`mt-2 space-y-2 ${expandedSections.size ? '' : 'hidden'}`}>
+                {sizeOptions.map(size => (
+                  <label key={size} className="flex items-center space-x-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={selectedSizes.includes(size)}
+                      onChange={() => handleSizeToggle(size)}
+                      className="rounded border-gray-300"
+                    />
+                    <span>{size}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Price Range Section */}
+            <div className="pb-4">
+              <button 
+                className="w-full flex items-center justify-between text-sm font-medium py-2"
+                onClick={() => handleToggleSection('priceRange')}
+              >
+                PRICE RANGE
+                <ChevronDown className="w-4 h-4" />
+              </button>
+              <div className={`mt-4 space-y-4 ${expandedSections.priceRange ? '' : 'hidden'}`}>
+                {/* Predefined ranges */}
+                <div className="space-y-2">
+                  {predefinedPriceRanges.map(range => (
+                    <label key={range.label} className="flex items-center space-x-2 text-sm">
+                      <input
+                        type="radio"
+                        name="priceRange"
+                        checked={priceRange[0] === range.min && priceRange[1] === range.max}
+                        onChange={() => handlePriceRangeSelect(range.min, range.max)}
+                        className="rounded border-gray-300"
+                      />
+                      <span>{range.label}</span>
+                    </label>
+                  ))}
                 </div>
-                <MinusIcon className="w-5 h-5 text-gray-600" />
-                <div className="relative flex-1">
-                  <input
-                    type="number"
-                    value={priceRange[1] === 0 ? '' : priceRange[1]}
-                    onChange={(e) => handlePriceRangeChange(1, e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                    placeholder="Max"
-                    min="0"
-                  />
+                
+                {/* Custom range inputs */}
+                <div className="mt-4">
+                  <p className="text-sm font-medium mb-2">Custom Range</p>
+                  <div className="flex items-center gap-4">
+                    <input
+                      type="number"
+                      value={priceRange[0]}
+                      onChange={(e) => handlePriceRangeChange(0, e.target.value)}
+                      placeholder="Min"
+                      className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                    />
+                    <span className="text-gray-500">-</span>
+                    <input
+                      type="number"
+                      value={priceRange[1]}
+                      onChange={(e) => handlePriceRangeChange(1, e.target.value)}
+                      placeholder="Max"
+                      className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                    />
+                  </div>
+                  <button 
+                    onClick={() => dispatch(setPriceRange([0, 10000]))}
+                    className="w-full mt-2 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-sm transition-colors"
+                  >
+                    Reset Price
+                  </button>
                 </div>
               </div>
-              <button
-                onClick={() => dispatch(setPriceRange([0, 10000]))}
-                className="w-full py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-900 rounded-lg transition-colors text-sm font-medium"
-              >
-                Reset Price
-              </button>
             </div>
           </div>
         </div>
-      </div>
 
 
         {/* Main Content */}
@@ -365,7 +372,7 @@ export default function Store() {
           <div className="flex justify-end mb-6">
             <div className="relative">
               <button
-                className="flex items-center justify-between w-64 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50"
+                className="flex items-center justify-between w-64 px-7 py-3 text-sm font-medium text-gray-700 bg-white border border-black  shadow-sm hover:bg-gray-50"
                 onClick={() => dispatch(setFilterOpen(!isFilterOpen))}
               >
                 Sort by: {sortOptions.find(opt => opt.value === sortBy)?.label}
@@ -401,7 +408,7 @@ export default function Store() {
               return (
                 <div 
                   key={product._id} 
-                  className={`group relative bg-white p-2 rounded-lg shadow ${
+                  className={`group relative bg-white p-2 rounded-lg  ${
                     outOfStock ? 'opacity-90' : ''
                   }`}
                 >
@@ -473,7 +480,7 @@ export default function Store() {
                         onClick={() => navigate(`/user/product/${product._id}`)} 
                         className="flex-1 bg-black hover:bg-gray-800 text-white py-2 px-4 text-sm rounded transition-colors duration-200"
                       >
-                        Detail
+                        View
                       </button>
                     </div>
                   </div>

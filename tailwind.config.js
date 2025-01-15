@@ -7,24 +7,24 @@ export default {
       colors: {
         'custom-red': '#400707',
         'Hero-title': '#E6E8DA',
+        'minBlack' : '#202020',
+        'heroBlack': '#0B0B0B',
+        'minGrey': '#f8f8f8'
       },
       fontFamily: {
         'Roboto-font': ['"Roboto Condensed"', 'sans-serif'],
-        'FontSpring': ['"FONTSPRING DEMO - PODIUM Sharp 2.11"', "sans-serif"],        
+        'FontSpring': ['"FONTSPRING DEMO - PODIUM Sharp 2.11"', "sans-serif"],    
+        'anonymous-pro': ['"Anonymous Pro"', 'sans-serif'],
+
       },
       keyframes: {
         hover1: {
-          '0%, 100%': { transform: 'translateY(0) rotate(-12deg)' },
-          '50%': { transform: 'translateY(-20px) rotate(-12deg)' },
-        },
-        hover2: {
-          '0%, 100%': { transform: 'translateY(20px) rotate(12deg)' },
-          '50%': { transform: 'translateY(0) rotate(12deg)' },
+          '0%, 100%': { transform: 'translateY(0) rotate(-2deg)' },
+          '50%': { transform: 'translateY(-30px) rotate(-2deg)' },
         },
       },
       animation: {
         hover1: 'hover1 3s ease-in-out infinite',
-        hover2: 'hover2 3s ease-in-out infinite',
       },
     },
   },

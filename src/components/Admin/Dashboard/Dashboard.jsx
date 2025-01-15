@@ -1,177 +1,163 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios'; 
-
-import { Line } from 'react-chartjs-2';
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
-
-// Register chart components
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { IndianRupee, Users, ShoppingBag, TrendingUp, Calendar } from 'lucide-react';
 
 export default function Dashboard() {
-  const [userCount, setUserCount] = useState(0); // State to hold the user count
+  const [todayStats, setTodayStats] = useState({
+    sales: 0,
+    items: 0,
+    revenue: 0
+  });
+  const [revenueData, setRevenueData] = useState([]);
+  const [mostSoldCategories, setMostSoldCategories] = useState([]);
+  const [userCount, setUserCount] = useState(0);
 
-  // Fetch user count excluding admin
   useEffect(() => {
-    const fetchUserCount = async () => {
+    const fetchDashboardData = async () => {
       try {
-        const response = await axios.get('http://localhost:3000/admin/user-count'); // Adjust URL if needed
-        setUserCount(response.data.count); // Set the user count in the state
+        const [todayResponse, revenueResponse, categoriesResponse, usersResponse] = await Promise.all([
+          fetch('http://localhost:3000/admin/sales/today-analytics'),
+          fetch('http://localhost:3000/admin/sales/revenue'),
+          fetch('http://localhost:3000/admin/sales/most-sold-categories'),
+          fetch('http://localhost:3000/admin/user-count')
+        ]);
+
+        const todayData = await todayResponse.json();
+        const revenueData = await revenueResponse.json();
+        const categoriesData = await categoriesResponse.json();
+        const usersData = await usersResponse.json();
+
+        setTodayStats(todayData.data);
+        setRevenueData(revenueData.data);
+        setMostSoldCategories(categoriesData.data);
+        setUserCount(usersData.count);
       } catch (error) {
-        console.error('Error fetching user count:', error);
+        console.error('Error fetching dashboard data:', error);
       }
     };
 
-    fetchUserCount(); // Fetch the count when the component mounts
-  }, []); // Empty dependency array ensures it runs once on component mount
-
-  // Data for the Total Revenue chart
-  const chartData = {
-    labels: ['January', 'February', 'March', 'April', 'May', 'June'],  // X-axis labels (months)
-    datasets: [
-      {
-        label: 'Total Revenue',
-        data: [100000, 120000, 150000, 130000, 160000, 200000],  // Data for revenue
-        borderColor: 'rgb(75, 192, 192)', // Line color
-        backgroundColor: 'rgba(75, 192, 192, 0.2)', // Area under the line color
-        fill: true, // Fill the area under the line
-        tension: 0.4,
-        borderWidth: 2,
-      },
-    ],
-  };
+    fetchDashboardData();
+  }, []);
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Stats Cards */}
+    <div className="p-6 space-y-6 bg-gray-50">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="p-6 bg-white rounded-lg shadow">
-          <div className="flex justify-between">
+        {/* Today's Sales Card */}
+        <div className="bg-white p-6 rounded-lg shadow-sm">
+          <div className="flex justify-between items-start">
             <div>
-              <h3 className="text-gray-500">Today's Sales</h3>
-              <p className="text-2xl font-bold">₹100,999</p>
-              <p className="text-sm text-gray-500">We have sold 123 items</p>
+              <p className="text-gray-500 text-sm font-medium">Today's Sales</p>
+              <p className="text-2xl font-bold mt-2">₹{todayStats.sales.toLocaleString()}</p>
+              <p className="text-sm text-gray-500 mt-1">{todayStats.items} items sold</p>
             </div>
-            <div className="h-16 w-16 bg-blue-100 rounded-full"></div>
+            <div className="p-3 bg-blue-100 rounded-full">
+              <ShoppingBag className="w-6 h-6 text-blue-600" />
+            </div>
           </div>
         </div>
-  
-        <div className="p-6 bg-white rounded-lg shadow">
-          <div className="flex justify-between">
+
+        {/* Today's Revenue Card */}
+        <div className="bg-white p-6 rounded-lg shadow-sm">
+          <div className="flex justify-between items-start">
             <div>
-              <h3 className="text-gray-500">Today's Revenue</h3>
-              <p className="text-2xl font-bold">₹30,000</p>
-              <p className="text-sm text-gray-500">Profit made so today so far</p>
+              <p className="text-gray-500 text-sm font-medium">Today's Revenue</p>
+              <p className="text-2xl font-bold mt-2">₹{todayStats.revenue.toLocaleString()}</p>
+              <p className="text-sm text-gray-500 mt-1">Profit made today</p>
             </div>
-            <div className="h-16 w-16 bg-green-100 rounded-full"></div>
+            <div className="p-3 bg-green-100 rounded-full">
+              <IndianRupee className="w-6 h-6 text-green-600" />
+            </div>
           </div>
         </div>
-  
-        <div className="p-6 bg-white rounded-lg shadow">
-          <div className="flex justify-between">
+
+        {/* Users Count Card */}
+        <div className="bg-white p-6 rounded-lg shadow-sm">
+          <div className="flex justify-between items-start">
             <div>
-              <h3 className="text-gray-500">Users Count</h3>
-              <p className="text-2xl font-bold">{userCount}</p> {/* Displaying the user count */}
-              <p className="text-sm text-gray-500">Total users signed up (excluding admins)</p>
+              <p className="text-gray-500 text-sm font-medium">Total Users</p>
+              <p className="text-2xl font-bold mt-2">{userCount.toLocaleString()}</p>
+              <p className="text-sm text-gray-500 mt-1">Excluding admins</p>
             </div>
-            <div className="h-16 w-16 bg-orange-100 rounded-full"></div>
+            <div className="p-3 bg-purple-100 rounded-full">
+              <Users className="w-6 h-6 text-purple-600" />
+            </div>
           </div>
         </div>
       </div>
-  
-      {/* Chart and Most Sold Items */}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 p-6 bg-white rounded-lg shadow">
-          <div className="flex justify-between items-center mb-4">
+        {/* Revenue Chart */}
+        <div className="lg:col-span-2 bg-white p-6 rounded-lg shadow-sm">
+          <div className="flex justify-between items-start mb-6">
             <div>
-              <h3 className="font-semibold">Total Revenue</h3>
-              <p className="text-2xl font-bold">₹50,23780</p>
-              <p className="text-green-500 text-sm">5% than last month</p>
+              <h3 className="font-semibold">Revenue Overview</h3>
+              <div className="flex items-center mt-2">
+                <TrendingUp className="w-4 h-4 text-green-500 mr-2" />
+                <span className="text-sm text-green-500">
+                  {revenueData.length > 1 && 
+                    `${(((revenueData[revenueData.length-1]?.revenue - revenueData[revenueData.length-2]?.revenue) / 
+                    revenueData[revenueData.length-2]?.revenue) * 100).toFixed(1)}% vs last month`}
+                </span>
+              </div>
             </div>
-            <div className="flex items-center space-x-2">
-              <span className="flex items-center space-x-1">
-                <span className="h-3 w-3 bg-blue-500 rounded-full"></span>
-                <span>Profit</span>
-              </span>
-              <span className="flex items-center space-x-1">
-                <span className="h-3 w-3 bg-gray-300 rounded-full"></span>
-                <span>Loss</span>
-              </span>
+            <div className="flex items-center space-x-2 text-sm text-gray-500">
+              <Calendar className="w-4 h-4" />
+              <span>Last 6 months</span>
             </div>
           </div>
-
-          {/* Total Revenue Chart */}
-          <div className="h-64">
-            <Line data={chartData} />
+          
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={revenueData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis 
+                  dataKey="_id" 
+                  stroke="#6b7280"
+                  tick={{ fontSize: 12 }}
+                />
+                <YAxis 
+                  stroke="#6b7280"
+                  tick={{ fontSize: 12 }}
+                  tickFormatter={(value) => `₹${value.toLocaleString()}`}
+                />
+                <Tooltip 
+                  formatter={(value) => [`₹${value.toLocaleString()}`, "Revenue"]}
+                  labelFormatter={(label) => new Date(label).toLocaleDateString()}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="revenue" 
+                  stroke="#3b82f6" 
+                  strokeWidth={2}
+                  dot={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
         </div>
-  
-        <div className="p-6 bg-white rounded-lg shadow">
-          <h3 className="font-semibold mb-4">Most Sold Items</h3>
-          <div className="space-y-4">
-            {[{ name: 'Helmets', percentage: 70 }, { name: 'Jacket', percentage: 40 }, { name: 'Gloves', percentage: 60 }, { name: 'Boots', percentage: 80 }, { name: 'Pad', percentage: 20 }].map((item) => (
-              <div key={item.name}>
-                <div className="flex justify-between mb-1">
-                  <span>{item.name}</span>
-                  <span>{item.percentage}%</span>
+
+        {/* Most Sold Categories */}
+        <div className="bg-white p-6 rounded-lg shadow-sm">
+          <h3 className="font-semibold mb-6">Most Sold Categories</h3>
+          <div className="space-y-6">
+            {mostSoldCategories.map((category) => (
+              <div key={category._id}>
+                <div className="flex justify-between mb-2">
+                  <span className="text-sm font-medium">{category.category}</span>
+                  <span className="text-sm text-gray-500">{category.percentage.toFixed(1)}%</span>
                 </div>
-                <div className="h-2 bg-gray-200 rounded-full">
-                  <div
-                    className="h-full bg-green-500 rounded-full"
-                    style={{ width: `${item.percentage}%` }}
-                  ></div>
+                <div className="w-full bg-gray-100 rounded-full h-2">
+                  <div 
+                    className="bg-blue-500 h-2 rounded-full"
+                    style={{ width: `${category.percentage}%` }}
+                  />
                 </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  {category.totalSold} items sold - ₹{category.totalRevenue.toLocaleString()}
+                </p>
               </div>
             ))}
           </div>
-        </div>
-      </div>
-  
-      {/* Latest Orders */}
-      <div className="bg-white rounded-lg shadow">
-        <div className="p-6">
-          <h3 className="font-semibold mb-4">Latest Orders</h3>
-          <table className="w-full">
-            <thead>
-              <tr className="text-left">
-                <th className="pb-4">Order ID</th>
-                <th className="pb-4">Product</th>
-                <th className="pb-4">Date</th>
-                <th className="pb-4">Customer</th>
-                <th className="pb-4">Total</th>
-                <th className="pb-4">Payment</th>
-                <th className="pb-4">Status</th>
-                <th className="pb-4">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {[1, 2, 3].map((item) => (
-                <tr key={item} className="border-t">
-                  <td className="py-4">302012</td>
-                  <td className="py-4">
-                    <div className="flex items-center space-x-3">
-                      <img src="/placeholder.svg?height=40&width=40" className="h-10 w-10 rounded" />
-                      <div>
-                        <p>LS2 Helmet</p>
-                        <p className="text-sm text-gray-500">+3 Products</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="py-4">29 Dec 2022</td>
-                  <td className="py-4">Josh Wisley</td>
-                  <td className="py-4">₹59900</td>
-                  <td className="py-4">24 Jun 2023</td>
-                  <td className="py-4">
-                    <span className="px-3 py-1 bg-purple-100 text-purple-600 rounded-full">
-                      Processing
-                    </span>
-                  </td>
-                  <td className="py-4">
-                    <button className="text-blue-500 hover:text-blue-700">View</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
         </div>
       </div>
     </div>
