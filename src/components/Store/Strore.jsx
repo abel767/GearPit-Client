@@ -23,7 +23,7 @@ import { addToCart } from '../../redux/Slices/CartSlice';
 import { useNavigate } from 'react-router-dom';
 
 
-
+import { addToWishlist, removeFromWishlist } from '../../redux/Slices/wishlistSlice';
 
 const sortOptions = [
   { label: 'Popularity', value: 'popularity' },
@@ -44,7 +44,7 @@ const predefinedPriceRanges = [
   { label: '₹4000+', min: 4000, max: 100000 },
 ];
 
-const sizeOptions = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+const sizeOptions = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '2XL', '40','41','42'];
 
 
 const getPriceDetails = (variants, offer) => {
@@ -103,10 +103,13 @@ const isProductOutOfStock = (variants) => {
   return allOutOfStock;
 };
 
-// Rest of the code remains the same...
 export default function Store() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+
+
+ 
+
 
   const [expandedSections, setExpandedSections] = useState({
     category: true,
@@ -140,6 +143,51 @@ export default function Store() {
   const userId = useSelector(state => state.user.user?._id);
   const isAuthenticated = useSelector(state => state.user.isAuthenticated);
   const cartItems = useSelector(state => state.cart.items);
+  const wishlistItems = useSelector(state => state.wishlist.items);
+
+  const handleWishlistToggle = async (e, product) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!isAuthenticated) {
+      navigate('/user/login');
+      return;
+    }
+
+    if (!userId) {
+      toast.error('User ID not found');
+      return;
+    }
+
+    const isInWishlist = wishlistItems.some(item => item._id === product._id);
+    
+    try {
+      if (isInWishlist) {
+        const response = await axios.delete(`http://localhost:3000/user/wishlist/remove/${product._id}`, {
+          data: { userId }
+        });
+        
+        if (response.status === 200) {
+          dispatch(removeFromWishlist(product._id));
+          toast.success('Removed from wishlist');
+        }
+      } else {
+        const response = await axios.post('http://localhost:3000/user/wishlist/add', {
+          userId,
+          productId: product._id
+        });
+        
+        if (response.status === 200) {
+          dispatch(addToWishlist(product));
+          toast.success('Added to wishlist');
+        }
+      }
+    } catch (error) {
+      console.error('Wishlist error:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to update wishlist';
+      toast.error(errorMessage);
+    }
+  };
 
   const productsPerPage = 8;
   const indexOfLastProduct = currentPage * productsPerPage;
@@ -436,9 +484,19 @@ export default function Store() {
               className="group relative bg-white p-2 rounded-lg"
             >
               {/* Wishlist Heart Button */}
-              <button className="absolute top-2 right-2 z-10 bg-white rounded-full p-1 shadow-sm">
-                <Heart className="w-5 h-5 text-gray-400 hover:text-red-500" />
-              </button>
+              <button 
+              onClick={(e) => handleWishlistToggle(e, product)}
+              className="absolute top-2 right-2 z-10 bg-white rounded-full p-1.5 shadow-sm hover:bg-gray-50 transition-colors"
+              aria-label={wishlistItems.some(item => item._id === product._id) ? 'Remove from wishlist' : 'Add to wishlist'}
+            >
+              <Heart 
+                className={`w-5 h-5 transition-colors ${
+                  wishlistItems.some(item => item._id === product._id)
+                    ? 'text-red-500 fill-current'
+                    : 'text-gray-400 hover:text-red-500'
+                }`}
+              />
+            </button>
               
               {/* Offer Tag */}
               {hasOffer && (

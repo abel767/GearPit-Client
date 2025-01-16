@@ -78,7 +78,7 @@ const Navbar = () => {
 
                         {/* Right Navigation */}
                         <div className="hidden md:flex items-center space-x-6">
-                            <Link to="/wishlist" className="text-gray-600 hover:text-gray-900">
+                            <Link to="/user/wishlist" className="text-gray-600 hover:text-gray-900">
                                 <Heart className="h-6 w-6" />
                             </Link>
                             

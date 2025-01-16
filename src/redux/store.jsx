@@ -17,6 +17,7 @@ import userReducer from './Slices/userSlice';
 import adminReducer from './Slices/adminSlice';
 import cartReducer from './Slices/CartSlice'
 import walletReducer from './Slices/walletSlice'
+import wishlistReducer from './Slices/wishlistSlice'
 // Create persist configs for both user and admin
 const userPersistConfig = {
   key: 'user',
@@ -28,9 +29,15 @@ const adminPersistConfig = {
   storage,
 };
 
+const wishlistPersistConfig = {
+  key: 'wishlist',
+  storage,
+};
+
 // Create persisted reducers
 const persistedUserReducer = persistReducer(userPersistConfig, userReducer);
 const persistedAdminReducer = persistReducer(adminPersistConfig, adminReducer);
+const persistedWishlistReducer = persistReducer(wishlistPersistConfig, wishlistReducer);
 
 const store = configureStore({
   reducer: {
@@ -40,7 +47,8 @@ const store = configureStore({
     address: addressReducer,
     product: productReducer,
     cart: cartReducer,
-    wallet: walletReducer
+    wallet: walletReducer,
+    wishlist: persistedWishlistReducer  
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

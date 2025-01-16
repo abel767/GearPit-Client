@@ -57,8 +57,8 @@ export default function SalesReport() {
     });
 
     const endpoint = format === 'excel' 
-      ? '/admin/sales/report/excel' 
-      : '/admin/sales/report/pdf';
+      ? 'http://localhost:3000/admin/sales/report/excel' 
+      : 'http://localhost:3000/admin/sales/report/pdf';
 
     window.open(`${endpoint}?${queryParams}`);
   };

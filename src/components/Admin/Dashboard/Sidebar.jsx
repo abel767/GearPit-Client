@@ -9,6 +9,7 @@ export default function Sidebar() {
   const location = useLocation();
   const menuItems = [
     { name: 'Dashboard', icon: Home, path: '/admin/dashboard' },
+    { name: 'Sales Report', icon: Home, path: '/admin/salesreport' },
     { name: 'Products', icon: Package, path: '/admin/productdata' },
     { name: 'Category', icon: Category, path: '/admin/categorydata' },
     { name: 'Offer', icon: Tag, path: '/admin/offermanagement' },

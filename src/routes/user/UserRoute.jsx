@@ -15,6 +15,7 @@ import BlockedUserWrapper from '../../components/BlockUser/BlockUserWrapper';
 import Cart from '../../pages/user/Cart/Cart';
 import OrderDetailAndTrack from '../../pages/user/OrderDetails/OrderDetailAndTrack';
 import WalletPage from '../../pages/user/Wallet/WalletPage';
+import WhishlistPage from '../../pages/user/whishlist/WhislistPage';
 function UserRoute() {
   return (
     <Routes>
@@ -36,6 +37,7 @@ function UserRoute() {
         <Route path="/cart" element={<BlockedUserWrapper><Cart/></BlockedUserWrapper>} />
         <Route path="/OrderDetail" element={<BlockedUserWrapper><OrderDetailAndTrack/></BlockedUserWrapper>} />
         <Route path="/wallet" element={<BlockedUserWrapper><WalletPage/></BlockedUserWrapper>} />
+        <Route path="/wishlist" element={<BlockedUserWrapper><WhishlistPage/></BlockedUserWrapper>} />
       </Route>
     </Routes>
   )
