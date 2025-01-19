@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react'
 import { MinusIcon, PlusIcon } from 'lucide-react'
 import { useDispatch, useSelector } from 'react-redux'
 import { updateQuantity, removeFromCart, addToCart } from '../../redux/Slices/CartSlice'
-import axios from 'axios'
-
+import axiosInstance from '../../api/axiosInstance'
 import { useNavigate } from 'react-router-dom'
 
 export default function ShoppingCart() {
@@ -24,7 +23,7 @@ export default function ShoppingCart() {
       }
 
       try {
-        const response = await axios.get(`http://localhost:3000/user/cart/${userId}`)
+        const response = await axiosInstance.get(`/user/cart/${userId}`)
         
         if (response.status === 200 && response.data?.items) {
           // Clear existing cart items and add fetched items
@@ -77,7 +76,7 @@ export default function ShoppingCart() {
     
     try {
       setLoading(true)
-      const response = await axios.put('http://localhost:3000/user/cart/update', {
+      const response = await axiosInstance.put('/user/cart/update', {
         userId,
         productId,
         variantId,
@@ -102,7 +101,7 @@ export default function ShoppingCart() {
   const handleRemoveItem = async (productId, variantId) => {
     try {
       setLoading(true)
-      const response = await axios.delete(`http://localhost:3000/user/cart/remove/${userId}/${productId}/${variantId}`)
+      const response = await axiosInstance.delete(`/user/cart/remove/${userId}/${productId}/${variantId}`)
 
       if (response.status === 200) {
         dispatch(removeFromCart({ productId, variantId }))

@@ -1,17 +1,28 @@
-// utils/axiosConfig.js
 import axios from 'axios';
+import { refreshToken, handleAuthError } from '../services/authService';
 
 const axiosInstance = axios.create({
     baseURL: import.meta.env.VITE_BACKEND_URL,
-    withCredentials: true // Important for sending cookies
+    withCredentials: true
 });
 
+// Request interceptor
+axiosInstance.interceptors.request.use(
+    (config) => {
+        // You could add common headers here if needed
+        return config;
+    },
+    (error) => {
+        return Promise.reject(error);
+    }
+);
+
+// Response interceptor
 axiosInstance.interceptors.response.use(
     (response) => response,
     async (error) => {
         const originalRequest = error.config;
 
-        // Don't retry if it's already been retried or it's a 401 from the refresh endpoint
         if (error.response?.status === 401 && 
             !originalRequest._retry && 
             !originalRequest.url?.includes('refresh-token')) {
@@ -19,17 +30,11 @@ axiosInstance.interceptors.response.use(
             originalRequest._retry = true;
 
             try {
-                // The refresh endpoint will automatically set new cookies
-                await axios.post(
-                    `${import.meta.env.VITE_BACKEND_URL}/user/refresh-token`,
-                    {},
-                    { withCredentials: true }
-                );
-
-                // Retry the original request
+                await refreshToken();
                 return axiosInstance(originalRequest);
             } catch (refreshError) {
-                // Handle refresh failure (e.g., redirect to login)
+                // Handle refresh failure
+                handleAuthError();
                 window.dispatchEvent(new CustomEvent('auth-error', {
                     detail: { message: 'Session expired. Please login again.' }
                 }));

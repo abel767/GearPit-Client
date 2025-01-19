@@ -31,7 +31,7 @@ const ChangePasswordButton = ({ userId }) => {
     }
 
     try {
-      const response = await fetch(`http://localhost:3000/user/change-password/${userId}`, {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/user/change-password/${userId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

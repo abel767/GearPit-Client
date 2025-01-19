@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Heart, ChevronDown, Tag  } from 'lucide-react';
-import axios from 'axios';
 import {  toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import axiosInstance from '../../api/axiosInstance';
 
 import AnimatedSearch from '../SerachBarForStore/AnimatedSearch';
 import {
@@ -163,7 +163,7 @@ export default function Store() {
     
     try {
       if (isInWishlist) {
-        const response = await axios.delete(`http://localhost:3000/user/wishlist/remove/${product._id}`, {
+        const response = await axiosInstance.delete(`/user/wishlist/remove/${product._id}`, {
           data: { userId }
         });
         
@@ -172,7 +172,7 @@ export default function Store() {
           toast.success('Removed from wishlist');
         }
       } else {
-        const response = await axios.post('http://localhost:3000/user/wishlist/add', {
+        const response = await axiosInstance.post('/user/wishlist/add', {
           userId,
           productId: product._id
         });
@@ -200,8 +200,8 @@ export default function Store() {
       dispatch(setLoading(true));
       try {
         const [productsRes, categoriesRes] = await Promise.all([
-          axios.get('http://localhost:3000/admin/productdata'),
-          axios.get('http://localhost:3000/admin/categorydata-addproduct')
+          axiosInstance.get('/admin/productdata'),
+          axiosInstance.get('/admin/categorydata-addproduct')
         ]);
         
         // Filter out both deleted AND blocked products
@@ -268,7 +268,7 @@ export default function Store() {
         return;
       }
   
-      const response = await axios.post('http://localhost:3000/user/cart/add', {
+      const response = await axiosInstance.post('/user/cart/add', {
         userId,
         productId: product._id,
         variantId: availableVariant._id,

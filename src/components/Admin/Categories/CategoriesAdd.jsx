@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { X, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import axiosInstance from '../../../api/axiosInstance';
 
 export default function AddCategories() {
   const navigate = useNavigate();
@@ -40,7 +40,7 @@ export default function AddCategories() {
         };
 
         // Send category data to backend
-        await axios.post('http://localhost:3000/admin/addcategorydata', categoryData);
+        await axiosInstance.post('/admin/addcategorydata', categoryData);
 
         // Navigate to categories list page after successful submission
         navigate('/admin/categorydata');

@@ -33,7 +33,7 @@ export default function SalesReport() {
         endDate: dateRange.endDate || new Date().toISOString().split('T')[0]
       });
 
-      const response = await fetch(`http://localhost:3000/admin/sales/report?${queryParams}`);
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/admin/sales/report?${queryParams}`);
       const result = await response.json();
 
       if (result.success) {
@@ -57,8 +57,8 @@ export default function SalesReport() {
     });
 
     const endpoint = format === 'excel' 
-      ? 'http://localhost:3000/admin/sales/report/excel' 
-      : 'http://localhost:3000/admin/sales/report/pdf';
+      ? `${import.meta.env.VITE_BACKEND_URL}/admin/sales/report/excel`
+      : `${import.meta.env.VITE_BACKEND_URL}/admin/sales/report/pdf`;
 
     window.open(`${endpoint}?${queryParams}`);
   };

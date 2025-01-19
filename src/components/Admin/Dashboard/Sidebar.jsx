@@ -4,7 +4,7 @@ import logo from '../../../assets/Logo/logo.png';
 import { adminLogout } from '../../../redux/Slices/adminSlice';
 import { useDispatch } from 'react-redux';
 import axios from 'axios';
-
+import axiosInstance from '../../../api/axiosInstance';
 export default function Sidebar() {
   const location = useLocation();
   const menuItems = [
@@ -28,7 +28,7 @@ export default function Sidebar() {
   const handleLogout = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('http://localhost:3000/admin/logout', {}, {
+      await axiosInstance.post('/admin/logout', {}, {
         withCredentials: true
       });
       dispatch(adminLogout());

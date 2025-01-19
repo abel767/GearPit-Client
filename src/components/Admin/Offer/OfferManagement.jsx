@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Search, Filter, Calendar, Plus, MoreVertical, Trash2 } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { Search, Calendar, Plus, MoreVertical, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-
+import axiosInstance from '../../../api/axiosInstance';
 function OfferManagement() {
   const navigate = useNavigate();
   const [productOffers, setProductOffers] = useState([]);
@@ -11,14 +12,35 @@ function OfferManagement() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
+  const [portalContainer, setPortalContainer] = useState(null);
 
   useEffect(() => {
     fetchOffers();
   }, []);
 
+  useEffect(() => {
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    setPortalContainer(div);
+    return () => document.body.removeChild(div);
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (activeMenu && !event.target.closest('.menu-trigger')) {
+        setActiveMenu(null);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [activeMenu]);
+
   const fetchOffers = async () => {
     try {
-      const response = await axios.get('http://localhost:3000/admin/offers');
+      const response = await axiosInstance.get('/admin/offers');
       const { productOffers = [], categoryOffers = [] } = response.data;
       setProductOffers(productOffers);
       setCategoryOffers(categoryOffers);
@@ -33,7 +55,7 @@ function OfferManagement() {
 
   const handleStatusChange = async (id, type, currentStatus) => {
     try {
-      const endpoint = `http://localhost:3000/admin/${type === 'product' ? 'product-offer' : 'category-offer'}/${id}`;
+      const endpoint = `${import.meta.env.VITE_BACKEND_URL}/admin/${type === 'product' ? 'product-offer' : 'category-offer'}/${id}`;
       await axios.patch(endpoint, {
         isActive: !currentStatus
       });
@@ -47,7 +69,7 @@ function OfferManagement() {
 
   const handleDelete = async (id, type) => {
     try {
-      const endpoint = `http://localhost:3000/admin/${type === 'product' ? 'product-offer' : 'category-offer'}/${id}`;
+      const endpoint = `${import.meta.env.VITE_BACKEND_URL}/admin/${type === 'product' ? 'product-offer' : 'category-offer'}/${id}`;
       await axios.delete(endpoint);
       await fetchOffers();
       setActiveMenu(null);
@@ -62,8 +84,8 @@ function OfferManagement() {
     const rect = e.currentTarget.getBoundingClientRect();
     
     setMenuPosition({
-      top: rect.top - 80,
-      left: rect.right - 160,
+      top: rect.bottom + window.scrollY - 130,
+      left: rect.left + window.scrollX - 130, // Adjust this value to move the menu closer to the icon
     });
     
     setActiveMenu(activeMenu === `${itemType}-${itemId}` ? null : `${itemType}-${itemId}`);
@@ -75,7 +97,7 @@ function OfferManagement() {
         <h2 className="text-xl font-semibold text-gray-800">{title}</h2>
         <button 
           onClick={() => navigate(`/admin/add${itemType.toLowerCase()}offer`)}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition duration-200"
+          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition duration-200"
         >
           <Plus className="w-5 h-5" />
           Add {itemType} Offer
@@ -117,17 +139,19 @@ function OfferManagement() {
                   <td className="p-4 text-right relative">
                     <button 
                       onClick={(e) => handleMenuClick(e, offer._id, itemType)}
-                      className="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100"
+                      className="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100 menu-trigger"
                     >
                       <MoreVertical className="w-5 h-5" />
                     </button>
                     
-                    {activeMenu === `${itemType}-${offer._id}` && (
+                    {activeMenu === `${itemType}-${offer._id}` && portalContainer && createPortal(
                       <div 
-                        className="absolute z-50 bg-white rounded-lg shadow-lg border py-1 min-w-[160px]"
+                        className="fixed z-50 bg-white rounded-lg shadow-lg border py-1 min-w-[160px] transition-opacity duration-200 ease-in-out"
                         style={{
                           top: `${menuPosition.top}px`,
                           left: `${menuPosition.left}px`,
+                          opacity: activeMenu === `${itemType}-${offer._id}` ? 1 : 0,
+                          pointerEvents: activeMenu === `${itemType}-${offer._id}` ? 'auto' : 'none',
                         }}
                       >
                         <button
@@ -144,7 +168,8 @@ function OfferManagement() {
                           <Trash2 className="w-4 h-4" />
                           Delete Offer
                         </button>
-                      </div>
+                      </div>,
+                      portalContainer
                     )}
                   </td>
                 </tr>
@@ -201,10 +226,7 @@ function OfferManagement() {
             <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
           </div>
 
-          <button className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-gray-50">
-            <Filter className="w-5 h-5" />
-            Filters
-          </button>
+         
         </div>
       </div>
 
@@ -221,3 +243,4 @@ function OfferManagement() {
 }
 
 export default OfferManagement;
+

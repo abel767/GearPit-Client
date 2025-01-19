@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { ToastContainer, toast } from 'react-toastify';
 import { Eye, EyeOff } from 'lucide-react';
-import axios from 'axios';
-import { adminLogin } from '../../../redux/Slices/adminSlice';
+import { loginAdmin } from '../../../services/authService';
 import image from '../../../assets/admin/helmet 2.jpg'
 import logo from '../../../assets/user/signup/logo 3.png'
 function AdminLogin() {
@@ -44,29 +43,18 @@ function AdminLogin() {
     }
 
     try {
-      const userData = { email, password };
-      const response = await axios.post('http://localhost:3000/admin/login', userData, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await loginAdmin({ email, password });
 
-      const { user, role } = response.data;
-
-      toast.success(response.data.message, {
+      toast.success(response.message, {
         position: 'top-right',
         autoClose: 3000,
         theme: 'colored',
       });
 
-      if (user) {
-        dispatch(adminLogin({ user, role }));
-        setTimeout(() => {
-          Navigate('/admin/dashboard');
-        }, 2000);
-      } else {
-        toast.error('Login Failed');
-      }
+      setTimeout(() => {
+        Navigate('/admin/dashboard');
+      }, 2000);
+      
     } catch (error) {
       toast.error(error.response?.data?.message || 'Login Failed', {
         position: 'top-right',

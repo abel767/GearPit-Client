@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react';
 import { BarChart3, Search, ArrowUpDown, Edit } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import axios from 'axios';
-
+import axiosInstance from '../../../api/axiosInstance';
 const InventoryManagement = () => {
   const [products, setProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -17,7 +16,7 @@ const InventoryManagement = () => {
 
   const fetchProducts = async () => {
     try {
-      const response = await axios.get('http://localhost:3000/admin/productdata', {
+      const response = await axiosInstance.get('/admin/productdata', {
         withCredentials: true
       });
       setProducts(response.data);

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Calendar, Plus, Search, Filter, MoreVertical, Trash2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import axios from 'axios'
+import axiosInstance from '../../../api/axiosInstance'
 
 const ActionDropdown = ({ isOpen, onClose, position, onToggleStatus, status }) => {
   if (!isOpen) return null;
@@ -54,7 +54,7 @@ export default function AdminCoupons() {
 
   const fetchCoupons = async () => {
     try {
-      const response = await axios.get('http://localhost:3000/admin/coupons')
+      const response = await axiosInstance.get('/admin/coupons')
       setCoupons(response.data.coupons || [])
     } catch (error) {
       console.error('Error fetching coupons:', error)
@@ -66,7 +66,7 @@ export default function AdminCoupons() {
   
   const handleToggleStatus = async (id) => {
     try {
-      await axios.put(`http://localhost:3000/admin/coupons/${id}/toggle`)
+      await axiosInstance.put(`/admin/coupons/${id}/toggle`)
       fetchCoupons()
       setDropdownState(prev => ({ ...prev, isOpen: false }))
     } catch (error) {
@@ -77,7 +77,7 @@ export default function AdminCoupons() {
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this coupon?')) {
       try {
-        await axios.delete(`http://localhost:3000/admin/coupons/${id}`)
+        await axiosInstance.delete(`/admin/coupons/${id}`)
         fetchCoupons()
       } catch (error) {
         console.error('Error deleting coupon:', error)

@@ -1,8 +1,7 @@
 import { useState } from 'react'
 import { ArrowLeft, Calendar, HelpCircle } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import axios from 'axios'
-
+import axiosInstance from '../../../api/axiosInstance'
 export default function AddCoupon() {
   const [formData, setFormData] = useState({
     code: '',
@@ -29,7 +28,7 @@ export default function AddCoupon() {
         return
       }
 
-      const response = await axios.post('http://localhost:3000/admin/coupons', formData)
+      const response = await axiosInstance.post('/admin/coupons', formData)
       
       if (response.data.status === 'success') {
         navigate('/admin/coupons')

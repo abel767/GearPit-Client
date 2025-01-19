@@ -1,6 +1,7 @@
 import { Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import axiosInstance from '../../../api/axiosInstance';
 import { format } from 'date-fns';
 
 export default function CustomersTable() {
@@ -11,7 +12,7 @@ export default function CustomersTable() {
 
   const fetchUsers = async () => {
     try {
-      const response = await axios.get('http://localhost:3000/admin/data', { withCredentials: true });
+      const response = await axiosInstance.get('/admin/data', { withCredentials: true });
       const usersWithDefaults = response.data.map(user => ({
         ...user,
         userName: user.userName || 'Unknown User',
@@ -51,8 +52,8 @@ export default function CustomersTable() {
 
   const handleBlockUnblock = async (userId, isBlocked) => {
     try {
-      await axios.put(
-        `http://localhost:3000/admin/block/${userId}`,
+      await axiosInstance.put(
+        `/admin/block/${userId}`,
         { isBlocked: !isBlocked },
         { withCredentials: true }
       );

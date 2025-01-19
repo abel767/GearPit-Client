@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import axiosInstance from '../../api/axiosInstance';
 import { ArrowLeft, Package, Truck, CheckCircle, Home, AlertCircle, Star } from 'lucide-react';
 
 const OrderDetailAndTrack = () => {
@@ -14,7 +14,6 @@ const OrderDetailAndTrack = () => {
   const navigate = useNavigate();
   const orderId = location.state?.orderId;
   
-  const BASE_URL = 'http://localhost:3000';
 
   useEffect(() => {
     if (orderId) {
@@ -25,7 +24,7 @@ const OrderDetailAndTrack = () => {
   const fetchOrderDetails = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${BASE_URL}/user/orders/detail/${orderId}`);
+      const response = await axiosInstance.get(`/user/orders/detail/${orderId}`);
       setOrder(response.data.data);
       if (response.data.data.items[0]?.productId.images[0]) {
         setSelectedImage(response.data.data.items[0].productId.images[0]);
@@ -54,7 +53,7 @@ const OrderDetailAndTrack = () => {
 
     try {
       setCancellingOrder(true);
-      await axios.put(`${BASE_URL}/user/orders/${orderId}/cancel`);
+      await axiosInstance.put(`/user/orders/${orderId}/cancel`);
       fetchOrderDetails();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to cancel order');
@@ -65,7 +64,7 @@ const OrderDetailAndTrack = () => {
 
   const handleReviewSubmit = async (productId) => {
     try {
-      await axios.post(`${BASE_URL}/user/reviews`, {
+      await axiosInstance.post(`/user/reviews`, {
         productId,
         orderId,
         rating: reviews[productId].rating,

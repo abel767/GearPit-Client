@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, Check } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
-import axios from 'axios';
+import axiosInstance from '../../../api/axiosInstance';
 
 export default function EditCategory() {
   const navigate = useNavigate();
@@ -21,7 +21,7 @@ export default function EditCategory() {
     try {
       setLoading(true);
       // Using the correct endpoint that matches your backend route
-      const response = await axios.get(`http://localhost:3000/admin/categorydata/${id}`);
+      const response = await axiosInstance.get(`/admin/categorydata/${id}`);
       const category = response.data;
       setFormData({
         categoryName: category.categoryName || '',
@@ -46,7 +46,7 @@ export default function EditCategory() {
   const handleSubmit = async () => {
     try {
       // Using the correct endpoint that matches your backend route
-      await axios.put(`http://localhost:3000/admin/editcategory/${id}`, formData);
+      await axiosInstance.put(`/admin/editcategory/${id}`, formData);
       navigate('/admin/categorydata');
     } catch (err) {
       console.error('Error updating category:', err);

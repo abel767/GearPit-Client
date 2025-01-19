@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { X, Check } from 'lucide-react';
 import { toast } from 'react-toastify';
-import axios from 'axios';
-
+import axiosInstance from '../../../api/axiosInstance';
 const EditProduct = () => {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -30,7 +29,7 @@ const EditProduct = () => {
   useEffect(() => {
     const fetchProduct = async () => {
       try {
-        const response = await axios.get(`http://localhost:3000/admin/productdata`, {
+        const response = await axiosInstance.get(`/admin/productdata`, {
           withCredentials: true
         });
         const product = response.data.find(p => p._id === id);
@@ -60,8 +59,8 @@ const EditProduct = () => {
 
     const fetchCategories = async () => {
       try {
-        const response = await axios.get(
-          'http://localhost:3000/admin/categorydata-addproduct',
+        const response = await axiosInstance.get(
+          '/admin/categorydata-addproduct',
           { withCredentials: true }
         );
         setCategories(response.data.activeCategories);
@@ -148,8 +147,8 @@ const EditProduct = () => {
         }))
       };
 
-      await axios.put(
-        `http://localhost:3000/admin/editproduct/${id}`,
+      await axiosInstance.put(
+        `/admin/editproduct/${id}`,
         formattedData,
         { withCredentials: true }
       );

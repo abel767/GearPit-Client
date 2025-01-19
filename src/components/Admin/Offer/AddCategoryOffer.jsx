@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-
+import axiosInstance from '../../../api/axiosInstance';
 const AddCategoryOffer = () => {
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
@@ -24,7 +23,7 @@ const AddCategoryOffer = () => {
   const fetchCategories = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`http://localhost:3000/admin/categorydata?page=${currentPage}&limit=${categoriesPerPage}`);
+      const response = await axiosInstance.get(`/admin/categorydata?page=${currentPage}&limit=${categoriesPerPage}`);
       const categoryData = response.data?.categories || response.data || [];
       setCategories(Array.isArray(categoryData) ? categoryData : []);
       
@@ -58,7 +57,7 @@ const AddCategoryOffer = () => {
     }
 
     try {
-      const response = await axios.post('http://localhost:3000/admin/category-offer', {
+      const response = await axiosInstance.post('/admin/category-offer', {
         categoryId: selectedCategory._id,
         percentage: Number(percentage),
         startDate,

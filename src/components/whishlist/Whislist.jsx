@@ -4,7 +4,7 @@ import { X } from 'lucide-react';
 import { removeFromWishlist } from '../../redux/Slices/wishlistSlice';
 import { addToCart } from '../../redux/Slices/CartSlice';
 import { toast } from 'react-toastify';
-import axios from 'axios';
+import axiosInstance from '../../api/axiosInstance';
 import { useNavigate } from 'react-router-dom';
 
 export default function Wishlist() {
@@ -24,7 +24,7 @@ export default function Wishlist() {
   const handleRemoveFromWishlist = async (productId) => {
     try {
       // First remove from backend (assuming you have an API endpoint)
-      await axios.delete(`http://localhost:3000/user/wishlist/remove/${productId}`, {
+      await axiosInstance.delete(`/user/wishlist/remove/${productId}`, {
         data: { userId }
       });
       
@@ -58,7 +58,7 @@ export default function Wishlist() {
       }
 
       // Check if product already exists in cart
-      const response = await axios.post('http://localhost:3000/user/cart/add', {
+      const response = await axiosInstance.post('/user/cart/add', {
         userId,
         productId: product._id,
         variantId: availableVariant._id,

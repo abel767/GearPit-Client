@@ -5,6 +5,7 @@ import { userLogout } from '../../redux/Slices/userSlice'
 import { useDispatch, useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
 import axios from 'axios'
+import axiosInstance from "../../api/axiosInstance"
 import { User, Menu, X, Home, Phone, Info, Store, ShoppingCart, Heart, LogOut, Search } from 'lucide-react'
 import logo from '../../assets/Logo/LogoTitle.png'
 const Navbar = () => {
@@ -16,7 +17,7 @@ const Navbar = () => {
 
     const handleLogout = async () => {
         try {
-            await axios.post("http://localhost:3000/user/logout", {}, {
+            await axiosInstance.post("/user/logout", {}, {
                 withCredentials: true
             })
 

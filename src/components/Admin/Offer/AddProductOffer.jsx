@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import axiosInstance from '../../../api/axiosInstance';
 
 const AddProductOffer = () => {
   const [products, setProducts] = useState([]);
@@ -24,7 +24,7 @@ const AddProductOffer = () => {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`http://localhost:3000/admin/productdata?page=${currentPage}&limit=${productsPerPage}`);
+      const response = await axiosInstance.get(`/admin/productdata?page=${currentPage}&limit=${productsPerPage}`);
       const productData = response.data?.products || response.data || [];
       setProducts(Array.isArray(productData) ? productData : []);
       
@@ -59,7 +59,7 @@ const AddProductOffer = () => {
     }
 
     try {
-      const response = await axios.post('http://localhost:3000/admin/product-offer', {
+      const response = await axiosInstance.post('/admin/product-offer', {
         productId: selectedProduct._id,
         percentage: Number(percentage),
         startDate,

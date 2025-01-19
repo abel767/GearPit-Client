@@ -3,8 +3,7 @@ import { Star, Minus, Plus, ShoppingCart, Tag } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { addToCart } from '../../redux/Slices/CartSlice';
 import { useDispatch, useSelector } from 'react-redux';
-import axios from 'axios'
-
+import axiosInstance from '../../api/axiosInstance';
 
 const hasActiveOffer = (offer) => {
   if (!offer || !offer.isActive) return false;
@@ -53,7 +52,7 @@ export default function ProductDetail() {
       setLoading(true);
       try {
         // First, fetch all products
-        const response = await fetch('http://localhost:3000/admin/productdata', {
+        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/admin/productdata`, {
           credentials: 'include'  // Added credentials
         });
         
@@ -173,7 +172,7 @@ export default function ProductDetail() {
         quantity: 1
       });
   
-      const response = await axios.post('http://localhost:3000/user/cart/add', {
+      const response = await axiosInstance.post('/user/cart/add', {
         userId,
         productId: product._id,
         variantId: defaultVariant._id,

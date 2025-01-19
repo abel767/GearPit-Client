@@ -2,9 +2,10 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import axios from "axios";
 import { useDispatch, useSelector } from 'react-redux';
 import { userLogin } from "../../../redux/Slices/userSlice";
+import { loginUser } from "../../../services/authService";
+import axiosInstance from "../../../api/axiosInstance";
 
 // Images
 import loginImage from '../../../assets/user/login/banner.jpg'
@@ -20,9 +21,6 @@ function Login() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const isAuthenticated = useSelector(state => state.user.isAuthenticated);
-
-  // Configure axios
-  axios.defaults.withCredentials = true;
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -50,38 +48,32 @@ function Login() {
     return newErrors;
   };
 
-  // Updated Google Auth function
+  // Google Auth function remains the same
   const googleAuth = () => {
-    window.open("http://localhost:3000/auth/google", "_self");
+    window.open(`${import.meta.env.VITE_BACKEND_URL}/auth/google`, "_self");
   };
 
   // Updated checkLoginStatus function
   const checkLoginStatus = async () => {
     try {
-      const response = await axios.get("http://localhost:3000/auth/login/success", {
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        }
-      });
+      const response = await axiosInstance.get("/auth/login/success");
 
       if (response.data.user) {
-        dispatch(userLogin({
+        const userData = {
           user: {
             id: response.data.user.id,
-            _id: response.data.user.id,
             firstName: response.data.user.firstName,
             lastName: response.data.user.lastName,
             email: response.data.user.email,
             profileImage: response.data.user.profileImage,
-            isAdmin: response.data.user.isAdmin
+            isAdmin: false
           }
-        }));
+        };
+        dispatch(userLogin(userData));
         navigate('/user/home');
       }
     } catch (error) {
       if (error.response?.status === 403) {
-        // Silent handling for authentication check
         console.log("Not authenticated yet");
       } else {
         console.error("Login check error:", error);
@@ -93,7 +85,7 @@ function Login() {
     if (!isAuthenticated) {
       checkLoginStatus();
     }
-  }, [isAuthenticated, dispatch, navigate]);
+  }, [isAuthenticated]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -106,31 +98,14 @@ function Login() {
     }
     
     try {
-      const userData = { email, password };
-      const response = await axios.post("http://localhost:3000/user/login", userData, {
-        headers: {
-          "Content-Type": "application/json",
-        }
-      });
+      const response = await loginUser({ email, password });
       
-      if (response.data.status === 'VERIFIED') {
-        toast.success(response.data.message, {
+      if (response.status === 'VERIFIED') {
+        toast.success(response.message, {
           position: "top-right",
           autoClose: 3000,
           theme: "colored"
         });
-  
-        dispatch(userLogin({
-          user: {
-            id: response.data.user.id,
-            _id: response.data.user.id,
-            firstName: response.data.user.firstName,
-            lastName: response.data.user.lastName,
-            email: response.data.user.email,
-            profileImage: response.data.user.profileImage,
-            isAdmin: response.data.user.isAdmin
-          }
-        }));
   
         navigate('/user/home');
       }
@@ -147,7 +122,6 @@ function Login() {
       console.error("Error response:", error.response);
     }
   };
-
   return (
     <div className="flex min-h-screen">
       {/* Left side - Motorcycle Image */}

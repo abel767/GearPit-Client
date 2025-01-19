@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import axiosInstance from '../../../api/axiosInstance';
 import { X, Plus } from 'lucide-react';
 import { toast } from 'react-toastify';
 import uploadImageToCloudinary from '../../../services/uploadImageToCloudinary';
@@ -11,7 +11,6 @@ const AddProduct = () => {
   const [imageFiles, setImageFiles] = useState([]);
   const [imageUrls, setImageUrls] = useState([]);
   const MAX_IMAGES = 3;
-  const size = ['S','M','L','X','Xl']
 
   const [productData, setProductData] = useState({
     productName: '',
@@ -49,8 +48,8 @@ const AddProduct = () => {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await axios.get(
-          'http://localhost:3000/admin/categorydata-addproduct',
+        const response = await axiosInstance.get(
+          '/admin/categorydata-addproduct',
           { withCredentials: true }
         );
         console.log('API Response:', response.data);
@@ -177,7 +176,7 @@ const AddProduct = () => {
         }))
       };
 
-      await axios.post('http://localhost:3000/admin/addproduct', formattedData, {
+      await axiosInstance.post('/admin/addproduct', formattedData, {
         withCredentials: true,
       });
 

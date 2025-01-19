@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import axiosInstance from '../../api/axiosInstance';
 import { AlertCircle, X } from 'lucide-react';
 
 const OrderHistory = () => {
@@ -13,7 +13,6 @@ const OrderHistory = () => {
   const userState = useSelector((state) => state.user);
   const userId = userState?.user?._id;
   
-  const BASE_URL = 'http://localhost:3000';
 
   const getStatusColor = (status) => {
     switch (status?.toUpperCase()) {
@@ -44,7 +43,7 @@ const OrderHistory = () => {
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${BASE_URL}/user/orders/user/${userId}`);
+      const response = await axiosInstance.get(`/user/orders/user/${userId}`);
       setOrders(response.data.data);
       setError(null);
     } catch (err) {

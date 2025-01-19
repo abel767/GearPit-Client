@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { CreditCard, Wallet, ArrowDownRight, ArrowUpRight, Search, Loader2 } from 'lucide-react';
-import axios from 'axios';
-
+import axiosInstance from '../../api/axiosInstance';
 function UserWallet() {
   const { user } = useSelector((state) => {
     console.log('Redux State:', state); // Debug Redux state
@@ -27,7 +26,7 @@ function UserWallet() {
     try {
       setLoading(true);
       setError(null);
-      const { data } = await axios.get(`http://localhost:3000/user/wallet/${user._id}`);
+      const { data } = await axiosInstance.get(`/user/wallet/${user._id}`);
       
       if (data.success) {
         setWalletData(data.data);
@@ -46,13 +45,13 @@ function UserWallet() {
     try {
       setCancelStatus({ message: 'Processing cancellation...', type: 'info' });
       
-      const cancelResponse = await axios.put(`http://localhost:3000/user/orders/${orderId}/cancel`);
+      const cancelResponse = await axiosInstance.put(`user/orders/${orderId}/cancel`);
       
       if (cancelResponse.data.success) {
-        const orderDetails = await axios.get(`http://localhost:3000/user/orders/detail/${orderId}`);
+        const orderDetails = await axiosInstance.get(`/user/orders/detail/${orderId}`);
         const refundAmount = orderDetails.data.data.totalAmount;
 
-        const refundResponse = await axios.post('http://localhost:3000/user/wallet/refund', {
+        const refundResponse = await axiosInstance.post('/user/wallet/refund', {
           userId: user._id,
           orderId: orderId,
           amount: refundAmount

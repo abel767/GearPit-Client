@@ -1,4 +1,3 @@
-import React from 'react';
 import logo from '../../assets/user/signup/logo 3.png';
 
 const Footer = () => {

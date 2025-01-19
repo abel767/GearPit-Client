@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import axiosInstance from '../../../api/axiosInstance';
 
 const Categories = () => {
   const navigate = useNavigate();
@@ -17,7 +17,7 @@ const Categories = () => {
   const fetchCategories = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('http://localhost:3000/admin/categorydata');
+      const response = await axiosInstance.get('/admin/categorydata');
       console.log('API Response:', response.data); // Log the response to debug
       setCategories(Array.isArray(response.data) ? response.data : []); // Normalize data
       setError(null);
@@ -31,7 +31,7 @@ const Categories = () => {
 
   const handleStatusChange = async (id, currentStatus) => {
     try {
-      await axios.put(`http://localhost:3000/admin/categorystatus/${id}`, {
+      await axiosInstance.put(`/admin/categorystatus/${id}`, {
         isActive: !currentStatus
       });
       fetchCategories(); // Refresh the list

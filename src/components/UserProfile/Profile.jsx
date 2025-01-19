@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios'
+import axiosInstance from '../../api/axiosInstance';
 import { useDispatch, useSelector } from 'react-redux';
 import { Edit2, Package, CheckCircle, Clock, Camera, Save } from 'lucide-react';
 import { setEditing } from '../../redux/Slices/profileSlice';
@@ -33,7 +34,7 @@ const Profile = () => {
       const fetchOrders = async () => {
         if (user?._id) {
           try {
-            const response = await axios.get(`http://localhost:3000/user/orders/user/${user._id}`);
+            const response = await axiosInstance.get(`/user/orders/user/${user._id}`);
             setOrders(response.data.data);
           } catch (err) {
             console.error('Error fetching orders:', err);
@@ -65,7 +66,7 @@ const Profile = () => {
   
     const fetchUserData = async () => {
       try {
-        const response = await fetch(`http://localhost:3000/user/profile/${user.id}`, {
+        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/user/profile/${user.id}`, {
           credentials: 'include',
           headers:{
               'Content-Type': 'application/json',
@@ -101,7 +102,7 @@ const Profile = () => {
 
   const handleSubmit = async () => {
     try {
-      const response = await fetch(`http://localhost:3000/user/profileupdate/${user.id}`, {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/user/profileupdate/${user.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -152,7 +153,7 @@ const Profile = () => {
       const cloudinaryUrl = imageUrls[0];
       console.log('Cloudinary URL:', cloudinaryUrl);
 
-      const response = await fetch(`http://localhost:3000/user/profileImageupdate/${user.id}`, {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/user/profileImageupdate/${user.id}`, {
         method: 'PUT',
         credentials: 'include',
         headers: {

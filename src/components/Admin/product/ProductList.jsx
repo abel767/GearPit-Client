@@ -20,8 +20,11 @@ const Products = () => {
     async function fetchData() {
       setIsLoading(true);
       try {
-        const response = await fetch("http://localhost:3000/admin/productdata", {
-          credentials: 'include'
+        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/admin/productdata`, {
+          credentials: 'include',
+          headers: {
+            'Accept': 'application/json'
+          }
         });
         if (!response.ok) {
           throw new Error('Failed to fetch products');
@@ -82,10 +85,14 @@ const Products = () => {
   const handleToggleStatus = async (productId) => {
     try {
       const response = await fetch(
-        `http://localhost:3000/admin/toggleproductstatus/${productId}`,
+        `${import.meta.env.VITE_BACKEND_URL}/admin/toggleproductstatus/${productId}`,
         {
           method: 'PUT',
-          credentials: 'include'
+          credentials: 'include',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
         }
       );
       

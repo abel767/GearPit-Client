@@ -115,7 +115,7 @@ export default function PaymentMethod() {
         cartTotal: orderSummary.subtotal
       });
   
-      const validateResponse = await fetch('http://localhost:3000/user/validate-coupon', {
+      const validateResponse = await fetch(`${import.meta.env.VITE_BACKEND_URL}/user/validate-coupon`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -253,7 +253,7 @@ export default function PaymentMethod() {
         orderData.paymentId = paymentId;
       }
   
-      const response = await fetch('http://localhost:3000/user/orders', {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/user/orders`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -271,7 +271,7 @@ export default function PaymentMethod() {
 
       if (cartDetails?.items?.length) {
         try {
-          await fetch(`http://localhost:3000/user/cart/clear/${user._id}`, {
+          await fetch(`${import.meta.env.VITE_BACKEND_URL}/user/cart/clear/${user._id}`, {
             method: 'DELETE',
             credentials: 'include'
           });

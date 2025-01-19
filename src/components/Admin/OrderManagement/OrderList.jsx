@@ -47,8 +47,11 @@ export default function OrderManagement() {
 
   const fetchOrders = async () => {
     try {
-      const response = await fetch('http://localhost:3000/admin/orders', {
-        credentials: 'include'
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/admin/orders`, {
+        headers:{
+          'Content-Type': 'application/json',
+        }
+     
       });
       const data = await response.json();
       if (data.success) {
@@ -66,9 +69,10 @@ export default function OrderManagement() {
 
   const updateOrderStatus = async (orderId, newStatus) => {
     try {
-      const response = await fetch(`http://localhost:3000/admin/orders/${orderId}/status`, {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/admin/orders/${orderId}/status`, {
         method: 'PATCH',
         headers: {
+          'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
         credentials: 'include',
