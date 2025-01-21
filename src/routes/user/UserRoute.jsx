@@ -16,6 +16,7 @@ import Cart from '../../pages/user/Cart/Cart';
 import OrderDetailAndTrack from '../../pages/user/OrderDetails/OrderDetailAndTrack';
 import WalletPage from '../../pages/user/Wallet/WalletPage';
 import WhishlistPage from '../../pages/user/whishlist/WhislistPage';
+import PaymentFailurePage from '../../pages/user/Checkout/PaymentFailurePage';
 function UserRoute() {
   return (
     <Routes>
@@ -33,6 +34,7 @@ function UserRoute() {
         <Route path="/product/:id" element={<BlockedUserWrapper><ProductDetailPage/></BlockedUserWrapper>} />
         <Route path="/Checkout" element={<BlockedUserWrapper><CheckOut/></BlockedUserWrapper>} />
         <Route path="/PaymentSuccess" element={<BlockedUserWrapper><PaymentDone/></BlockedUserWrapper>} />
+        <Route path="/PaymentFailure" element={<BlockedUserWrapper><PaymentFailurePage/></BlockedUserWrapper>} />
         <Route path="/OrderHistory" element={<BlockedUserWrapper><OrderHistory/></BlockedUserWrapper>} />
         <Route path="/cart" element={<BlockedUserWrapper><Cart/></BlockedUserWrapper>} />
         <Route path="/OrderDetail" element={<BlockedUserWrapper><OrderDetailAndTrack/></BlockedUserWrapper>} />

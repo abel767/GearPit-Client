@@ -1,11 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { useDispatch, useSelector } from 'react-redux';
-import { userLogin } from "../../../redux/Slices/userSlice";
 import { loginUser } from "../../../services/authService";
-import axiosInstance from "../../../api/axiosInstance";
 
 // Images
 import loginImage from '../../../assets/user/login/banner.jpg'
@@ -16,17 +13,9 @@ function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState({});
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [, setIsSubmitted] = useState(false);
   
-  const dispatch = useDispatch();
   const navigate = useNavigate();
-  const isAuthenticated = useSelector(state => state.user.isAuthenticated);
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/user/home');
-    }
-  }, [isAuthenticated, navigate]);
 
   const validateForm = () => {
     const newErrors = {};
@@ -48,44 +37,9 @@ function Login() {
     return newErrors;
   };
 
-  // Google Auth function remains the same
   const googleAuth = () => {
     window.open(`${import.meta.env.VITE_BACKEND_URL}/auth/google`, "_self");
   };
-
-  // Updated checkLoginStatus function
-  const checkLoginStatus = async () => {
-    try {
-      const response = await axiosInstance.get("/auth/login/success");
-
-      if (response.data.user) {
-        const userData = {
-          user: {
-            id: response.data.user.id,
-            firstName: response.data.user.firstName,
-            lastName: response.data.user.lastName,
-            email: response.data.user.email,
-            profileImage: response.data.user.profileImage,
-            isAdmin: false
-          }
-        };
-        dispatch(userLogin(userData));
-        navigate('/user/home');
-      }
-    } catch (error) {
-      if (error.response?.status === 403) {
-        console.log("Not authenticated yet");
-      } else {
-        console.error("Login check error:", error);
-      }
-    }
-  };
-
-  useEffect(() => {
-    if (!isAuthenticated) {
-      checkLoginStatus();
-    }
-  }, [isAuthenticated]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -118,10 +72,9 @@ function Login() {
         pauseOnHover: true,
         draggable: true,
       });
-    
-      console.error("Error response:", error.response);
     }
   };
+
   return (
     <div className="flex min-h-screen">
       {/* Left side - Motorcycle Image */}

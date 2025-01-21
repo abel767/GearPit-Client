@@ -28,24 +28,58 @@ export const useRazorpay = () => {
         throw new Error('Invalid payment order response');
       }
 
-      // Configure Razorpay options
-      const options = createRazorpayOptions({
-        orderData,
-        keyId: import.meta.env.VITE_RAZORPAY_KEY_ID,
-        user,
-        address,
-        onSuccess: (paymentId) => {
-          setIsProcessing(false);
-          onSuccess(paymentId);
-        },
-        onError: (error) => {
-          setIsProcessing(false);
-          onError(error);
+      // Set up payment timeout
+      let paymentTimeout;
+      
+      const options = {
+        ...createRazorpayOptions({
+          orderData,
+          keyId: import.meta.env.VITE_RAZORPAY_KEY_ID,
+          user,
+          address,
+          onSuccess: (paymentId) => {
+            clearTimeout(paymentTimeout);
+            setIsProcessing(false);
+            onSuccess(paymentId);
+          },
+          onError: (error) => {
+            clearTimeout(paymentTimeout);
+            setIsProcessing(false);
+            onError(error);
+          }
+        }),
+        // Add modal closing handler
+        modal: {
+          ondismiss: () => {
+            clearTimeout(paymentTimeout);
+            setIsProcessing(false);
+            onError({
+              code: 'PAYMENT_MODAL_CLOSED',
+              description: 'Payment window was closed before completion',
+              metadata: {
+                order_id: orderData.id
+              }
+            });
+          }
         }
-      });
+      };
 
       // Initialize Razorpay
       const paymentObject = new window.Razorpay(options);
+      
+      // Set timeout for payment completion
+      paymentTimeout = setTimeout(() => {
+        paymentObject.close();
+        setIsProcessing(false);
+        onError({
+          code: 'PAYMENT_TIMEOUT',
+          description: 'Payment was not completed within the time limit',
+          metadata: {
+            order_id: orderData.id
+          }
+        });
+      }, 50000); // 50 seconds timeout
+
       paymentObject.open();
       
     } catch (error) {

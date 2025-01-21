@@ -4,7 +4,6 @@ import { Link } from "react-router-dom"
 import { userLogout } from '../../redux/Slices/userSlice'
 import { useDispatch, useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
-import axios from 'axios'
 import axiosInstance from "../../api/axiosInstance"
 import { User, Menu, X, Home, Phone, Info, Store, ShoppingCart, Heart, LogOut, Search } from 'lucide-react'
 import logo from '../../assets/Logo/LogoTitle.png'
@@ -173,20 +172,27 @@ const Navbar = () => {
 
                         {/* Profile and Logout Section */}
                         <div className="border-t border-gray-200 pt-6 space-y-6">
-                            <Link to="/user/profile" 
-                                className="flex items-center space-x-3 text-gray-600 hover:text-gray-900"
-                                onClick={() => setIsNavOpen(false)}
-                            >
-                                {user?.profileImage ? (
-                                    <img
-                                        src={user.profileImage}
-                                        alt="Profile"
-                                        className="h-8 w-8 rounded-full object-cover border-2 border-gray-200"
-                                        onError={(e) => {
-                                            e.target.onerror = null
-                                            e.target.src = 'data:image/svg+xml,...'
-                                        }}
-                                    />
+                        <Link 
+    to="/user/profile" 
+    className="text-gray-600 hover:text-gray-900"
+    onClick={(e) => {
+        if (!user?.id) {
+            e.preventDefault();
+            // Optionally show an error message or redirect to login
+            navigate("/user/login");
+        }
+    }}
+>
+    {user?.profileImage ? (
+        <img
+            src={user.profileImage}
+            alt="Profile"
+            className="h-8 w-8 rounded-full object-cover border-2 border-gray-200"
+            onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = 'default-profile-image.svg'; // Use a proper default image
+            }}
+        />
                                 ) : (
                                     <User size={20} />
                                 )}

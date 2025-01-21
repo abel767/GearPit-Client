@@ -3,6 +3,7 @@ import { store } from '../redux/store';
 import { userLogin, userLogout } from '../redux/Slices/userSlice';
 import { adminLogin, adminLogout } from '../redux/Slices/adminSlice';
 
+
 const handleAuthError = () => {
     const state = store.getState();
     if (state.admin.isAuthenticated) {

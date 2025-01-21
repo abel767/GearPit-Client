@@ -1,13 +1,11 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import axios from 'axios';
-
-const BASE_URL = 'http://localhost:3000/user';
+import axiosInstance from '../../api/axiosInstance';
 
 export const fetchAddresses = createAsyncThunk(
   'address/fetchAddresses',
   async (userId, { rejectWithValue }) => {
     try {
-      const response = await axios.get(`${BASE_URL}/address/${userId}`);
+      const response = await axiosInstance.get(`/user/address/${userId}`);
       return response.data.addresses;
     } catch (error) {
       return rejectWithValue(error.response.data);
@@ -19,7 +17,7 @@ export const addAddress = createAsyncThunk(
   'address/addAddress',
   async ({ userId, addressData }, { rejectWithValue }) => {
     try {
-      const response = await axios.post(`${BASE_URL}/address/${userId}`, addressData);
+      const response = await axiosInstance.post(`/user/address/${userId}`, addressData);
       if (response.data.success) {
         return response.data;
       }
@@ -34,7 +32,7 @@ export const updateAddress = createAsyncThunk(
   'address/updateAddress',
   async ({ userId, addressId, addressData }, { rejectWithValue }) => {
     try {
-      const response = await axios.put(`${BASE_URL}/address/${userId}/${addressId}`, addressData);
+      const response = await axiosInstance.put(`/user/address/${userId}/${addressId}`, addressData);
       return response.data.data.addresses;
     } catch (error) {
       return rejectWithValue(error.response.data);
@@ -46,7 +44,7 @@ export const deleteAddress = createAsyncThunk(
   'address/deleteAddress',
   async ({ userId, addressId }, { rejectWithValue }) => {
     try {
-      const response = await axios.delete(`${BASE_URL}/address/${userId}/${addressId}`);
+      const response = await axiosInstance.delete(`/user/address/${userId}/${addressId}`);
       if (response.data.success) {
         return response.data.data?.addresses || [];
       }

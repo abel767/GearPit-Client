@@ -4,6 +4,8 @@ import { useSelector, useDispatch } from 'react-redux';
 import { CreditCard, Wallet, DollarSign, X } from 'lucide-react';
 import { fetchAddresses } from '../../redux/Slices/addressSlice';
 import { useRazorpay } from '../../hooks/useRazorpay';
+import { useWalletPayment } from '../../hooks/walletPaymentHook';
+import { fetchWalletDetails } from '../../redux/Slices/walletSlice';
 
 const UPIIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -40,6 +42,9 @@ export default function PaymentMethod() {
   const { addresses, loading: addressesLoading, error: addressesError } = useSelector((state) => state.address);
   const [selectedAddressId, setSelectedAddressId] = useState(null);
 
+  const isRetry = location.state?.isRetry;
+  const retryOrderId = location.state?.productDetails?.orderId;
+
   useEffect(() => {
     if (!isAuthenticated || !user) {
       navigate('/user/login', { 
@@ -72,6 +77,16 @@ export default function PaymentMethod() {
     }
   }, [addresses, selectedAddressId]);
 
+  const {
+    processWalletPayment,
+    isProcessing: walletProcessing,
+    error: walletError,
+    canPayWithWallet,
+    balance: walletBalance
+  } = useWalletPayment()
+
+
+
   const paymentMethods = [
     {
       id: 'card',
@@ -87,9 +102,11 @@ export default function PaymentMethod() {
     },
     {
       id: 'wallet',
-      name: 'My Wallet',
-      icon: <Wallet className="w-5 h-5" />,
-      description: 'Pay from your wallet balance'
+    name: 'My Wallet',
+    icon: <Wallet className="w-5 h-5" />,
+    description: `Balance: ₹${walletBalance?.toFixed(2) || '0.00'}`,
+    disabled: !canPayWithWallet(orderSummary?.total || 0),
+    badge: !canPayWithWallet(orderSummary?.total || 0) ? 'Insufficient Balance' : null
     },
     {
       id: 'cod',
@@ -212,6 +229,34 @@ export default function PaymentMethod() {
       }
   
       setIsSubmitting(true);
+
+      if (isRetry && retryOrderId) {
+        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/user/orders/${retryOrderId}/retry-payment`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            paymentId,
+            paymentMethod: selectedPayment
+          })
+        });
+  
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to process retry payment');
+        }
+  
+        const data = await response.json();
+        navigate('/user/PaymentSuccess', {
+          state: {
+            orderId: data.data.orderId,
+            orderNumber: data.data.orderNumber
+          }
+        });
+        return;
+      }
   
       let orderItems = [];
       if (cartDetails?.items?.length) {
@@ -294,6 +339,49 @@ export default function PaymentMethod() {
     }
   };
 
+  // const handlePaymentFailure = async (error) => {
+  //   try {
+  //     // Send the failure details to your backend
+  //     const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/user/payment-failure`, {
+  //       method: 'POST',
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //       },
+  //       credentials: 'include',
+  //       body: JSON.stringify({
+  //         error: {
+  //           code: error.code,
+  //           description: error.description,
+  //           source: error.source,
+  //           step: error.step,
+  //           reason: error.reason,
+  //           metadata: {
+  //             order_id: error.metadata?.order_id,
+  //             payment_id: error.metadata?.payment_id
+  //           }
+  //         }
+  //       })
+  //     });
+  
+  //     if (!response.ok) {
+  //       throw new Error('Failed to log payment failure');
+  //     }
+  
+  //     // Navigate to the failure page with error details
+  //     navigate('/user/PaymentFailure', {
+  //       state: {
+  //         errorCode: error.code,
+  //         errorMessage: error.description,
+  //         orderId: error.metadata?.order_id
+  //       }
+  //     });
+  //   } catch (error) {
+  //     console.error('Error handling payment failure:', error);
+  //     // Still navigate to failure page even if logging fails
+  //     navigate('/user/PaymentFailure');
+  //   }
+  // };
+
   const handlePaymentSubmit = async () => {
     setError(null);
     
@@ -302,9 +390,38 @@ export default function PaymentMethod() {
       return;
     }
   
-    if (selectedPayment === 'cod') {
-      await handleSubmitOrder();
-    } else {
+    if (selectedPayment === 'wallet') {
+      const paymentAmount = orderSummary.total;
+      
+      // Validate amount
+      if (!paymentAmount || paymentAmount <= 0) {
+        setError('Invalid payment amount');
+        return;
+      }
+  
+      // Validate wallet balance
+      if (!canPayWithWallet(paymentAmount)) {
+        setError('Insufficient wallet balance');
+        return;
+      }
+  
+      try {
+        const paymentResult = await processWalletPayment({
+          amount: paymentAmount
+        });
+  
+        if (paymentResult.success) {
+          await handleSubmitOrder(paymentResult.data?.transaction?._id);
+          dispatch(fetchWalletDetails(user._id));
+        } else {
+          setError(paymentResult.error || 'Payment failed');
+        }
+      } catch (error) {
+        console.error('Wallet payment error:', error);
+        setError('Failed to process wallet payment');
+      }
+    }else {
+
       try {
         await initializePayment({
           amount: orderSummary.total,
@@ -316,12 +433,46 @@ export default function PaymentMethod() {
             }
             await handleSubmitOrder(paymentId);
           },
-          onError: (error) => {
+          onError: async (error) => {
+            // Don't handle user cancellation as a failure
             if (error.message === 'Payment cancelled by user') {
               return;
             }
-            setError('Payment failed. Please try again.');
-            console.error('Payment failed:', error);
+  
+            // Send failure details to backend
+            try {
+              await fetch(`${import.meta.env.VITE_BACKEND_URL}/user/payment-failure`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                  error: {
+                    code: error.code,
+                    description: error.description,
+                    source: error.source,
+                    step: error.step,
+                    reason: error.reason,
+                    metadata: {
+                      order_id: error.metadata?.order_id,
+                      payment_id: error.metadata?.payment_id
+                    }
+                  }
+                })
+              });
+            } catch (logError) {
+              console.error('Failed to log payment failure:', logError);
+            }
+  
+            // Navigate to failure page with error details
+            navigate('/user/PaymentFailure', {
+              state: {
+                errorCode: error.code,
+                errorMessage: error.description || 'Payment failed. Please try again.',
+                orderId: error.metadata?.order_id
+              }
+            });
           }
         });
       } catch (error) {
@@ -401,35 +552,37 @@ export default function PaymentMethod() {
             <div className="mb-8">
               <h2 className="text-base mb-4">Payment Method</h2>
               <div className="space-y-4">
-                {paymentMethods.map((method) => (
-                  <div
-                    key={method.id}
-                    onClick={() => setSelectedPayment(method.id)}
-                    className={`p-4 rounded border transition-all cursor-pointer
-                      ${selectedPayment === method.id ? 'border-black bg-gray-50' : 'border-gray-200'}`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="radio"
-                        name="payment"
-                        checked={selectedPayment === method.id}
-                        onChange={() => setSelectedPayment(method.id)}
-                      />
-                      <div className="flex items-center justify-between flex-1">
-                        <div className="flex items-center gap-3">
-                          <span className="text-gray-500">{method.icon}</span>
-                          <div className="text-sm">
-                            <p className="font-medium">{method.name}</p>
-                            <p className="text-gray-600">{method.description}</p>
-                          </div>
-                        </div>
-                        {method.badge && (
-                         <span className="text-xs text-gray-500">{method.badge}</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
+              {paymentMethods.map((method) => (
+  <div
+    key={method.id}
+    onClick={() => !method.disabled && setSelectedPayment(method.id)}
+    className={`p-4 rounded border transition-all ${
+      method.disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+    } ${selectedPayment === method.id ? 'border-black bg-gray-50' : 'border-gray-200'}`}
+  >
+    <div className="flex items-center gap-3">
+      <input
+        type="radio"
+        name="payment"
+        checked={selectedPayment === method.id}
+        onChange={() => !method.disabled && setSelectedPayment(method.id)}
+        disabled={method.disabled}
+      />
+      <div className="flex items-center justify-between flex-1">
+        <div className="flex items-center gap-3">
+          <span className="text-gray-500">{method.icon}</span>
+          <div className="text-sm">
+            <p className="font-medium">{method.name}</p>
+            <p className="text-gray-600">{method.description}</p>
+          </div>
+        </div>
+        {method.badge && (
+          <span className="text-xs text-red-500">{method.badge}</span>
+        )}
+      </div>
+    </div>
+  </div>
+))}
               </div>
             </div>
           </div>
