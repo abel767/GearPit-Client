@@ -2,19 +2,24 @@ import { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import axiosInstance from '../../api/axiosInstance';
-import { AlertCircle, X } from 'lucide-react';
+import { AlertCircle, X, RefreshCw, Clock } from 'lucide-react';
+import { loadRazorpay } from '../../utils/LoadRazorPay';
 
 const OrderHistory = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [retryLoading, setRetryLoading] = useState(null); // Track which order is retrying
   const navigate = useNavigate();
   
   const userState = useSelector((state) => state.user);
   const userId = userState?.user?._id;
-  
 
-  const getStatusColor = (status) => {
+  const getStatusColor = (status, paymentStatus) => {
+    if (paymentStatus === 'failed') {
+      return 'text-red-500 bg-red-50';
+    }
+    
     switch (status?.toUpperCase()) {
       case 'PENDING':
         return 'text-yellow-500 bg-yellow-50';
@@ -57,6 +62,78 @@ const OrderHistory = () => {
 
   const handleViewOrderDetails = (orderId) => {
     navigate('/user/OrderDetail', { state: { orderId } });
+  };
+
+  const isRetryWindowActive = (retryWindow) => {
+    return retryWindow && new Date() < new Date(retryWindow);
+  };
+
+  const getTimeRemaining = (retryWindow) => {
+    if (!retryWindow) return null;
+    const now = new Date();
+    const end = new Date(retryWindow);
+    const diff = end - now;
+    const minutes = Math.floor(diff / 60000);
+    const seconds = Math.floor((diff % 60000) / 1000);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  const handleRetryPayment = async (order) => {
+    try {
+      setRetryLoading(order._id);
+      
+      // Load Razorpay SDK
+      const isLoaded = await loadRazorpay();
+      if (!isLoaded) {
+        throw new Error('Failed to load payment gateway');
+      }
+
+      // Create new payment order
+      const response = await axiosInstance.post(`/user/orders/${order._id}/retry-payment`);
+      const { orderId: razorpayOrderId, amount, currency } = response.data.data;
+
+      const options = {
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+        amount,
+        currency,
+        order_id: razorpayOrderId,
+        name: "Your Store",
+        description: `Retry Payment for Order #${order.orderNumber}`,
+        prefill: {
+          name: userState?.user?.name,
+          email: userState?.user?.email,
+        },
+        handler: async function (response) {
+          try {
+            await axiosInstance.post('/user/verify-payment', {
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_signature: response.razorpay_signature,
+              orderId: order._id
+            });
+            
+            // Refresh orders after successful payment
+            fetchOrders();
+          } catch (error) {
+            setError('Payment verification failed. Please try again.');
+            console.error('error in payment verification', error)
+          }
+        },
+        modal: {
+          ondismiss: function() {
+            setRetryLoading(null);
+          }
+        }
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    } catch (error) {
+      setError('Failed to initiate payment retry. Please try again.');
+      console.error('Payment retry error:', error);
+    } finally {
+      setRetryLoading(null);
+    }
   };
 
   if (!userState.isAuthenticated) {
@@ -102,9 +179,9 @@ const OrderHistory = () => {
       )}
 
       <div className="bg-white rounded-lg shadow">
-        <div className="grid grid-cols-6 gap-4 px-6 py-3 bg-gray-50 text-sm font-medium text-gray-500 rounded-t-lg">
+        <div className="grid grid-cols-7 gap-4 px-6 py-3 bg-gray-50 text-sm font-medium text-gray-500 rounded-t-lg">
           <div>ORDER ID</div>
-          <div>PRODUCT NAME</div>
+          <div className="col-span-2">PRODUCT NAME</div>
           <div>STATUS</div>
           <div>DATE</div>
           <div>TOTAL</div>
@@ -118,15 +195,21 @@ const OrderHistory = () => {
             </div>
           ) : (
             orders.map((order) => (
-              <div key={order._id} className="grid grid-cols-6 gap-4 px-6 py-4 items-center">
+              <div key={order._id} className="grid grid-cols-7 gap-4 px-6 py-4 items-center">
                 <div className="text-sm font-medium">{order.orderNumber}</div>
-                <div className="text-sm">
+                <div className="text-sm col-span-2">
                   {order.items.map(item => item.productId.productName).join(', ')}
                 </div>
                 <div>
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
-                    {order.status}
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status, order.paymentStatus)}`}>
+                    {order.paymentStatus === 'failed' ? 'Payment Failed' : order.status}
                   </span>
+                  {order.paymentStatus === 'failed' && isRetryWindowActive(order.paymentRetryWindow) && (
+                    <div className="mt-1 flex items-center text-xs text-gray-500">
+                      <Clock className="h-3 w-3 mr-1" />
+                      <span>{getTimeRemaining(order.paymentRetryWindow)}</span>
+                    </div>
+                  )}
                 </div>
                 <div className="text-sm text-gray-600">
                   {new Date(order.createdAt).toLocaleDateString('en-IN', {
@@ -141,12 +224,27 @@ const OrderHistory = () => {
                   ₹{order.totalAmount.toLocaleString('en-IN')} ({order.items.length} Items)
                 </div>
                 <div>
-                  <button
-                    onClick={() => handleViewOrderDetails(order._id)}
-                    className="px-3 py-1 rounded-lg text-sm font-medium text-blue-600 hover:bg-blue-50 transition-colors border border-blue-600"
-                  >
-                    View Details
-                  </button>
+                  {order.paymentStatus === 'failed' && isRetryWindowActive(order.paymentRetryWindow) ? (
+                    <button
+                      onClick={() => handleRetryPayment(order)}
+                      disabled={retryLoading === order._id}
+                      className={`px-3 py-1 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors border border-red-600 flex items-center ${
+                        retryLoading === order._id ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                    >
+                      {retryLoading === order._id ? (
+                        <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                      ) : null}
+                      Retry Payment
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleViewOrderDetails(order._id)}
+                      className="px-3 py-1 rounded-lg text-sm font-medium text-blue-600 hover:bg-blue-50 transition-colors border border-blue-600"
+                    >
+                      View Details
+                    </button>
+                  )}
                 </div>
               </div>
             ))
@@ -158,4 +256,3 @@ const OrderHistory = () => {
 };
 
 export default OrderHistory;
-

@@ -22,8 +22,7 @@
   
 body{
   overflow-x: hidden;
-  font-family: "Duru Sans", serif;
-  /* font-family: "Anonymous Pro", serif; */
-  font-weight: 300;
+  font-family: "Oswald", serif;  /* font-family: "Anonymous Pro", serif; */
+  font-weight: 500;
 
 }

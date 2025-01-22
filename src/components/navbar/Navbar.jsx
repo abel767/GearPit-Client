@@ -1,4 +1,3 @@
-'use client'
 import { useState } from "react"
 import { Link } from "react-router-dom"
 import { userLogout } from '../../redux/Slices/userSlice'
@@ -6,7 +5,7 @@ import { useDispatch, useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
 import axiosInstance from "../../api/axiosInstance"
 import { User, Menu, X, Home, Phone, Info, Store, ShoppingCart, Heart, LogOut, Search } from 'lucide-react'
-import logo from '../../assets/Logo/LogoTitle.png'
+import logo from '../../assets/Logo/Logo2.png'
 const Navbar = () => {
     const [isNavOpen, setIsNavOpen] = useState(false)
     const dispatch = useDispatch()
@@ -46,7 +45,7 @@ const Navbar = () => {
     return (
         <>
             {/* Main Navbar */}
-            <nav className="fixed top-0 left-0 right-0 bg-white z-40 border-b border-gray-200">
+            <nav className="fixed top-0 left-0 right-0 z-40 bg-black ">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between items-center h-16">
                         {/* Logo */}
@@ -69,28 +68,28 @@ const Navbar = () => {
                         </button>
 
                         {/* Desktop Navigation - Center */}
-                        <div className="hidden md:flex items-center space-x-8 flex-1 justify-center font-anonymous-pro">
-                            <Link to="/user/home" className="text-gray-600 hover:text-gray-900">Home</Link>
-                            <Link to="/user/store" className="text-gray-600 hover:text-gray-900">Store</Link>
-                            <Link to="/about" className="text-gray-600 hover:text-gray-900">About Us</Link>
-                            <Link to="/contact" className="text-gray-600 hover:text-gray-900">Contact</Link>
+                        <div className="hidden md:flex items-center space-x-20 flex-1 justify-center ">
+                            <Link to="/user/home" className="text-white hover:text-gray-400">Home</Link>
+                            <Link to="/user/store" className="text-white hover:text-gray-400">Store</Link>
+                            <Link to="/about" className="text-white hover:text-gray-400">About Us</Link>
+                            <Link to="/contact" className="text-white hover:text-gray-400">Contact</Link>
                         </div>
 
                         {/* Right Navigation */}
                         <div className="hidden md:flex items-center space-x-6">
-                            <Link to="/user/wishlist" className="text-gray-600 hover:text-gray-900">
+                            <Link to="/user/wishlist" className="text-white hover:text-gray-400">
                                 <Heart className="h-6 w-6" />
                             </Link>
                             
-                            <button className="text-gray-600 hover:text-gray-900">
+                            <button className="text-white hover:text-gray-400">
                                 <Search className="h-6 w-6" />
                             </button>
 
-                            <Link to="/user/cart" className="text-gray-600 hover:text-gray-900">
+                            <Link to="/user/cart" className="text-white hover:text-gray-400">
                                 <ShoppingCart className="h-6 w-6" />
                             </Link>
 
-                            <Link to="/user/profile" className="text-gray-600 hover:text-gray-900">
+                            <Link to="/user/profile" className="text-white hover:text-gray-400">
                                 {user?.profileImage ? (
                                     <img
                                         src={user.profileImage}

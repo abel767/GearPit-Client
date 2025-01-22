@@ -9,7 +9,8 @@ export default {
         'Hero-title': '#E6E8DA',
         'minBlack' : '#202020',
         'heroBlack': '#0B0B0B',
-        'minGrey': '#f8f8f8'
+        'minGrey': '#f8f8f8',
+        'minWhite': '#ffff',
       },
       fontFamily: {
         'Roboto-font': ['"Roboto Condensed"', 'sans-serif'],

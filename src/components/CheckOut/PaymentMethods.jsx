@@ -6,12 +6,16 @@ import { fetchAddresses } from '../../redux/Slices/addressSlice';
 import { useRazorpay } from '../../hooks/useRazorpay';
 import { useWalletPayment } from '../../hooks/walletPaymentHook';
 import { fetchWalletDetails } from '../../redux/Slices/walletSlice';
+import toast from 'react-hot-toast';
+import CouponCard from '../couponTab/CouponCard';
 
 const UPIIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
     <path d="M21.36,12l-8.48,8.48L4.4,12l8.48-8.48L21.36,12z M12.88,17.76l4.24-4.24l-4.24-4.24l-4.24,4.24L12.88,17.76z"/>
   </svg>
 );
+
+
 
 export default function PaymentMethod() {
   const [selectedPayment, setSelectedPayment] = useState('card');
@@ -29,6 +33,34 @@ export default function PaymentMethod() {
   const [couponError, setCouponError] = useState('');
   const [couponSuccess, setCouponSuccess] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [availableCoupons, setAvailableCoupons] = useState([]);
+  const [isCouponsLoading, setIsCouponsLoading] = useState(false);
+
+  useEffect(() => {
+    fetchAvailableCoupons();
+  }, []);
+  
+  const fetchAvailableCoupons = async () => {
+    setIsCouponsLoading(true);
+    try {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/user/valid-coupons`, {
+        credentials: 'include'
+      });
+      
+      if (!response.ok) throw new Error('Failed to fetch coupons');
+      
+      const data = await response.json();
+      setAvailableCoupons(data.data || []);
+    } catch (error) {
+      console.error('Error fetching coupons:', error);
+      toast.error('Failed to load available coupons');
+    } finally {
+      setIsCouponsLoading(false);
+    }
+  };
+
+
+
   const [discountAmount, setDiscountAmount] = useState(0);
 
   const location = useLocation();
@@ -86,6 +118,39 @@ export default function PaymentMethod() {
   } = useWalletPayment()
 
 
+  useEffect(() => {
+    // When payment method changes to COD, check if order total exceeds limit
+    if (selectedPayment === 'cod' && orderSummary.total > 1000) {
+      toast.error('Cash on Delivery is not available for orders above ₹1,000');
+      setSelectedPayment('card'); // Reset to card payment
+    }
+  }, [selectedPayment, orderSummary.total]);
+
+  const isPaymentMethodDisabled = (methodId) => {
+    if (methodId === 'cod') {
+      return orderSummary.total > 1000;
+    }
+    if (methodId === 'wallet') {
+      return !canPayWithWallet(orderSummary?.total || 0);
+    }
+    return false;
+  };
+
+  const getPaymentMethodBadge = (methodId) => {
+    if (methodId === 'cod') {
+      if (orderSummary.total > 1000) {
+        return 'Not available for orders above ₹1,000';
+      }
+      return '+ ₹49 COD Fee';
+    }
+    if (methodId === 'wallet' && !canPayWithWallet(orderSummary?.total || 0)) {
+      return 'Insufficient Balance';
+    }
+    return null;
+  };
+
+  
+
 
   const paymentMethods = [
     {
@@ -117,82 +182,80 @@ export default function PaymentMethod() {
     }
   ];
 
-  const validateAndApplyCoupon = async () => {
-    setCouponError('');
-    setCouponSuccess('');
-    
-    if (!couponCode.trim()) {
-      setCouponError('Please enter a coupon code');
+  const validateAndApplyCoupon = async (code) => {
+  setCouponError('');
+  setCouponSuccess('');
+  
+  if (!code?.trim()) {
+    setCouponError('Please enter a coupon code');
+    return;
+  }
+
+  try {
+    const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/user/validate-coupon`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        code: code.trim().toUpperCase(),
+        cartTotal: orderSummary.subtotal
+      })
+    });
+
+    const data = await response.json();
+
+    if (response.status === 404) {
+      throw new Error('Invalid or expired coupon');
+    }
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to validate coupon');
+    }
+
+    if (!data.success) {
+      setCouponError(data.message);
       return;
     }
-  
-    try {
-      console.log('Sending coupon validation request:', {
-        code: couponCode.trim().toUpperCase(),
-        cartTotal: orderSummary.subtotal
-      });
-  
-      const validateResponse = await fetch(`${import.meta.env.VITE_BACKEND_URL}/user/validate-coupon`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          code: couponCode.trim().toUpperCase(),
-          cartTotal: orderSummary.subtotal
-        })
-      });
-  
-      console.log('Validation response status:', validateResponse.status);
-  
-      const validateData = await validateResponse.json();
-      console.log('Validation response data:', validateData);
-  
-      if (validateResponse.status === 404) {
-        throw new Error('Invalid or expired coupon');
-      }
-  
-      if (!validateResponse.ok) {
-        throw new Error(validateData.message || 'Failed to validate coupon');
-      }
-  
-      if (!validateData.success) {
-        setCouponError(validateData.message);
-        return;
-      }
-  
-      setAppliedCoupon(validateData.data);
-      setDiscountAmount(validateData.data.discountAmount);
-      setCouponSuccess(`Coupon applied! You saved ₹${validateData.data.discountAmount}`);
-      setCouponCode('');
-  
-      // Recalculate order summary
-      setOrderSummary(prev => ({
-        ...prev,
-        discount: validateData.data.discountAmount,
-        total: prev.subtotal + prev.shipping + prev.codFee - validateData.data.discountAmount
-      }));
-  
-    } catch (error) {
-      console.error('Error applying coupon:', error);
-      setCouponError(error.message || 'Failed to apply coupon. Please try again.');
-    }
-  };
-  const removeCoupon = () => {
-    setAppliedCoupon(null);
-    setDiscountAmount(0);
-    setCouponSuccess('');
-    setCouponError('');
-    
-    // Recalculate order summary without discount
+
+    setAppliedCoupon(data.data);
+    setCouponCode('');
+    setCouponSuccess(`Coupon applied! You saved ₹${data.data.discountAmount}`);
+    toast.success(`Coupon applied! You saved ₹${data.data.discountAmount}`);
+
+    // Update order summary
     setOrderSummary(prev => ({
       ...prev,
-      discount: 0,
-      total: prev.subtotal + prev.shipping + prev.codFee
+      discount: data.data.discountAmount,
+      total: prev.subtotal + prev.shipping + prev.codFee - data.data.discountAmount
     }));
-  };
 
+  } catch (error) {
+    console.error('Error applying coupon:', error);
+    setCouponError(error.message || 'Failed to apply coupon');
+    toast.error(error.message || 'Failed to apply coupon');
+  }
+};
+
+const removeCoupon = () => {
+  setAppliedCoupon(null);
+  setCouponCode('');
+  setCouponSuccess('');
+  setCouponError('');
+  toast.success('Coupon removed');
+  
+  // Recalculate order summary without discount
+  setOrderSummary(prev => ({
+    ...prev,
+    discount: 0,
+    total: prev.subtotal + prev.shipping + prev.codFee
+  }));
+};
+
+const handleApplyCoupon = (code) => {
+  validateAndApplyCoupon(code);
+};
   const calculateOrderSummary = () => {
     let subtotal = 0;
 
@@ -550,42 +613,44 @@ export default function PaymentMethod() {
 
             {/* Payment Section */}
             <div className="mb-8">
-              <h2 className="text-base mb-4">Payment Method</h2>
-              <div className="space-y-4">
-              {paymentMethods.map((method) => (
-  <div
-    key={method.id}
-    onClick={() => !method.disabled && setSelectedPayment(method.id)}
-    className={`p-4 rounded border transition-all ${
-      method.disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-    } ${selectedPayment === method.id ? 'border-black bg-gray-50' : 'border-gray-200'}`}
-  >
-    <div className="flex items-center gap-3">
-      <input
-        type="radio"
-        name="payment"
-        checked={selectedPayment === method.id}
-        onChange={() => !method.disabled && setSelectedPayment(method.id)}
-        disabled={method.disabled}
-      />
-      <div className="flex items-center justify-between flex-1">
-        <div className="flex items-center gap-3">
-          <span className="text-gray-500">{method.icon}</span>
-          <div className="text-sm">
-            <p className="font-medium">{method.name}</p>
-            <p className="text-gray-600">{method.description}</p>
-          </div>
-        </div>
-        {method.badge && (
-          <span className="text-xs text-red-500">{method.badge}</span>
-        )}
-      </div>
-    </div>
-  </div>
-))}
+        <h2 className="text-base mb-4">Payment Method</h2>
+        <div className="space-y-4">
+          {paymentMethods.map((method) => (
+            <div
+              key={method.id}
+              onClick={() => !isPaymentMethodDisabled(method.id) && setSelectedPayment(method.id)}
+              className={`p-4 rounded border transition-all ${
+                isPaymentMethodDisabled(method.id) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+              } ${selectedPayment === method.id ? 'border-black bg-gray-50' : 'border-gray-200'}`}
+            >
+              <div className="flex items-center gap-3">
+                <input
+                  type="radio"
+                  name="payment"
+                  checked={selectedPayment === method.id}
+                  onChange={() => !isPaymentMethodDisabled(method.id) && setSelectedPayment(method.id)}
+                  disabled={isPaymentMethodDisabled(method.id)}
+                />
+                <div className="flex items-center justify-between flex-1">
+                  <div className="flex items-center gap-3">
+                    <span className="text-gray-500">{method.icon}</span>
+                    <div className="text-sm">
+                      <p className="font-medium">{method.name}</p>
+                      <p className="text-gray-600">{method.description}</p>
+                    </div>
+                  </div>
+                  {getPaymentMethodBadge(method.id) && (
+                    <span className="text-xs text-red-500">
+                      {getPaymentMethodBadge(method.id)}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
+          ))}
+        </div>
+      </div>
+    </div>
 
           {/* Right Column - Order Summary */}
           <div className="lg:col-span-5 bg-gray-50 p-6">
@@ -608,45 +673,68 @@ export default function PaymentMethod() {
                 ))}
               </div>
 
-              {/* Coupon Section */}
               <div className="mb-6">
-                {!appliedCoupon ? (
-                  <div className="space-y-2">
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={couponCode}
-                        onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                        placeholder="Enter coupon code"
-                        className="flex-1 p-2 border rounded text-sm"
-                      />
-                      <button
-                        onClick={validateAndApplyCoupon}
-                        className="px-4 py-2 border rounded text-sm hover:bg-gray-50"
-                      >
-                        Apply
-                      </button>
-                    </div>
-                    {couponError && (
-                      <p className="text-red-500 text-xs">{couponError}</p>
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-between p-2 bg-gray-50 rounded border">
-                    <div>
-                      <p className="text-sm font-medium">{appliedCoupon.couponCode}</p>
-                      <p className="text-xs text-green-600">{couponSuccess}</p>
-                    </div>
-                    <button
-                      onClick={removeCoupon}
-                      className="text-gray-500 hover:text-gray-700"
-                    >
-                      <X size={16} />
-                    </button>
-                  </div>
-                )}
-              </div>
+    <h3 className="text-base mb-3">Available Coupons</h3>
+    
+    {!appliedCoupon ? (
+      <>
+        <div className="space-y-2 mb-4">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={couponCode}
+              onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+              placeholder="Enter coupon code"
+              className="flex-1 p-2 border rounded text-sm"
+            />
+            <button
+              onClick={() => validateAndApplyCoupon(couponCode)}
+              className="px-4 py-2 border rounded text-sm hover:bg-gray-50"
+            >
+              Apply
+            </button>
+          </div>
+          {couponError && (
+            <p className="text-red-500 text-xs">{couponError}</p>
+          )}
+          {couponSuccess && (
+            <p className="text-green-500 text-xs">{couponSuccess}</p>
+          )}
+        </div>
 
+        {isCouponsLoading ? (
+          <div className="text-sm text-gray-500">Loading available coupons...</div>
+        ) : (
+          <div className="space-y-3">
+            {availableCoupons.map((coupon) => (
+              <CouponCard
+                key={coupon._id}
+                coupon={coupon}
+                cartTotal={orderSummary.subtotal}
+                onApply={handleApplyCoupon}
+              />
+            ))}
+          </div>
+        )}
+      </>
+    ) : (
+      <div className="relative">
+        <CouponCard
+          coupon={appliedCoupon}
+          cartTotal={orderSummary.subtotal}
+          onApply={() => {}}
+          isApplied={true}
+        />
+        <button
+          onClick={removeCoupon}
+          className="absolute -top-2 -right-2 p-1 bg-white rounded-full shadow-md hover:bg-gray-50"
+          aria-label="Remove coupon"
+        >
+          <X className="w-4 h-4 text-gray-500" />
+        </button>
+      </div>
+    )}
+  </div>
               {/* Summary */}
               <div className="space-y-3 text-sm border-t pt-4">
                 <div className="flex justify-between">

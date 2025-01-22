@@ -1,10 +1,58 @@
-import { Check, ShoppingBag, ArrowLeft, Package } from 'lucide-react';
+import { Check, ShoppingBag, ArrowLeft, Package, Download } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import axiosInstance from '../../api/axiosInstance';
+
 
 export default function PaymentSuccess() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { orderNumber } = location.state || { orderNumber: 'N/A' };
+  const { orderNumber, orderId } = location.state || { orderNumber: 'N/A', orderId: null };
+
+  const handleDownloadInvoice = async () => {
+    try {
+        // Show loading state if needed
+        
+        const response = await axiosInstance.get(`/user/orders/invoice/${orderId}`, {
+            responseType: 'blob',
+            headers: {
+                Accept: 'application/pdf',
+            },
+            withCredentials: true
+        });
+
+        // Check if the response is actually a PDF
+        if (response.data.type !== 'application/pdf') {
+            const reader = new FileReader();
+            reader.onload = () => {
+                const error = JSON.parse(reader.result);
+                console.error('Error downloading invoice:', error);
+                // Show error message to user
+                alert('Failed to download invoice. Please try again later.');
+            };
+            reader.readAsText(response.data);
+            return;
+        }
+
+        // Create blob link to download
+        const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `invoice-${orderNumber}.pdf`);
+
+        // Append to html link element page
+        document.body.appendChild(link);
+
+        // Start download
+        link.click();
+
+        // Clean up
+        link.parentNode.removeChild(link);
+        window.URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error('Failed to download invoice:', error);
+        alert('Failed to download invoice. Please try again later.');
+    }
+};
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -38,15 +86,23 @@ export default function PaymentSuccess() {
               </div>
             </div>
           </div>
-        
-            {/* to check order use this in view order button url after orderhistory/${location.state?.orderId}  */}
+
+          <div className="grid grid-cols-1 gap-4 mb-4">
+            <button 
+              onClick={handleDownloadInvoice}
+              className="flex items-center justify-center px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors duration-200"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Download Invoice
+            </button>
+          </div>
 
           <div className="grid grid-cols-2 gap-4">
             <button 
               onClick={() => navigate(`/user/OrderHistory`)}
               className="flex items-center justify-center px-6 py-3 bg-black text-white rounded-xl hover:bg-black/90 transition-colors duration-200"
             >
-              <ShoppingBag  className="w-4 h-4 mr-2" />
+              <ShoppingBag className="w-4 h-4 mr-2" />
               View Order
             </button>
             <button 
