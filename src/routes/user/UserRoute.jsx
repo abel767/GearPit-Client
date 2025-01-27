@@ -17,6 +17,8 @@ import OrderDetailAndTrack from '../../pages/user/OrderDetails/OrderDetailAndTra
 import WalletPage from '../../pages/user/Wallet/WalletPage';
 import WhishlistPage from '../../pages/user/whishlist/WhislistPage';
 import PaymentFailurePage from '../../pages/user/Checkout/PaymentFailurePage';
+import ContactUsPage from '../../pages/user/contact/ContactUsPage';
+import AboutUsPage from '../../pages/user/AboutUsPage/AboutUsPage';
 function UserRoute() {
   return (
     <Routes>
@@ -40,6 +42,8 @@ function UserRoute() {
         <Route path="/OrderDetail" element={<BlockedUserWrapper><OrderDetailAndTrack/></BlockedUserWrapper>} />
         <Route path="/wallet" element={<BlockedUserWrapper><WalletPage/></BlockedUserWrapper>} />
         <Route path="/wishlist" element={<BlockedUserWrapper><WhishlistPage/></BlockedUserWrapper>} />
+        <Route path="/contact" element={<BlockedUserWrapper><ContactUsPage/></BlockedUserWrapper>} />
+        <Route path="/aboutus" element={<BlockedUserWrapper><AboutUsPage/></BlockedUserWrapper>} />
       </Route>
     </Routes>
   )

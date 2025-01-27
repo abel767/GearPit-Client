@@ -3,13 +3,12 @@ import { Link, useNavigate } from "react-router-dom";
 import {  toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import axios from "axios";
-import { User } from 'lucide-react';
+import axiosInstance from "../../../api/axiosInstance";
+import image from '../../../assets/user/login/test.png'
 
 
 // images 
-import bann from '../../../assets/user/signup/Moto.jpeg'
-import google from '../../../assets/user/signup/googleicon.png'
-import logo from '../../../assets/user/signup/logo 3.png'
+
 function Signup() {
   const [firstName, setFirstname] = useState("");
   const [lastName, setLastname] = useState("");
@@ -83,7 +82,7 @@ function Signup() {
   };
 
   const googleAuth = () => {
-    window.open(`http://localhost:3000/auth/google/callback`, "_self");
+    window.open(`${import.meta.env.VITE_BACKEND_URL}/auth/google/callback`, "_self");
   };
 
   const handleSubmit = async (e) => {
@@ -128,7 +127,7 @@ function Signup() {
         profileImage: profileImageUrl
       };
 
-      const response = await axios.post(`http://localhost:3000/user/signup`, userData, {
+      const response = await axiosInstance.post(`/user/signup`, userData, {
         headers: {
           "Content-Type": "application/json",
         },
@@ -166,173 +165,173 @@ function Signup() {
   };
 
   return (
-    <div className="flex min-h-screen">
-      {/* Left side - Motorcycle Image */}
-      <div className="hidden md:block w-1/2 relative ">
-        <img
-          src={bann}
-          alt="Motorcycle rider"
-          className="h-full w-full object-fit  mix-blend-luminosity"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/50 to-transparent" />
+    <div className="flex flex-col md:flex-row min-h-screen bg-white">
+      {/* Left side - Logo */}
+      <div className="w-full md:w-1/4 p-4 md:p-8 flex items-center md:items-start">
+        <div className="text-4xl md:text-6xl font-black tracking-tighter"></div>
       </div>
-  
-      {/* Right side - Form */}
-      <div className="w-full md:w-1/2 p-6 md:p-12 bg-white">
-        <div className="max-w-[450px] mx-auto">
-          <div className="flex justify-end mb-8">
-            <img src={logo} alt="Logo" className="object-contain w-20 h-20" />
-          </div>
-  
-          <h1 className="text-4xl font-bold mb-10">Create Account</h1>
-  
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            <div className="grid grid-cols-2 gap-6">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="First Name"
-                  value={firstName}
-                  onChange={(e) => setFirstname(e.target.value)}
-                  className="w-full h-14 px-4 pr-12 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black transition-all duration-200 ease-in-out placeholder:text-gray-400"
-                />
-                <User className="absolute right-4 top-1/2 -translate-y-1/2 h-6 w-6 text-gray-400" />
-                {errors.firstname && (
-                  <p className="text-red-500 text-sm">{errors.firstname}</p>
-                )}
-              </div>
-  
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Last Name"
-                  value={lastName}
-                  onChange={(e) => setLastname(e.target.value)}
-                  className="w-full h-14 px-4 pr-12 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black transition-all duration-200 ease-in-out placeholder:text-gray-400"
-                />
-                <User className="absolute right-4 top-1/2 -translate-y-1/2 h-6 w-6 text-gray-400" />
-                {errors.lastname && (
-                  <p className="text-red-500 text-sm">{errors.lastname}</p>
-                )}
-              </div>
-            </div>
-  
-            {/* Username */}
-            <div className="relative">
+
+      {/* Center - Form */}
+      <div className="w-full md:w-1/2 px-4 md:px-0 flex flex-col justify-center items-center">
+        <h4 className="text-2xl md:text-2xl font-black mb-8 md:mb-12 tracking-tight text-center mt-10">
+        Join the Adventure: Sign Up Now!
+        </h4>
+
+        <form className="w-full max-w-md space-y-4 md:space-y-6 px-4 md:px-0" onSubmit={handleSubmit}>
+          {/* Name Fields */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
               <input
                 type="text"
-                placeholder="Username"
-                value={userName}
-                onChange={(e) => setUsername(e.target.value)}
-                className="w-full h-14 px-4 pr-12 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black transition-all duration-200 ease-in-out placeholder:text-gray-400"
+                placeholder="First Name"
+                value={firstName}
+                onChange={(e) => setFirstname(e.target.value)}
+                className="w-full h-12 px-4 border border-gray-300 rounded-md focus:ring-2 focus:ring-black focus:border-transparent"
               />
-              <User className="absolute right-4 top-1/2 -translate-y-1/2 h-6 w-6 text-gray-400" />
-              {errors.username && (
-                <p className="text-red-500 text-sm">{errors.username}</p>
+              {errors.firstname && (
+                <p className="text-red-500 text-sm mt-1">{errors.firstname}</p>
               )}
             </div>
-  
-            {/* Email */}
+
+            <div>
+              <input
+                type="text"
+                placeholder="Last Name"
+                value={lastName}
+                onChange={(e) => setLastname(e.target.value)}
+                className="w-full h-12 px-4 border border-gray-300 rounded-md focus:ring-2 focus:ring-black focus:border-transparent"
+              />
+              {errors.lastname && (
+                <p className="text-red-500 text-sm mt-1">{errors.lastname}</p>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <input
+              type="text"
+              placeholder="Username"
+              value={userName}
+              onChange={(e) => setUsername(e.target.value)}
+              className="w-full h-12 px-4 border border-gray-300 rounded-md focus:ring-2 focus:ring-black focus:border-transparent"
+            />
+            {errors.username && (
+              <p className="text-red-500 text-sm mt-1">{errors.username}</p>
+            )}
+          </div>
+
+          <div>
             <input
               type="email"
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full h-14 px-4 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black transition-all duration-200 ease-in-out placeholder:text-gray-400"
+              className="w-full h-12 px-4 border border-gray-300 rounded-md focus:ring-2 focus:ring-black focus:border-transparent"
             />
-            {errors.email && <p className="text-red-500 text-sm">{errors.email}</p>}
-  
-            {/* Password */}
+            {errors.email && (
+              <p className="text-red-500 text-sm mt-1">{errors.email}</p>
+            )}
+          </div>
+
+          <div>
             <input
               type="password"
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full h-14 px-4 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black transition-all duration-200 ease-in-out placeholder:text-gray-400"
+              className="w-full h-12 px-4 border border-gray-300 rounded-md focus:ring-2 focus:ring-black focus:border-transparent"
             />
             {errors.password && (
-              <p className="text-red-500 text-sm">{errors.password}</p>
+              <p className="text-red-500 text-sm mt-1">{errors.password}</p>
             )}
-  
-            {/* Confirm Password */}
+          </div>
+
+          <div>
             <input
               type="password"
-              placeholder="Confirm password"
+              placeholder="Confirm Password"
               value={confirmpassword}
               onChange={(e) => setConfirmpassword(e.target.value)}
-              className="w-full h-14 px-4 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black transition-all duration-200 ease-in-out placeholder:text-gray-400"
+              className="w-full h-12 px-4 border border-gray-300 rounded-md focus:ring-2 focus:ring-black focus:border-transparent"
             />
             {errors.confirmpassword && (
-              <p className="text-red-500 text-sm">{errors.confirmpassword}</p>
+              <p className="text-red-500 text-sm mt-1">{errors.confirmpassword}</p>
             )}
-  
-            {/* Phone Number */}
+          </div>
+
+          <div>
             <input
               type="tel"
-              placeholder="Phone number"
+              placeholder="Phone Number"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              className="w-full h-14 px-4 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black transition-all duration-200 ease-in-out placeholder:text-gray-400"
+              className="w-full h-12 px-4 border border-gray-300 rounded-md focus:ring-2 focus:ring-black focus:border-transparent"
             />
             {errors.phone && (
-              <p className="text-red-500 text-sm">{errors.phone}</p>
+              <p className="text-red-500 text-sm mt-1">{errors.phone}</p>
             )}
-  
-            {/* Profile Image */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Profile Image
-              </label>
-              <input
-                type="file"
-                onChange={handleImageChange}
-                className="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer"
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Profile Image
+            </label>
+            <input
+              type="file"
+              onChange={handleImageChange}
+              className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-gray-100 hover:file:bg-gray-200"
+            />
+          </div>
+
+          <button
+            type="submit"
+            className="w-full h-12 bg-black text-white rounded-md hover:bg-black/90 transition-colors"
+          >
+            Create Account
+          </button>
+
+          <div className="relative py-2 md:py-4">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white text-gray-500">OR</span>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={googleAuth}
+            className="w-full h-12 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
+          >
+            <svg className="w-5 h-5" viewBox="0 0 24 24">
+              <path
+                fill="currentColor"
+                d="M12.545,10.239v3.821h5.445c-0.712,2.315-2.647,3.972-5.445,3.972c-3.332,0-6.033-2.701-6.033-6.032s2.701-6.032,6.033-6.032c1.498,0,2.866,0.549,3.921,1.453l2.814-2.814C17.503,2.988,15.139,2,12.545,2C7.021,2,2.543,6.477,2.543,12s4.478,10,10.002,10c8.396,0,10.249-7.85,9.426-11.748L12.545,10.239z"
               />
-            </div>
-  
-            {/* Submit Button */}
-            <button
-              type="submit"
-              className="w-full h-14 bg-black text-white rounded-lg hover:bg-black/90 transition-colors duration-200 ease-in-out text-lg font-semibold"
-            >
-              Create
-            </button>
-  
-            <div className="relative text-center">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
-              </div>
-              <span className="relative bg-white px-4 text-sm text-gray-500">OR</span>
-            </div>
-  
-            <button
-              type="button"
-              className="w-full h-14 flex items-center justify-center gap-3 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors duration-200 ease-in-out text-lg font-semibold"
-              onClick={googleAuth}
-            >
-              <img
-                src={google}
-                alt="Google"
-                className="w-6 h-6 object-contain"
-              />
-              Continue with Google
-            </button>
-  
-            <div className="text-center space-x-1">
-              <span className="text-gray-600">Already have an account?</span>
-              <Link
-                to="/user/login"
-                className="text-blue-600 hover:text-blue-800 font-semibold"
-              >
-                Login Now
-              </Link>
-            </div>
-          </form>
+            </svg>
+            Continue with Google
+          </button>
+        </form>
+
+        <div className="mt-6 md:mt-8 text-center">
+          <span className="text-gray-600">Already have an account? </span>
+          <Link to="/user/login" className="text-red-600 hover:text-red-700 font-medium">
+            Login now
+          </Link>
         </div>
+      </div>
+
+      {/* Right side - Image */}
+      <div className="w-full md:w-1/4 relative min-h-[200px] md:min-h-0 mt-8 md:mt-0">
+        <img
+          src={image}
+          alt="Motorcycle"
+          className="absolute bottom-0 right-0 w-full max-w-md object-contain md:object-cover h-full"
+        />
       </div>
     </div>
   );
-  
 }
 
 export default Signup;

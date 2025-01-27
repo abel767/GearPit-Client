@@ -1,12 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { CreditCard, Wallet, ArrowDownRight, ArrowUpRight, Search, Loader2 } from 'lucide-react';
+import { CreditCard, Wallet, ArrowDownRight, ArrowUpRight, Search, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import axiosInstance from '../../api/axiosInstance';
+
 function UserWallet() {
-  const { user } = useSelector((state) => {
-    console.log('Redux State:', state); // Debug Redux state
-    return state.user;
-  });
+  const { user } = useSelector((state) => state.user);
   const [walletData, setWalletData] = useState({
     balance: 0,
     monthlySpending: 0,
@@ -16,7 +14,12 @@ function UserWallet() {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [cancelStatus, setCancelStatus] = useState({ message: '', type: '' });
+  
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(5);
 
+  // Rest of the existing fetch and handler functions remain the same...
   const fetchWalletDetails = async () => {
     if (!user?._id) {
       setError('User not authenticated');
@@ -41,47 +44,69 @@ function UserWallet() {
     }
   };
 
-  const handleOrderCancellation = async (orderId) => {
-    try {
-      setCancelStatus({ message: 'Processing cancellation...', type: 'info' });
-      
-      const cancelResponse = await axiosInstance.put(`user/orders/${orderId}/cancel`);
-      
-      if (cancelResponse.data.success) {
-        const orderDetails = await axiosInstance.get(`/user/orders/detail/${orderId}`);
-        const refundAmount = orderDetails.data.data.totalAmount;
-
-        const refundResponse = await axiosInstance.post('/user/wallet/refund', {
-          userId: user._id,
-          orderId: orderId,
-          amount: refundAmount
-        });
-
-        if (refundResponse.data.success) {
-          setCancelStatus({ message: 'Order cancelled and refunded successfully', type: 'success' });
-          await fetchWalletDetails();
-          return true;
-        }
-      }
-      setCancelStatus({ message: 'Failed to cancel order', type: 'error' });
-      return false;
-    } catch (err) {
-      console.error('Error during order cancellation:', err);
-      setCancelStatus({ message: err.response?.data?.message || 'Error processing cancellation', type: 'error' });
-      return false;
-    }
-  };
-
   useEffect(() => {
     fetchWalletDetails();
   }, [user?._id]);
+
+  useEffect(() => {
+    // Reset to first page when search term changes
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   const filteredTransactions = walletData.transactions?.filter(transaction =>
     transaction.description.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
 
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage);
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentTransactions = filteredTransactions.slice(indexOfFirstItem, indexOfLastItem);
+
   const monthlyBudget = 1000;
   const budgetPercentage = Math.min(((walletData.monthlySpending || 0) / monthlyBudget) * 100, 100);
+
+  // Pagination component
+  const Pagination = () => {
+    const pageNumbers = [];
+    for (let i = 1; i <= totalPages; i++) {
+      pageNumbers.push(i);
+    }
+
+    return (
+      <div className="flex items-center justify-center space-x-2 mt-6">
+        <button
+          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+          disabled={currentPage === 1}
+          className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+
+        {pageNumbers.map(number => (
+          <button
+            key={number}
+            onClick={() => setCurrentPage(number)}
+            className={`px-4 py-2 rounded-lg ${
+              currentPage === number 
+                ? 'bg-black text-white' 
+                : 'hover:bg-gray-100'
+            }`}
+          >
+            {number}
+          </button>
+        ))}
+
+        <button
+          onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+          disabled={currentPage === totalPages}
+          className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <ChevronRight className="w-5 h-5" />
+        </button>
+      </div>
+    );
+  };
 
   if (loading) {
     return (
@@ -93,6 +118,7 @@ function UserWallet() {
 
   return (
     <div className="min-h-screen bg-white">
+      {/* Header section remains the same */}
       <header className="border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
@@ -110,6 +136,7 @@ function UserWallet() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-8">
+        {/* Status and cards section remains the same */}
         {cancelStatus.message && (
           <div
             className={`mb-4 p-4 rounded-md ${
@@ -157,6 +184,7 @@ function UserWallet() {
           </div>
         </div>
 
+        {/* Transactions section with pagination */}
         <div className="mb-8">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-xl font-semibold">Recent Transactions</h3>
@@ -173,12 +201,12 @@ function UserWallet() {
           </div>
 
           <div className="bg-white border border-gray-100 rounded-xl">
-            {filteredTransactions.length === 0 ? (
+            {currentTransactions.length === 0 ? (
               <div className="p-6 text-center text-gray-500">
                 No transactions found
               </div>
             ) : (
-              filteredTransactions.map((transaction) => (
+              currentTransactions.map((transaction) => (
                 <div
                   key={transaction._id}
                   className="flex items-center justify-between p-6 border-b border-gray-100 last:border-0"
@@ -207,19 +235,13 @@ function UserWallet() {
                       {transaction.type === 'credit' ? '+' : '-'}${transaction.amount.toFixed(2)}
                     </p>
                     <p className="text-sm text-gray-500">{transaction.status}</p>
-                    {transaction.orderId && (
-                      <button
-                        className="mt-2 border border-black text-black py-1 px-2 rounded-md hover:bg-gray-100"
-                        onClick={() => handleOrderCancellation(transaction.orderId)}
-                      >
-                        Cancel Order
-                      </button>
-                    )}
                   </div>
                 </div>
               ))
             )}
           </div>
+
+          {filteredTransactions.length > itemsPerPage && <Pagination />}
         </div>
       </main>
     </div>

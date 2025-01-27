@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Heart, ChevronDown, Tag  } from 'lucide-react';
+import { Heart, ChevronDown,Filter,X, Tag  } from 'lucide-react';
 import {  toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import axiosInstance from '../../api/axiosInstance';
@@ -21,6 +21,80 @@ import {
 } from '../../redux/Slices/productSlice';
 import { addToCart } from '../../redux/Slices/CartSlice';
 import { useNavigate } from 'react-router-dom';
+
+const ProductCard = ({ product, onAddToCart, onWishlistToggle, isInWishlist, navigate }) => {
+  const { originalPrice, finalPrice, discount } = getPriceDetails(product.variants, product.offer);
+  const outOfStock = isProductOutOfStock(product.variants);
+
+  return (
+    <div className="group relative bg-white rounded-lg overflow-hidden transition-all duration-300 hover:shadow-lg">
+      {/* Wishlist Button */}
+      <button 
+        onClick={(e) => onWishlistToggle(e, product)}
+        className="absolute right-3 top-3 z-10 bg-white rounded-full p-2 shadow-sm"
+      >
+        <Heart 
+          className={`w-5 h-5 transition-colors ${
+            isInWishlist ? 'text-red-500 fill-current' : 'text-gray-400'
+          }`}
+        />
+      </button>
+
+      {/* Product Image with Overlay */}
+      <div 
+        className="relative aspect-[3/4] cursor-pointer"
+        onClick={() => navigate(`/user/product/${product._id}`)}
+      >
+        <img
+          src={product.images[0]}
+          alt={product.productName}
+          className="w-full h-full object-cover"
+        />
+        
+        {/* Hover Overlay with Add to Cart */}
+        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-6">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              !outOfStock && onAddToCart(product);
+            }}
+            disabled={outOfStock}
+            className={`w-[90%] py-3 text-sm font-medium transition-all duration-200
+              ${outOfStock 
+                ? 'bg-gray-400 cursor-not-allowed'
+                : 'bg-white hover:bg-gray-100'
+              }`}
+          >
+            {outOfStock ? 'Out of Stock' : 'Add to Cart'}
+          </button>
+        </div>
+      </div>
+
+      {/* Product Info */}
+      <div className="p-4">
+        <h3 className="text-sm font-medium mb-2 line-clamp-1">
+          {product.productName}
+        </h3>
+        
+        <div className="flex items-center gap-2">
+          <span className="text-base font-bold">
+            ₹{finalPrice.toFixed(2)}
+          </span>
+          {discount > 0 && (
+            <>
+              <span className="text-sm text-gray-500 line-through">
+                ₹{originalPrice.toFixed(2)}
+              </span>
+              <span className="text-sm text-green-600">
+                {discount}% off
+              </span>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 
 import { addToWishlist, removeFromWishlist } from '../../redux/Slices/wishlistSlice';
@@ -104,11 +178,13 @@ const isProductOutOfStock = (variants) => {
 };
 
 export default function Store() {
+
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
 
- 
+  const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
+
 
 
   const [expandedSections, setExpandedSections] = useState({
@@ -144,6 +220,33 @@ export default function Store() {
   const isAuthenticated = useSelector(state => state.user.isAuthenticated);
   const cartItems = useSelector(state => state.cart.items);
   const wishlistItems = useSelector(state => state.wishlist.items);
+
+
+    // Determine offer details and source
+    const determineOfferSource = (product) => {
+      const lowestPriceVariant = product.variants.reduce((lowest, current) => 
+        current.finalPrice < lowest.finalPrice ? current : lowest
+      );
+  
+      const offerSources = [
+        { source: 'variant', discount: lowestPriceVariant.discount || 0 },
+        { source: 'product', discount: product.offer?.isActive ? product.offer.percentage : 0 },
+        { source: 'category', discount: product.category?.offer?.isActive ? product.category.offer.percentage : 0 }
+      ];
+  
+      const highestOffer = offerSources.reduce((highest, current) => 
+        current.discount > highest.discount ? current : highest
+      );
+  
+      return {
+        originalPrice: lowestPriceVariant.price,
+        finalPrice: lowestPriceVariant.finalPrice,
+        discount: highestOffer.discount,
+        offerSource: highestOffer.source
+      };
+    };
+
+    
 
   const handleWishlistToggle = async (e, product) => {
     e.preventDefault();
@@ -321,23 +424,113 @@ export default function Store() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-    {/* <h1 className="text-2xl font-bold text-center mb-8">
-      Discover Top-Quality Riding Gear for Every Adventure
-    </h1> */}
-    
-    <div className="flex gap-6">
-      {/* Filters Sidebar */}
-           <div className="w-64 flex-shrink-0">
-          <div className="bg-white rounded-lg p-4 h-screen overflow-y-auto sticky top-0">
+      {/* Mobile filter dialog */}
+      <div className="md:hidden">
+        <button
+          onClick={() => setIsMobileFiltersOpen(true)}
+          className="fixed bottom-4 right-4 z-50 bg-black text-white rounded-full p-4 shadow-lg flex items-center gap-2"
+        >
+          <Filter className="w-5 h-5" />
+          <span>Filters</span>
+        </button>
+  
+        {/* Mobile filter overlay */}
+        {isMobileFiltersOpen && (
+          <div className="fixed inset-0 z-50 bg-black bg-opacity-25" onClick={() => setIsMobileFiltersOpen(false)} />
+        )}
+  
+        {/* Mobile filter sidebar */}
+        <div
+  className={`
+    fixed inset-y-0 right-0 z-50 w-full bg-white px-4 py-6 sm:max-w-sm sm:ring-1 sm:ring-gray-900/10
+    transform transition-transform duration-300 overflow-y-auto  // Add this line
+    ${isMobileFiltersOpen ? 'translate-x-0' : 'translate-x-full'}
+  `}
+>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg font-semibold">Filters</h2>
+            <button
+              onClick={() => setIsMobileFiltersOpen(false)}
+              className="rounded-md p-2 hover:bg-gray-100"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+  
+          {/* Mobile Filters Content */}
+          <div className="space-y-6">
+            {/* Categories */}
+            <div className="border-b pb-6">
+              <h3 className="font-medium mb-4">Categories</h3>
+              <div className="space-y-3">
+                {categories.map(category => (
+                  <label key={category._id} className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={selectedCategories.includes(category._id)}
+                      onChange={() => handleToggleCategoryFilter(category._id)}
+                      className="rounded border-gray-300"
+                    />
+                    <span className="text-sm">{category.categoryName}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+  
+            {/* Sizes */}
+            <div className="border-b pb-6">
+              <h3 className="font-medium mb-4">Sizes</h3>
+              <div className="space-y-3">
+                {sizeOptions.map(size => (
+                  <label key={size} className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={selectedSizes.includes(size)}
+                      onChange={() => handleSizeToggle(size)}
+                      className="rounded border-gray-300"
+                    />
+                    <span className="text-sm">{size}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+  
+            {/* Price Range */}
+            <div>
+              <h3 className="font-medium mb-4">Price Range</h3>
+              <div className="space-y-3">
+                {predefinedPriceRanges.map(range => (
+                  <label key={range.label} className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name="priceRange"
+                      checked={priceRange[0] === range.min && priceRange[1] === range.max}
+                      onChange={() => handlePriceRangeSelect(range.min, range.max)}
+                      className="rounded border-gray-300"
+                    />
+                    <span className="text-sm">{range.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+  
+      <div className="flex flex-col md:flex-row gap-6">
+        {/* Desktop Filters Sidebar */}
+        <div className="hidden md:block w-64 flex-shrink-0">
+          <div className="bg-white rounded-lg p-4 sticky top-20">
             <h3 className="font-semibold mb-4 text-xl">Filters</h3>
-          
+  
+            {/* Desktop Categories */}
             <div className="border-b pb-4 mb-4">
               <button 
                 className="w-full flex items-center justify-between text-sm font-medium py-2"
                 onClick={() => handleToggleSection('category')}
               >
                 CATEGORY
-                <ChevronDown className="w-4 h-4" />
+                <ChevronDown className={`w-4 h-4 transform ${expandedSections.category ? 'rotate-180' : ''}`} />
               </button>
               <div className={`mt-2 space-y-2 ${expandedSections.category ? '' : 'hidden'}`}>
                 {categories.map(category => (
@@ -353,15 +546,15 @@ export default function Store() {
                 ))}
               </div>
             </div>
-
-            {/* Size Section */}
+  
+            {/* Desktop Sizes */}
             <div className="border-b pb-4 mb-4">
               <button 
                 className="w-full flex items-center justify-between text-sm font-medium py-2"
                 onClick={() => handleToggleSection('size')}
               >
                 SIZE
-                <ChevronDown className="w-4 h-4" />
+                <ChevronDown className={`w-4 h-4 transform ${expandedSections.size ? 'rotate-180' : ''}`} />
               </button>
               <div className={`mt-2 space-y-2 ${expandedSections.size ? '' : 'hidden'}`}>
                 {sizeOptions.map(size => (
@@ -377,37 +570,33 @@ export default function Store() {
                 ))}
               </div>
             </div>
-
-            {/* Price Range Section */}
-            <div className="pb-4">
+  
+            {/* Desktop Price Range */}
+            <div>
               <button 
                 className="w-full flex items-center justify-between text-sm font-medium py-2"
                 onClick={() => handleToggleSection('priceRange')}
               >
                 PRICE RANGE
-                <ChevronDown className="w-4 h-4" />
+                <ChevronDown className={`w-4 h-4 transform ${expandedSections.priceRange ? 'rotate-180' : ''}`} />
               </button>
               <div className={`mt-4 space-y-4 ${expandedSections.priceRange ? '' : 'hidden'}`}>
-                {/* Predefined ranges */}
-                <div className="space-y-2">
-                  {predefinedPriceRanges.map(range => (
-                    <label key={range.label} className="flex items-center space-x-2 text-sm">
-                      <input
-                        type="radio"
-                        name="priceRange"
-                        checked={priceRange[0] === range.min && priceRange[1] === range.max}
-                        onChange={() => handlePriceRangeSelect(range.min, range.max)}
-                        className="rounded border-gray-300"
-                      />
-                      <span>{range.label}</span>
-                    </label>
-                  ))}
-                </div>
+                {predefinedPriceRanges.map(range => (
+                  <label key={range.label} className="flex items-center space-x-2 text-sm">
+                    <input
+                      type="radio"
+                      name="priceRange"
+                      checked={priceRange[0] === range.min && priceRange[1] === range.max}
+                      onChange={() => handlePriceRangeSelect(range.min, range.max)}
+                      className="rounded border-gray-300"
+                    />
+                    <span>{range.label}</span>
+                  </label>
+                ))}
                 
-                {/* Custom range inputs */}
                 <div className="mt-4">
                   <p className="text-sm font-medium mb-2">Custom Range</p>
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
                     <input
                       type="number"
                       value={priceRange[0]}
@@ -424,35 +613,29 @@ export default function Store() {
                       className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
                     />
                   </div>
-                  <button 
-                    onClick={() => dispatch(setPriceRange([0, 10000]))}
-                    className="w-full mt-2 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-sm transition-colors"
-                  >
-                    Reset Price
-                  </button>
                 </div>
               </div>
             </div>
           </div>
         </div>
-
-
+  
         {/* Main Content */}
         <div className="flex-1">
-        <AnimatedSearch/>
-
-          {/* Sort Dropdown */}
-          <div className="flex justify-end mb-6">
-            <div className="relative">
+          <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
+            <AnimatedSearch />
+            
+            {/* Sort Dropdown */}
+            <div className="relative mt-4 sm:mt-0 z-30">
               <button
-                className="flex items-center justify-between w-64 px-7 py-3 text-sm font-medium text-gray-700 bg-white border border-black  shadow-sm hover:bg-gray-50"
+                className="flex items-center justify-between w-48 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50"
                 onClick={() => dispatch(setFilterOpen(!isFilterOpen))}
               >
                 Sort by: {sortOptions.find(opt => opt.value === sortBy)?.label}
                 <ChevronDown className="w-5 h-5 ml-2" />
               </button>
+              
               {isFilterOpen && (
-                <div className="absolute right-0 mt-2 w-64 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
+                <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
                   <div className="py-1" role="menu">
                     {sortOptions.map((option) => (
                       <button
@@ -471,117 +654,126 @@ export default function Store() {
               )}
             </div>
           </div>
+  
+        {/* Product Grid */}
+<div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+  {currentProducts.map(product => {
+    const offerDetails = determineOfferSource(product);
+    const hasOffer = offerDetails.discount > 0;
+    const isOutOfStock = isProductOutOfStock(product.variants);
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {currentProducts.map((product) => {
-          const outOfStock = isProductOutOfStock(product.variants);
-          const { originalPrice, finalPrice, discount } = getPriceDetails(product.variants, product.offer);
-          const hasOffer = product.offer?.isActive && product.offer?.percentage > 0;
-          
-          return (
-            <div 
-              key={product._id} 
-              className="group relative bg-white p-2 rounded-lg"
-            >
-              {/* Wishlist Heart Button */}
-              <button 
-              onClick={(e) => handleWishlistToggle(e, product)}
-              className="absolute top-2 right-2 z-10 bg-white rounded-full p-1.5 shadow-sm hover:bg-gray-50 transition-colors"
-              aria-label={wishlistItems.some(item => item._id === product._id) ? 'Remove from wishlist' : 'Add to wishlist'}
-            >
-              <Heart 
-                className={`w-5 h-5 transition-colors ${
-                  wishlistItems.some(item => item._id === product._id)
-                    ? 'text-red-500 fill-current'
-                    : 'text-gray-400 hover:text-red-500'
-                }`}
-              />
-            </button>
-              
-              {/* Offer Tag */}
-              {hasOffer && (
-                <div className="absolute top-2 left-2 z-10">
-                  <div className="flex items-center gap-1 bg-red-500 text-white px-2 py-1 rounded-md">
-                    <Tag className="w-4 h-4" />
-                    <span className="text-xs font-semibold">
-                      {product.offer.percentage}% OFF
-                    </span>
-                  </div>
-                  <div className="text-xs text-gray-600 bg-white px-2 py-1 mt-1 rounded-md shadow-sm">
-                    Ends {formatDate(product.offer.endDate)}
-                  </div>
-                </div>
-              )}
-              
-              {/* Product Image */}
-              <div className="relative aspect-square mb-3">
-                <img
-                  src={product.images[0]}
-                  alt={product.productName}
-                  className={`w-full h-full object-contain ${outOfStock ? 'opacity-60' : ''}`}
-                />
-                {outOfStock && (
-                  <div className="absolute top-2 left-2">
-                    <span className="bg-red-100 text-red-600 px-3 py-1 rounded-md text-xs font-semibold">
-                      Out of Stock
-                    </span>
-                  </div>
-                )}
-              </div>
+    return (
+      <div key={product._id} className="group relative bg-white rounded-lg overflow-hidden transition-all duration-300 hover:shadow-lg">
+        {/* Wishlist Button */}
+        <button 
+          onClick={(e) => handleWishlistToggle(e, product)}
+          className="absolute right-3 top-3 z-10 bg-white rounded-full p-2 shadow-sm"
+        >
+          <Heart 
+            className={`w-5 h-5 transition-colors ${
+              wishlistItems.some(item => item._id === product._id) 
+                ? 'text-red-500 fill-current' 
+                : 'text-gray-400'
+            }`}
+          />
+        </button>
 
-              {/* Product Details */}
-              <div className="text-center">
-                <h3 className="text-sm font-medium mb-2 line-clamp-2 h-10">
-                  {product.productName}
-                </h3>
-                
-                {/* Price Section */}
-                <div className="mb-2 flex flex-col items-center">
-                  <div className="flex items-center gap-2 justify-center">
-                    <span className={`text-lg font-bold ${outOfStock ? 'text-gray-500' : 'text-gray-900'}`}>
-                      ₹{finalPrice.toFixed(2)}
-                    </span>
-                    {discount > 0 && (
-                      <span className="text-sm text-gray-500 line-through">
-                        ₹{originalPrice.toFixed(2)}
-                      </span>
-                    )}
-                  </div>
-                  {discount > 0 && !outOfStock && (
-                    <span className="text-sm text-green-600">
-                      {discount}% off
-                    </span>
-                  )}
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex gap-2 mt-2">
-                  <button 
-                    onClick={() => !outOfStock && handleAddToCart(product)}
-                    disabled={outOfStock}
-                    className={`
-                      flex-1 py-2 px-4 text-sm rounded transition-all duration-200
-                      ${outOfStock 
-                        ? 'bg-red-50 text-red-500 border border-red-300 cursor-not-allowed hover:bg-red-100'
-                        : 'bg-black hover:bg-gray-800 text-white'
-                      }
-                    `}
-                  >
-                    {outOfStock ? 'Out of Stock' : 'Add to Cart'}
-                  </button>
-                  <button 
-                    onClick={() => navigate(`/user/product/${product._id}`)} 
-                    className="flex-1 bg-black hover:bg-gray-800 text-white py-2 px-4 text-sm rounded transition-colors duration-200"
-                  >
-                    View
-                  </button>
-                </div>
-              </div>
+        {/* Offer Tag */}
+        {hasOffer && (
+          <div className="absolute left-3 top-3 z-10 flex flex-col gap-1">
+            <div className="flex items-center gap-1 bg-red-500 text-white px-2 py-1 rounded-md">
+              <Tag className="w-4 h-4" />
+              <span className="text-xs font-semibold">
+                {offerDetails.discount}% OFF
+                {offerDetails.offerSource === 'variant' && ' (Variant)'}
+                {offerDetails.offerSource === 'product' && ' (Product)'}
+                {offerDetails.offerSource === 'category' && ' (Category)'}
+              </span>
             </div>
-          );
-        })}
-      </div>
+            {/* Show the specific offer end date */}
+            {offerDetails.offerSource === 'product' && product.offer?.endDate && (
+              <div className="text-xs text-gray-600 bg-white px-2 py-1 rounded-md shadow-sm">
+                Ends {formatDate(product.offer.endDate)}
+              </div>
+            )}
+            {offerDetails.offerSource === 'category' && product.category?.offer?.endDate && (
+              <div className="text-xs text-gray-600 bg-white px-2 py-1 rounded-md shadow-sm">
+                Category Offer Ends {formatDate(product.category.offer.endDate)}
+              </div>
+            )}
+          </div>
+        )}
 
+        {/* Product Image with Overlay */}
+        <div 
+          className="relative aspect-[3/4] cursor-pointer"
+          onClick={() => navigate(`/user/product/${product._id}`)}
+        >
+          <img
+            src={product.images[0]}
+            alt={product.productName}
+            className="w-full h-full object-cover"
+          />
+          
+          {/* Out of Stock Badge */}
+          {isOutOfStock && (
+            <div className="absolute top-3 left-3 z-10">
+              <span className="bg-red-100 text-red-600 px-3 py-1 rounded-md text-xs font-semibold">
+                Out of Stock
+              </span>
+            </div>
+          )}
+          
+          {/* Hover Overlay with Add to Cart */}
+          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-6">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                !isOutOfStock && handleAddToCart(product);
+              }}
+              disabled={isOutOfStock}
+              className={`w-[90%] py-3 text-sm font-medium transition-all duration-200
+                ${isOutOfStock 
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-white hover:bg-gray-100'
+                }`}
+            >
+              {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
+            </button>
+          </div>
+        </div>
+
+        {/* Product Info */}
+        <div className="p-4">
+          <h3 className="text-sm font-medium mb-2 line-clamp-1">
+            {product.productName}
+          </h3>
+          
+          <div className="flex items-center gap-2">
+            {hasOffer ? (
+              <>
+                <span className="text-base font-bold">
+                  ₹{offerDetails.finalPrice.toFixed(2)}
+                </span>
+                <span className="text-sm text-gray-500 line-through">
+                  ₹{offerDetails.originalPrice.toFixed(2)}
+                </span>
+                <span className="text-sm text-green-600">
+                  {offerDetails.discount}% off
+                </span>
+              </>
+            ) : (
+              <span className="text-base font-bold">
+                ₹{offerDetails.finalPrice.toFixed(2)}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  })}
+</div>
+  
           {/* Pagination */}
           <div className="flex justify-center gap-1 mt-8">
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (

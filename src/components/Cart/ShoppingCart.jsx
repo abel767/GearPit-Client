@@ -8,13 +8,12 @@ import { useNavigate } from 'react-router-dom'
 export default function ShoppingCart() {
   const dispatch = useDispatch()
   const navigate = useNavigate()
-
   const items = useSelector(state => state.cart.items)
   const userId = useSelector(state => state.user.user?._id)
   const [loading, setLoading] = useState(false)
   const [initialLoading, setInitialLoading] = useState(true)
 
-  // Fetch cart items when component mounts
+  // Existing useEffect and handlers remain the same...
   useEffect(() => {
     const fetchCartItems = async () => {
       if (!userId) {
@@ -26,16 +25,12 @@ export default function ShoppingCart() {
         const response = await axiosInstance.get(`/user/cart/${userId}`)
         
         if (response.status === 200 && response.data?.items) {
-          // Clear existing cart items and add fetched items
           dispatch({ type: 'cart/clearCart' })
-
-          
           
           response.data.items.forEach(item => {
-
             if (!item.productId || !item.productId.variants) {
               console.warn('Invalid product data:', item);
-              return; // Skip this item
+              return;
             }
             
             const variant = item.productId.variants.find(v => v._id === item.variantId)
@@ -157,13 +152,12 @@ export default function ShoppingCart() {
     )
   }
 
-
-return(
-  <div className="min-h-screen flex">
-      {/* Left Column - Cart Items */}
-      <div className="w-2/3 bg-white min-h-screen overflow-y-auto px-8 py-6">
+  return (
+    <div className="min-h-screen flex flex-col lg:flex-row">
+      {/* Cart Items Section */}
+      <div className="w-full lg:w-2/3 bg-white min-h-screen overflow-y-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="max-w-3xl mx-auto">
-          <div className="mb-8">
+          <div className="mb-6 sm:mb-8">
             <h1 className="text-xl font-normal">Cart</h1>
           </div>
 
@@ -171,7 +165,7 @@ return(
             {items.map((item) => (
               <div 
                 key={`${item.productId}-${item.variantId}`}
-                className="flex items-center gap-4 py-4 border-b"
+                className="flex flex-col sm:flex-row items-start sm:items-center gap-4 py-4 border-b"
               >
                 <div className="relative">
                   <img 
@@ -181,8 +175,8 @@ return(
                   />
                 </div>
                 
-                <div className="flex-1">
-                  <div className="flex justify-between">
+                <div className="flex-1 w-full">
+                  <div className="flex flex-col sm:flex-row sm:justify-between">
                     <div>
                       <h3 className="text-sm font-medium">{item.name}</h3>
                       <p className="text-sm text-gray-500 mt-1">
@@ -190,19 +184,17 @@ return(
                         {item.color && ` • ${item.color}`}
                       </p>
                     </div>
-                    <div className="text-sm">₹{(item.finalPrice * item.quantity).toFixed(2)}</div>
+                    <div className="text-sm mt-2 sm:mt-0">₹{(item.finalPrice * item.quantity).toFixed(2)}</div>
                   </div>
                   
-                  <div className="flex items-center justify-between mt-3">
-                    <div className="flex items-center gap-2">
-                      <button
-                        disabled={loading}
-                        onClick={() => handleRemoveItem(item.productId, item.variantId)}
-                        className="text-xs text-gray-500 hover:text-gray-700"
-                      >
-                        Remove
-                      </button>
-                    </div>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mt-3 gap-3 sm:gap-0">
+                    <button
+                      disabled={loading}
+                      onClick={() => handleRemoveItem(item.productId, item.variantId)}
+                      className="text-xs text-gray-500 hover:text-gray-700"
+                    >
+                      Remove
+                    </button>
                     
                     <div className="flex items-center border rounded">
                       <button
@@ -236,47 +228,47 @@ return(
         </div>
       </div>
 
-      {/* Right Column - Summary */}
-      <div className="w-1/3 bg-minGrey min-h-screen">
-        <div className="h-full flex flex-col justify-between p-8">
-          <div>
-            <h2 className="text-xl font-medium mb-8">Order Summary</h2>
+      {/* Summary Section - Fixed on mobile */}
+      <div className="w-full lg:w-1/3 bg-minGrey">
+        <div className="p-4 sm:p-6 lg:p-8">
+          <h2 className="text-xl font-medium mb-6">Order Summary</h2>
 
-            <div className="space-y-6 text-sm">
-              <div className="flex justify-between pb-6 border-b">
-                <span className="text-gray-600">Subtotal</span>
-                <span className="font-medium">₹{subtotal.toFixed(2)}</span>
-              </div>
-
-              <div className="flex justify-between pb-6 border-b">
-                <span className="text-gray-600">Shipping</span>
-                <span className="text-green-600 font-medium">Free</span>
-              </div>
-
-              {discount > 0 && (
-                <div className="flex justify-between pb-6 border-b">
-                  <span className="text-gray-600">Discount</span>
-                  <span className="text-red-600 font-medium">-₹{discount.toFixed(2)}</span>
-                </div>
-              )}
-
-              <div className="flex justify-between items-center pt-6">
-                <span className="text-gray-900 font-medium">Total</span>
-                <span className="text-3xl font-medium">₹{total.toFixed(2)}</span>
-              </div>
+          <div className="space-y-4 sm:space-y-6 text-sm">
+            <div className="flex justify-between pb-4 sm:pb-6 border-b">
+              <span className="text-gray-600">Subtotal</span>
+              <span className="font-medium">₹{subtotal.toFixed(2)}</span>
             </div>
-            <button 
-            onClick={handleCheckout}
-            disabled={items.length === 0}
-            className="w-full py-4 bg-black text-white text-sm hover:bg-gray-800 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed mt-20"
-          >
-            Proceed to Checkout
-          </button>
+
+            <div className="flex justify-between pb-4 sm:pb-6 border-b">
+              <span className="text-gray-600">Shipping</span>
+              <span className="text-green-600 font-medium">Free</span>
+            </div>
+
+            {discount > 0 && (
+              <div className="flex justify-between pb-4 sm:pb-6 border-b">
+                <span className="text-gray-600">Discount</span>
+                <span className="text-red-600 font-medium">-₹{discount.toFixed(2)}</span>
+              </div>
+            )}
+
+            <div className="flex justify-between items-center pt-4 sm:pt-6">
+              <span className="text-gray-900 font-medium">Total</span>
+              <span className="text-2xl sm:text-3xl font-medium">₹{total.toFixed(2)}</span>
+            </div>
           </div>
 
-         
+          {/* Checkout button - Fixed at bottom on mobile */}
+          <div className="mt-6 sm:mt-20">
+            <button 
+              onClick={handleCheckout}
+              disabled={items.length === 0}
+              className="w-full py-4 bg-black text-white text-sm hover:bg-gray-800 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+            >
+              Proceed to Checkout
+            </button>
+          </div>
         </div>
       </div>
     </div>
-  )
+  );
 }

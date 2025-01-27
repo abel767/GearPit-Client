@@ -13,55 +13,47 @@ export const loadRazorpay = async () => {
   
   export const createPaymentOrder = async (amount) => {
     try {
-        const response = await fetch('http://localhost:3000/user/create-payment', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            credentials: 'include',
-            body: JSON.stringify({ 
-                amount: Math.round(amount) // Already converted to paise in controller
-            }),
-        });
-
-        if (!response.ok) {
-            throw new Error('Payment order creation failed');
-        }
-
-        const result = await response.json();
-        
-        // Return the correct structure expected by Razorpay
-        return {
-            id: result.data.orderId,
-            amount: result.data.amount,
-            currency: result.data.currency
-        };
-    } catch (error) {
-        console.error('Payment order creation error:', error);
-        throw error;
-    }
-};
-  
-  export const verifyPayment = async (paymentData) => {
-    try {
-      const response = await fetch('http://localhost:3000/user/verify-payment', {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/user/create-payment`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify(paymentData),
+        body: JSON.stringify({ amount: Math.round(amount) })
+      });
+  
+      if (!response.ok) throw new Error('Payment order creation failed');
+      const result = await response.json();
+      return {
+        id: result.data.orderId,
+        amount: result.data.amount,
+        currency: result.data.currency
+      };
+    } catch (error) {
+      console.error('Payment order creation error:', error);
+      throw error;
+    }
+  };
+  
+  export const verifyPayment = async (paymentData) => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/user/verify-payment`, {
+        method: 'POST', 
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(paymentData)
       });
   
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Payment verification failed');
       }
-  
       return await response.json();
     } catch (error) {
       console.error('Payment verification error:', error);
-      throw new Error(`Failed to verify payment: ${error.message}`);
+      throw error;
     }
   };
   

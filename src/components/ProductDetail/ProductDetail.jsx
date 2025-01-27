@@ -5,25 +5,7 @@ import { addToCart } from '../../redux/Slices/CartSlice';
 import { useDispatch, useSelector } from 'react-redux';
 import axiosInstance from '../../api/axiosInstance';
 
-const hasActiveOffer = (offer) => {
-  if (!offer || !offer.isActive) return false;
-  
-  const currentDate = new Date();
-  const startDate = new Date(offer.startDate);
-  const endDate = new Date(offer.endDate);
-  
-  return currentDate >= startDate && currentDate <= endDate;
-};
 
-const getFinalPrice = (variant, offer) => {
-  let price = variant.finalPrice || variant.price;
-  const variantDiscount = variant.discount || 0;
-  const offerDiscount = (offer && hasActiveOffer(offer)) ? offer.percentage : 0;
-  
-  // Apply the higher discount
-  const totalDiscount = Math.max(variantDiscount, offerDiscount);
-  return price * (1 - totalDiscount / 100);
-};
 
 
 export default function ProductDetail() {
@@ -45,6 +27,29 @@ export default function ProductDetail() {
   const userId = useSelector(state => state.user.user?._id);
   const isAuthenticated = useSelector(state => state.user.isAuthenticated);
   const cartItems = useSelector(state => state.cart.items);
+
+  const hasActiveOffer = (offer) => {
+    if (!offer || !offer.isActive) return false;
+    
+    const currentDate = new Date();
+    const startDate = new Date(offer.startDate);
+    const endDate = new Date(offer.endDate);
+    
+    return currentDate >= startDate && currentDate <= endDate;
+  };
+
+  const [isZoomed, setIsZoomed] = useState(false);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+
+  const handleMouseMove = (e) => {
+    if (!isZoomed) return;
+    const rect = e.target.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    setMousePosition({ x, y });
+  };
+
+
 
   
   useEffect(() => {
@@ -247,21 +252,34 @@ export default function ProductDetail() {
               </button>
             ))}
           </div>
-          <div className="flex-1">
+          <div 
+            className="flex-1 relative overflow-hidden group"
+            onMouseEnter={() => setIsZoomed(true)}
+            onMouseLeave={() => setIsZoomed(false)}
+            onMouseMove={handleMouseMove}
+          >
             <img
               src={product.images[selectedImage]}
               alt="Main product view"
-              className="w-full h-auto"
+              className={`w-full h-auto transition-transform duration-300 ${
+                isZoomed ? 'scale-150' : 'scale-100'
+              }`}
+              style={{
+                transformOrigin: `${mousePosition.x}% ${mousePosition.y}%`
+              }}
             />
+            {isZoomed && (
+              <div className="absolute inset-0 pointer-events-none bg-black/10" />
+            )}
           </div>
         </div>
-
+  
         {/* Product Details */}
         <div>
           <div className="relative">
             <h1 className="text-2xl font-bold mb-2">{product.productName}</h1>
             
-            {/* Offer Tag */}
+            {/* offer tag */}
             {product.offer && hasActiveOffer(product.offer) && (
               <div className="absolute top-0 right-0 z-10 transform transition-transform duration-200 hover:scale-105">
                 <div className="bg-red-500 text-white px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 shadow-md">
@@ -271,7 +289,7 @@ export default function ProductDetail() {
               </div>
             )}
           </div>
-
+  
           <div className="flex items-center gap-1 mb-4">
             <div className="flex">
               {[...Array(4)].map((_, i) => (
@@ -281,118 +299,113 @@ export default function ProductDetail() {
             </div>
             <span className="text-sm text-gray-500">(1,256 reviews)</span>
           </div>
-
+  
           {selectedVariant && (
-            <>
-              <div className="mb-6">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-bold">
-                    ₹{getFinalPrice(selectedVariant).toFixed(2)}
-                  </span>
-                  {(selectedVariant.discount > 0 || (product.offer && hasActiveOffer(product.offer))) && (
-                    <>
-                      <span className="text-sm text-gray-500 line-through">
-                        ₹{selectedVariant.price.toFixed(2)}
-                      </span>
-                      <span className="text-sm text-green-600">
-                        {Math.max(
-                          selectedVariant.discount || 0,
-                          hasActiveOffer(product.offer) ? product.offer.percentage : 0
-                        )}% off
-                      </span>
-                    </>
-                  )}
-                </div>
-                {product.offer && hasActiveOffer(product.offer) && (
-                  <p className="text-sm text-red-500 mt-1">
-                    Limited time offer ends {new Date(product.offer.endDate).toLocaleDateString()}
-                  </p>
+            <div className="mb-6">
+              <div className="flex items-baseline gap-2">
+                <span className="text-2xl font-bold">
+                  ₹{selectedVariant.finalPrice.toFixed(2)}
+                </span>
+                {selectedVariant.finalPrice < selectedVariant.price && (
+                  <>
+                    <span className="text-sm text-gray-500 line-through">
+                      ₹{selectedVariant.price.toFixed(2)}
+                    </span>
+                    <span className="text-sm text-green-600">
+                      {((1 - selectedVariant.finalPrice / selectedVariant.price) * 100).toFixed(0)}% off
+                    </span>
+                  </>
                 )}
               </div>
-
-              <div className="mb-6">
-                <h3 className="font-medium mb-2">Size</h3>
-                <div className="flex gap-2">
-                  {product.variants.map((variant) => (
-                    <button
-                      key={variant._id}
-                      className={`w-10 h-10 border ${
-                        selectedVariant._id === variant._id
-                          ? 'border-black'
-                          : 'border-gray-300'
-                      } hover:border-black flex items-center justify-center ${
-                        variant.stock === 0 ? 'opacity-50 cursor-not-allowed' : ''
-                      }`}
-                      onClick={() => variant.stock > 0 && setSelectedVariant(variant)}
-                      disabled={variant.stock === 0}
-                    >
-                      {variant.size}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mb-6">
-                <h3 className="font-medium mb-2">QTY</h3>
-                <div className="flex items-center gap-2">
-                  <button
-                    className="p-2 border border-gray-300 hover:bg-gray-100"
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  >
-                    <Minus className="w-4 h-4" />
-                  </button>
-                  <input
-                    type="number"
-                    min="1"
-                    max={selectedVariant.stock}
-                    value={quantity}
-                    onChange={(e) => setQuantity(Math.max(1, Math.min(selectedVariant.stock, parseInt(e.target.value) || 1)))}
-                    className="w-16 text-center border border-gray-300 p-2"
-                  />
-                  <button
-                    className="p-2 border border-gray-300 hover:bg-gray-100"
-                    onClick={() => setQuantity(Math.min(selectedVariant.stock, quantity + 1))}
-                  >
-                    <Plus className="w-4 h-4" />
-                  </button>
-                </div>
+              {product.offer && hasActiveOffer(product.offer) && (
                 <p className="text-sm text-red-500 mt-1">
-                  {selectedVariant.stock} pieces available
+                  Limited time offer ends {new Date(product.offer.endDate).toLocaleDateString()}
                 </p>
-              </div>
-
-              <div className="flex gap-4 mb-8">
-                <button 
-                  onClick={() => handleAddToCart(product)}
-                  className="flex-1 bg-black text-white py-3 px-6 hover:bg-gray-800 flex items-center justify-center gap-2"
-                >
-                  <ShoppingCart className="w-5 h-5" />
-                  ADD TO CART
-                </button>
-                <button 
-                  onClick={() => navigate('/user/Checkout', {
-                    state: {
-                      productDetails: {
-                        productId: product._id,
-                        productName: product.productName,
-                        price: getFinalPrice(selectedVariant),
-                        quantity,
-                        variantId: selectedVariant._id,
-                        size: selectedVariant.size,
-                        discount: Math.max(
-                          selectedVariant.discount || 0,
-                          hasActiveOffer(product.offer) ? product.offer.percentage : 0
-                        ),
-                      }
-                    }
-                  })} 
-                  className="flex-1 border border-black py-3 px-6 hover:bg-gray-100"
-                >
-                  BUY NOW
-                </button>
-              </div>
-            </>
+              )}
+            </div>
           )}
+
+          <div className="mb-6">
+            <h3 className="font-medium mb-2">Size</h3>
+            <div className="flex gap-2">
+              {product.variants.map((variant) => (
+                <button
+                  key={variant._id}
+                  className={`w-10 h-10 border ${
+                    selectedVariant._id === variant._id
+                      ? 'border-black'
+                      : 'border-gray-300'
+                  } hover:border-black flex items-center justify-center ${
+                    variant.stock === 0 ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                  onClick={() => variant.stock > 0 && setSelectedVariant(variant)}
+                  disabled={variant.stock === 0}
+                >
+                  {variant.size}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="mb-6">
+            <h3 className="font-medium mb-2">QTY</h3>
+            <div className="flex items-center gap-2">
+              <button
+                className="p-2 border border-gray-300 hover:bg-gray-100"
+                onClick={() => setQuantity(Math.max(1, quantity - 1))}
+              >
+                <Minus className="w-4 h-4" />
+              </button>
+              <input
+                type="number"
+                min="1"
+                max={selectedVariant.stock}
+                value={quantity}
+                onChange={(e) => setQuantity(Math.max(1, Math.min(selectedVariant.stock, parseInt(e.target.value) || 1)))}
+                className="w-16 text-center border border-gray-300 p-2"
+              />
+              <button
+                className="p-2 border border-gray-300 hover:bg-gray-100"
+                onClick={() => setQuantity(Math.min(selectedVariant.stock, quantity + 1))}
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
+            <p className="text-sm text-red-500 mt-1">
+              {selectedVariant.stock} pieces available
+            </p>
+          </div>
+
+          <div className="flex gap-4 mb-8">
+            <button 
+              onClick={() => handleAddToCart(product)}
+              className="flex-1 bg-black text-white py-3 px-6 hover:bg-gray-800 flex items-center justify-center gap-2"
+            >
+              <ShoppingCart className="w-5 h-5" />
+              ADD TO CART
+            </button>
+            <button 
+              onClick={() => navigate('/user/Checkout', {
+                state: {
+                  productDetails: {
+                    productId: product._id,
+                    productName: product.productName,
+                    price: getFinalPrice(selectedVariant),
+                    quantity,
+                    variantId: selectedVariant._id,
+                    size: selectedVariant.size,
+                    discount: Math.max(
+                      selectedVariant.discount || 0,
+                      hasActiveOffer(product.offer) ? product.offer.percentage : 0
+                    ),
+                  }
+                }
+              })} 
+              className="flex-1 border border-black py-3 px-6 hover:bg-gray-100"
+            >
+              BUY NOW
+            </button>
+          </div>
 
           <div className="border-t pt-8">
             <div className="flex gap-4 mb-4">

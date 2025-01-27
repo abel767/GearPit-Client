@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Heart } from 'lucide-react';
+import { Heart, Tag } from 'lucide-react';
 import { toast } from 'react-toastify';
 import axiosInstance from '../../api/axiosInstance';
 import { useDispatch, useSelector } from 'react-redux';
@@ -34,6 +34,14 @@ const getPriceDetails = (variants, offer) => {
     finalPrice: Math.round(finalPrice * 100) / 100,
     discount: totalDiscount
   };
+};
+
+const formatDate = (dateString) => {
+  return new Date(dateString).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  });
 };
 
 const isProductOutOfStock = (variants) => {
@@ -147,78 +155,102 @@ function Featured() {
   return (
     <section className="py-8 px-4">
       <h2 className="text-center text-2xl font-bold mb-6">New Arrivals</h2>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {products.map((product) => {
+          const hasOffer = product.offer?.isActive && product.offer?.percentage > 0;
           const outOfStock = isProductOutOfStock(product.variants);
           const { originalPrice, finalPrice, discount } = getPriceDetails(product.variants, product.offer);
           
           return (
-            <div key={product._id} className="group relative bg-white p-2 rounded-lg shadow-sm">
+            <div key={product._id} className="group relative bg-white rounded-lg overflow-hidden transition-all duration-300 hover:shadow-lg">
+              {/* Wishlist Button */}
               <button 
                 onClick={(e) => handleWishlistToggle(e, product)}
-                className="absolute top-1 right-1 z-10 bg-white rounded-full p-1 shadow-sm hover:bg-gray-50"
+                className="absolute right-3 top-3 z-10 bg-white rounded-full p-2 shadow-sm"
               >
                 <Heart 
-                  className={`w-4 h-4 ${
-                    wishlistItems.some(item => item._id === product._id)
-                      ? 'text-red-500 fill-current'
-                      : 'text-gray-400 hover:text-red-500'
+                  className={`w-5 h-5 transition-colors ${
+                    wishlistItems.some(item => item._id === product._id) 
+                      ? 'text-red-500 fill-current' 
+                      : 'text-gray-400'
                   }`}
                 />
               </button>
 
-              <div className="relative aspect-square mb-2">
+              {/* Offer Tag */}
+              {hasOffer && (
+                <div className="absolute left-3 top-3 z-10 flex flex-col gap-1">
+                  <div className="flex items-center gap-1 bg-red-500 text-white px-2 py-1 rounded-md">
+                    <Tag className="w-4 h-4" />
+                    <span className="text-xs font-semibold">
+                      {product.offer.percentage}% OFF
+                    </span>
+                  </div>
+                  <div className="text-xs text-gray-600 bg-white px-2 py-1 rounded-md shadow-sm">
+                    Ends {formatDate(product.offer.endDate)}
+                  </div>
+                </div>
+              )}
+
+              {/* Product Image with Overlay */}
+              <div 
+                className="relative aspect-[3/4] cursor-pointer"
+                onClick={() => navigate(`/user/product/${product._id}`)}
+              >
                 <img
                   src={product.images[0]}
                   alt={product.productName}
-                  className={`w-full h-full object-contain ${outOfStock ? 'opacity-60' : ''}`}
+                  className="w-full h-full object-cover"
                 />
+                
+                {/* Out of Stock Badge */}
                 {outOfStock && (
-                  <span className="absolute top-1 left-1 bg-red-100 text-red-600 px-2 py-0.5 rounded text-xs">
-                    Out of Stock
-                  </span>
+                  <div className="absolute top-3 left-3 z-10">
+                    <span className="bg-red-100 text-red-600 px-3 py-1 rounded-md text-xs font-semibold">
+                      Out of Stock
+                    </span>
+                  </div>
                 )}
+                
+                {/* Hover Overlay with Add to Cart */}
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-6">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      !outOfStock && handleAddToCart(product);
+                    }}
+                    disabled={outOfStock}
+                    className={`w-[90%] py-3 text-sm font-medium transition-all duration-200
+                      ${outOfStock 
+                        ? 'bg-gray-400 cursor-not-allowed'
+                        : 'bg-white hover:bg-gray-100'
+                      }`}
+                  >
+                    {outOfStock ? 'Out of Stock' : 'Add to Cart'}
+                  </button>
+                </div>
               </div>
 
-              <div className="text-center">
-                <h3 className="text-xs font-medium mb-1 line-clamp-2 h-8">
+              {/* Product Info */}
+              <div className="p-4">
+                <h3 className="text-sm font-medium mb-2 line-clamp-1">
                   {product.productName}
                 </h3>
                 
-                <div className="mb-1 flex flex-col items-center">
-                  <div className="flex items-center gap-1 justify-center">
-                    <span className={`text-sm font-bold ${outOfStock ? 'text-gray-500' : 'text-gray-900'}`}>
-                      ₹{finalPrice.toFixed(2)}
-                    </span>
-                    {discount > 0 && (
-                      <span className="text-xs text-gray-500 line-through">
+                <div className="flex items-center gap-2">
+                  <span className="text-base font-bold">
+                    ₹{finalPrice.toFixed(2)}
+                  </span>
+                  {discount > 0 && (
+                    <>
+                      <span className="text-sm text-gray-500 line-through">
                         ₹{originalPrice.toFixed(2)}
                       </span>
-                    )}
-                  </div>
-                  {discount > 0 && !outOfStock && (
-                    <span className="text-xs text-green-600">{discount}% off</span>
+                      <span className="text-sm text-green-600">
+                        {discount}% off
+                      </span>
+                    </>
                   )}
-                </div>
-
-                <div className="flex gap-1 mt-1">
-                  <button 
-                    onClick={() => !outOfStock && handleAddToCart(product)}
-                    disabled={outOfStock}
-                    className={`flex-1 py-1 px-2 text-xs rounded ${
-                      outOfStock 
-                        ? 'bg-red-50 text-red-500 border border-red-300'
-                        : 'bg-black hover:bg-gray-800 text-white'
-                    }`}
-                  >
-                    {outOfStock ? 'Out of Stock' : 'Add'}
-                  </button>
-                  <button 
-                    onClick={() => navigate(`/user/product/${product._id}`)}
-                    className="flex-1 bg-black hover:bg-gray-800 text-white py-1 px-2 text-xs rounded"
-                  >
-                    View
-                  </button>
                 </div>
               </div>
             </div>
@@ -227,7 +259,7 @@ function Featured() {
       </div>
       <button 
         onClick={() => navigate('/user/store')} 
-        className="block mt-6 mx-auto border-2 border-black bg-white hover:bg-black text-black hover:text-white py-2 px-4 rounded-md text-sm transition-all duration-300"
+        className="block mt-6 mx-auto border-2 gap-2 px-6 py-3 bg-white text-black  border-black/20 hover:bg-black hover:text-white text-sm transition-all duration-300"
       >
         View All →
       </button>
