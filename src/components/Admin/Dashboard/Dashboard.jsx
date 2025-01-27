@@ -30,7 +30,6 @@ export default function Dashboard() {
         const categoriesData = await categoriesResponse.json();
         const usersData = await usersResponse.json();
 
-        // Transform data to include formatted date
         const formattedRevenueData = revenueData.data.map(item => ({
           ...item,
           formattedDate: new Date(item._id).toLocaleDateString('en-US', { 
@@ -52,42 +51,42 @@ export default function Dashboard() {
     fetchDashboardData();
   }, []);
 
-
   const filterRevenue = (filter) => {
     if (!originalRevenueData.length) return;
-
+  
     const now = new Date();
-    let filteredData;
-
+    let filteredData = [];
+    const filterDate = new Date();
+  
+    // Set the filter date based on the selected filter
     switch(filter) {
       case '1m':
-        filteredData = originalRevenueData.filter(item => {
-          const itemDate = new Date(item._id);
-          return (now - itemDate) / (1000 * 60 * 60 * 24 * 30) <= 1;
-        });
+        filterDate.setMonth(now.getMonth() - 1);
         break;
       case '3m':
-        filteredData = originalRevenueData.filter(item => {
-          const itemDate = new Date(item._id);
-          return (now - itemDate) / (1000 * 60 * 60 * 24 * 30) <= 3;
-        });
+        filterDate.setMonth(now.getMonth() - 3);
         break;
       case '6m':
-        filteredData = originalRevenueData.filter(item => {
-          const itemDate = new Date(item._id);
-          return (now - itemDate) / (1000 * 60 * 60 * 24 * 30) <= 6;
-        });
+        filterDate.setMonth(now.getMonth() - 6);
         break;
       case '1y':
-        filteredData = originalRevenueData.filter(item => {
-          const itemDate = new Date(item._id);
-          return (now - itemDate) / (1000 * 60 * 60 * 24 * 365) <= 1;
-        });
+        filterDate.setFullYear(now.getFullYear() - 1);
         break;
       default:
-        filteredData = originalRevenueData;
+        filteredData = [...originalRevenueData];
     }
-
+    
+    // Filter the data if a specific time range was selected
+    if (filter !== 'all') {
+      filteredData = originalRevenueData.filter(item => {
+        const itemDate = new Date(item._id);
+        return itemDate >= filterDate;
+      });
+    }
+  
+    // Sort the filtered data by date
+    filteredData.sort((a, b) => new Date(a._id) - new Date(b._id));
+    
     setRevenueData(filteredData);
     setDateFilter(filter);
     setIsFilterOpen(false);
@@ -140,8 +139,8 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-         {/* Revenue Chart */}
-         <div className="lg:col-span-2 bg-white p-6 rounded-lg shadow-sm">
+        {/* Revenue Chart */}
+        <div className="lg:col-span-2 bg-white p-6 rounded-lg shadow-sm">
           <div className="flex justify-between items-start mb-6">
             <div>
               <h3 className="font-semibold">Revenue Overview</h3>

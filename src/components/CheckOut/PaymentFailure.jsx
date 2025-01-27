@@ -1,11 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { XCircle, AlertTriangle, ArrowLeft, RefreshCcw, Mail } from 'lucide-react';
-
+import { useRazorpayRetry } from '../../hooks/useRazorpayRetry';
+import axiosInstance from '../../api/axiosInstance';
 export default function PaymentFailure() {
   const location = useLocation();
   const navigate = useNavigate();
   const [timeRemaining, setTimeRemaining] = useState(null);
+  const [isRetrying, setIsRetrying] = useState(false);
+  const { initiateRetryPayment, isProcessing } = useRazorpayRetry();
+  
   const [errorDetails, setErrorDetails] = useState({
     code: '',
     message: '',
@@ -17,7 +21,7 @@ export default function PaymentFailure() {
     if (location.state) {
       const retryWindowEnds = location.state.retryWindowEnds 
         ? new Date(location.state.retryWindowEnds)
-        : new Date(Date.now() + 11 * 60000); // Default 11 minutes
+        : new Date(Date.now() + 11 * 60000);
 
       setErrorDetails({
         code: location.state.errorCode || '',
@@ -37,7 +41,6 @@ export default function PaymentFailure() {
         if (diff <= 0) {
           setTimeRemaining(null);
           clearInterval(timer);
-          // Optionally redirect to store or clear order
           navigate('/user/store');
         } else {
           const minutes = Math.floor(diff / 60000);
@@ -50,14 +53,50 @@ export default function PaymentFailure() {
     }
   }, [errorDetails.retryWindowEnds, navigate]);
 
-  const handleTryAgain = () => {
-    if (!timeRemaining) {
-      // If retry window expired, redirect to store
+  const handleTryAgain = async () => {
+    if (!timeRemaining || !errorDetails.orderId) {
       navigate('/user/store');
       return;
     }
-    navigate('/user/Checkout');
+  
+    setIsRetrying(true);
+    try {
+      // First, handle the payment failure
+      await axiosInstance.post('/user/razorpay/payment-failure', {
+        error: {
+          metadata: {
+            order_id: errorDetails.orderId
+          }
+        }
+      });
+  
+      // Then initiate retry payment
+      await initiateRetryPayment({
+        orderId: errorDetails.orderId,
+        onSuccess: () => {
+          navigate('/user/orders', {
+            state: { message: 'Payment successful!' }
+          });
+        },
+        onError: (error) => {
+          setErrorDetails(prev => ({
+            ...prev,
+            message: error.message || 'Payment retry failed. Please try again.'
+          }));
+        }
+      });
+    } catch (error) {
+      console.error('Retry payment error:', error);
+      setErrorDetails(prev => ({
+        ...prev,
+        message: 'Unable to process retry payment. Please try again later.'
+      }));
+    } finally {
+      setIsRetrying(false);
+    }
   };
+
+
 
   const handleBackToStore = () => {
     navigate('/user/store');
@@ -67,11 +106,12 @@ export default function PaymentFailure() {
     window.location.href = 'mailto:support@yourstore.com';
   };
 
+  const isRetryDisabled = !timeRemaining || isProcessing || isRetrying;
+
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="max-w-md w-full">
         <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
-          {/* Error Icon */}
           <div className="mb-8">
             <div className="relative mx-auto w-32 h-32">
               <div className="absolute inset-0 rounded-full bg-red-100 animate-pulse" />
@@ -81,13 +121,9 @@ export default function PaymentFailure() {
             </div>
           </div>
 
-          {/* Error Message */}
           <h1 className="text-3xl font-bold text-gray-900 mb-4">Payment Failed</h1>
-          <p className="text-gray-600 mb-8">
-            {errorDetails.message}
-          </p>
+          <p className="text-gray-600 mb-8">{errorDetails.message}</p>
 
-          {/* Retry Timer */}
           {timeRemaining && (
             <div className="bg-yellow-50 rounded-xl p-4 mb-6">
               <p className="text-sm text-yellow-800">
@@ -96,14 +132,11 @@ export default function PaymentFailure() {
             </div>
           )}
 
-          {/* Error Details */}
           <div className="bg-red-50 rounded-xl p-6 mb-8">
             <div className="flex flex-col items-center space-y-2 text-sm">
               <div className="flex items-center space-x-2">
                 <AlertTriangle className="w-5 h-5 text-red-600" />
-                <span className="text-red-600">
-                  Transaction was not completed
-                </span>
+                <span className="text-red-600">Transaction was not completed</span>
               </div>
               {errorDetails.code && (
                 <p className="text-gray-600">Error Code: {errorDetails.code}</p>
@@ -114,19 +147,18 @@ export default function PaymentFailure() {
             </div>
           </div>
 
-          {/* Action Buttons */}
           <div className="grid grid-cols-2 gap-4">
             <button
               onClick={handleTryAgain}
-              disabled={!timeRemaining}
+              disabled={isRetryDisabled}
               className={`flex items-center justify-center px-6 py-3 ${
-                timeRemaining 
-                  ? 'bg-black text-white hover:bg-black/90' 
+                !isRetryDisabled
+                  ? 'bg-black text-white hover:bg-black/90'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               } rounded-xl transition-colors duration-200`}
             >
-              <RefreshCcw className="w-4 h-4 mr-2" />
-              Try Again
+              <RefreshCcw className={`w-4 h-4 mr-2 ${isProcessing ? 'animate-spin' : ''}`} />
+              {isProcessing ? 'Processing...' : 'Try Again'}
             </button>
             
             <button
@@ -139,7 +171,6 @@ export default function PaymentFailure() {
           </div>
         </div>
 
-        {/* Support Section */}
         <div className="mt-8 text-center">
           <div className="inline-flex items-center justify-center px-4 py-2 bg-red-100 text-red-700 rounded-full text-sm">
             <AlertTriangle className="w-4 h-4 mr-2" />
@@ -160,5 +191,3 @@ export default function PaymentFailure() {
     </div>
   );
 }
-
-

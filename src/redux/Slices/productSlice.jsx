@@ -66,6 +66,7 @@ const productSlice = createSlice({
       state.searchTerm = action.payload;
       state.currentPage = 1; // Reset to first page when searching
     },
+    // Update the filterProducts reducer in productSlice.js
     filterProducts: (state) => {
       let filtered = [...state.products];
       
@@ -78,7 +79,7 @@ const productSlice = createSlice({
           product.brand?.toLowerCase().includes(searchLower)
         );
       }
-
+    
       // Apply category filter
       if (state.selectedCategories.length > 0) {
         filtered = filtered.filter(product => {
@@ -88,58 +89,58 @@ const productSlice = createSlice({
           return state.selectedCategories.includes(productCategoryId);
         });
       }
-
+    
+      // Apply size filter
       if (state.selectedSizes.length > 0) {
         filtered = filtered.filter(product => {
           return product.variants.some(variant => 
-            state.selectedSizes.includes(variant.size)
+            state.selectedSizes.some(selectedSize => 
+              variant.size === selectedSize
+            )
           );
         });
       }
-
+    
       // Apply price range filter
       filtered = filtered.filter(product => {
         const lowestPrice = Math.min(...product.variants.map(v => v.finalPrice || v.price));
         return lowestPrice >= state.priceRange[0] && lowestPrice <= state.priceRange[1];
       });
-
-      // Apply sorting
-      switch (state.sortBy) {
-        case 'price-low-to-high':
-          filtered.sort((a, b) => {
-            const aPrice = Math.min(...a.variants.map(v => v.finalPrice || v.price));
-            const bPrice = Math.min(...b.variants.map(v => v.finalPrice || v.price));
-            return aPrice - bPrice;
-          });
-          break;
-        case 'price-high-to-low':
-          filtered.sort((a, b) => {
-            const aPrice = Math.min(...a.variants.map(v => v.finalPrice || v.price));
-            const bPrice = Math.min(...b.variants.map(v => v.finalPrice || v.price));
-            return bPrice - aPrice;
-          });
-          break;
-        case 'a-to-z':
-          filtered.sort((a, b) => a.productName.localeCompare(b.productName));
-          break;
-        case 'z-to-a':
-          filtered.sort((a, b) => b.productName.localeCompare(a.productName));
-          break;
-        case 'new-arrivals':
-          filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-          break;
-        case 'average-ratings':
-          filtered.sort((a, b) => (b.averageRating || 0) - (a.averageRating || 0));
-          break;
-        case 'popularity':
-          filtered.sort((a, b) => (b.salesCount || 0) - (a.salesCount || 0));
-          break;
-        case 'featured':
-        default:
-          // Keep original order for featured items
-          break;
-      }
-
+  // Keep existing sorting logic
+  switch (state.sortBy) {
+    case 'price-low-to-high':
+      filtered.sort((a, b) => {
+        const aPrice = Math.min(...a.variants.map(v => v.finalPrice || v.price));
+        const bPrice = Math.min(...b.variants.map(v => v.finalPrice || v.price));
+        return aPrice - bPrice;
+      });
+      break;
+    case 'price-high-to-low':
+      filtered.sort((a, b) => {
+        const aPrice = Math.min(...a.variants.map(v => v.finalPrice || v.price));
+        const bPrice = Math.min(...b.variants.map(v => v.finalPrice || v.price));
+        return bPrice - aPrice;
+      });
+      break;
+    case 'a-to-z':
+      filtered.sort((a, b) => a.productName.localeCompare(b.productName));
+      break;
+    case 'z-to-a':
+      filtered.sort((a, b) => b.productName.localeCompare(a.productName));
+      break;
+    case 'new-arrivals':
+      filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      break;
+    case 'average-ratings':
+      filtered.sort((a, b) => (b.averageRating || 0) - (a.averageRating || 0));
+      break;
+    case 'popularity':
+      filtered.sort((a, b) => (b.salesCount || 0) - (a.salesCount || 0));
+      break;
+    case 'featured':
+    default:
+      break;
+  }
       state.filteredProducts = filtered;
     },
     setLoading: (state, action) => {

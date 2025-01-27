@@ -1,7 +1,43 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axiosInstance from '../../api/axiosInstance';
-import { ArrowLeft, Package, Truck, CheckCircle, Home, AlertCircle, Star } from 'lucide-react';
+import { ArrowLeft, Package, Truck, CheckCircle, Home, AlertCircle, Star, XCircle, AlertTriangle, X } from 'lucide-react';
+
+const Dialog = ({ isOpen, onClose, children }) => {
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscape);
+      document.body.style.overflow = 'hidden';
+    }
+    
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div 
+        className="fixed inset-0 bg-black bg-opacity-50 transition-opacity animate-in fade-in duration-200"
+        onClick={onClose}
+      />
+      <div className="relative bg-white rounded-lg max-w-md w-full mx-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
+        {children}
+      </div>
+    </div>
+  );
+};
 
 const OrderDetailAndTrack = () => {
   const [order, setOrder] = useState(null);
@@ -10,6 +46,7 @@ const OrderDetailAndTrack = () => {
   const [cancellingOrder, setCancellingOrder] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [reviews, setReviews] = useState({});
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const orderId = location.state?.orderId;
@@ -46,21 +83,6 @@ const OrderDetailAndTrack = () => {
     }
   };
 
-  const handleCancelOrder = async () => {
-    if (!window.confirm('Are you sure you want to cancel this order?')) {
-      return;
-    }
-
-    try {
-      setCancellingOrder(true);
-      await axiosInstance.put(`/user/orders/${orderId}/cancel`);
-      fetchOrderDetails();
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to cancel order');
-    } finally {
-      setCancellingOrder(false);
-    }
-  };
 
   const handleReviewSubmit = async (productId) => {
     try {
@@ -220,6 +242,81 @@ const OrderDetailAndTrack = () => {
 
     return activities;
   };
+
+
+  const handleCancelOrder = async () => {
+    try {
+      setCancellingOrder(true);
+      await axiosInstance.put(`/user/orders/${orderId}/cancel`);
+      setShowCancelDialog(false);
+      fetchOrderDetails();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to cancel order');
+    } finally {
+      setCancellingOrder(false);
+    }
+  };
+
+  const CancelOrderButton = () => {
+    if (!['PENDING', 'PROCESSING'].includes(order.status.toUpperCase())) {
+      return null;
+    }
+    
+    return (
+      <div className="bg-white rounded-lg p-6">
+        <button
+          onClick={() => setShowCancelDialog(true)}
+          className="w-full py-3 text-red-600 border-2 border-red-600 rounded-lg transition-colors font-medium hover:bg-red-50 inline-flex items-center justify-center gap-2"
+          disabled={cancellingOrder}
+        >
+          <XCircle className="h-5 w-5" />
+          {cancellingOrder ? 'Cancelling...' : 'Cancel Order'}
+        </button>
+
+        <Dialog isOpen={showCancelDialog} onClose={() => setShowCancelDialog(false)}>
+          <div className="p-6">
+            <div className="flex items-start gap-4">
+              <AlertTriangle className="h-6 w-6 text-red-600 flex-shrink-0" />
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">Cancel Order</h2>
+                <p className="mt-2 text-sm text-gray-500">
+                  Are you sure you want to cancel this order? This action cannot be undone.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 flex gap-3 justify-end">
+              <button
+                onClick={() => setShowCancelDialog(false)}
+                className="inline-flex items-center gap-2 px-4 py-2 border-2 rounded-lg hover:bg-gray-50"
+              >
+                <X className="h-4 w-4" />
+                No, keep my order
+              </button>
+              <button
+                onClick={handleCancelOrder}
+                disabled={cancellingOrder}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+              >
+                {cancellingOrder ? (
+                  <>
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    Cancelling...
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="h-4 w-4" />
+                    Yes, cancel order
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </Dialog>
+      </div>
+    );
+  };
+
 
 
   return (
@@ -444,16 +541,8 @@ const OrderDetailAndTrack = () => {
             </div>
             {['PENDING', 'PROCESSING'].includes(order.status.toUpperCase()) && (
   <div className="bg-white rounded-lg p-6">
-    <button
-      onClick={handleCancelOrder}
-      disabled={cancellingOrder}
-      className={`w-full py-3 text-red-600 border-2 border-red-600 rounded-lg transition-colors font-medium ${
-        cancellingOrder ? 'opacity-50 cursor-not-allowed' : 'hover:bg-red-50'
-      }`}
-    >
-      {cancellingOrder ? 'Cancelling...' : 'Cancel Order'}
-    </button>
-  </div>
+            <CancelOrderButton />
+            </div>
 )}
           </div>
         </div>

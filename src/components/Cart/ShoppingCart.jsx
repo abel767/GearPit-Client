@@ -110,8 +110,8 @@ export default function ShoppingCart() {
   }
 
   const subtotal = items.reduce((sum, item) => sum + (item.finalPrice * item.quantity), 0)
-  const discount = 100.00
-  const total = subtotal - discount
+  // const discount = 100.00
+  const total = subtotal
 
   if (initialLoading) {
     return (
@@ -129,7 +129,6 @@ export default function ShoppingCart() {
       price: item.finalPrice,
       name: item.name,
       size: item.size,
-      color: item.color
     }));
 
     navigate('/user/Checkout', {
@@ -137,7 +136,6 @@ export default function ShoppingCart() {
         productDetails: {
           items: cartItems,
           subtotal,
-          discount,
           total
         }
       }
@@ -181,7 +179,6 @@ export default function ShoppingCart() {
                       <h3 className="text-sm font-medium">{item.name}</h3>
                       <p className="text-sm text-gray-500 mt-1">
                         {item.size && `Size: ${item.size}`}
-                        {item.color && ` • ${item.color}`}
                       </p>
                     </div>
                     <div className="text-sm mt-2 sm:mt-0">₹{(item.finalPrice * item.quantity).toFixed(2)}</div>
@@ -244,12 +241,12 @@ export default function ShoppingCart() {
               <span className="text-green-600 font-medium">Free</span>
             </div>
 
-            {discount > 0 && (
+            {/* {discount > 0 && (
               <div className="flex justify-between pb-4 sm:pb-6 border-b">
                 <span className="text-gray-600">Discount</span>
                 <span className="text-red-600 font-medium">-₹{discount.toFixed(2)}</span>
               </div>
-            )}
+            )} */}
 
             <div className="flex justify-between items-center pt-4 sm:pt-6">
               <span className="text-gray-900 font-medium">Total</span>

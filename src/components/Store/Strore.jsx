@@ -326,7 +326,7 @@ export default function Store() {
 
   useEffect(() => {
     dispatch(filterProducts());
-  }, [selectedCategories, priceRange, sortBy, products, dispatch]);
+  }, [selectedCategories, priceRange, sortBy, products, selectedSizes, dispatch]);
 
   // const handleToggleCategory = (categoryId) => {
   //   dispatch(toggleCategory(categoryId));
