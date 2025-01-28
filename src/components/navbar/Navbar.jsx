@@ -71,8 +71,8 @@ const Navbar = () => {
                         <div className="hidden md:flex items-center space-x-20 flex-1 justify-center ">
                             <Link to="/user/home" className="text-white hover:text-gray-400">Home</Link>
                             <Link to="/user/store" className="text-white hover:text-gray-400">Store</Link>
-                            <Link to="/about" className="text-white hover:text-gray-400">About Us</Link>
-                            <Link to="/contact" className="text-white hover:text-gray-400">Contact</Link>
+                            <Link to="/user/aboutus" className="text-white hover:text-gray-400">About Us</Link>
+                            <Link to="/user/contact" className="text-white hover:text-gray-400">Contact</Link>
                         </div>
 
                         {/* Right Navigation */}
@@ -160,7 +160,7 @@ const Navbar = () => {
                                 <span>About Us</span>
                             </Link>
 
-                            <Link to="/contact" 
+                            <Link to="/user/contactus" 
                                 className="flex items-center space-x-3 text-gray-600 hover:text-gray-900" 
                                 onClick={() => setIsNavOpen(false)}
                             >

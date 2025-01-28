@@ -146,13 +146,13 @@ export default function SalesReport() {
 
         <div className="bg-white p-6 rounded-lg shadow-sm">
           <div className="flex justify-between items-start">
-            <div>
+            {/* <div>
               <p className="text-gray-500 text-sm font-medium">Total Discount</p>
               <p className="text-2xl font-bold mt-2">₹{reportData.summary.totalDiscount.toLocaleString()}</p>
             </div>
             <div className="p-3 bg-orange-100 rounded-full">
               <Percent className="w-6 h-6 text-orange-600" />
-            </div>
+            </div> */}
           </div>
         </div>
       </div>
@@ -169,7 +169,7 @@ export default function SalesReport() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Orders</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Discount</th>
+                {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Discount</th> */}
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -178,7 +178,7 @@ export default function SalesReport() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{day._id}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{day.orders}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">₹{day.amount.toLocaleString()}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">₹{day.discount.toLocaleString()}</td>
+                  {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">₹{day.discount.toLocaleString()}</td> */}
                 </tr>
               ))}
             </tbody>

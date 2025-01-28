@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { IndianRupee, Users, ShoppingBag, TrendingUp, Calendar, ChevronDown } from 'lucide-react';
-
+import TopAnalytics from './TopAnalytics';
 export default function Dashboard() {
   const [todayStats, setTodayStats] = useState({
     sales: 0,
@@ -235,6 +235,8 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+      <TopAnalytics />
+
     </div>
   );
 }
