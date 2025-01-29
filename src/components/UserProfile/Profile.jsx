@@ -1,60 +1,94 @@
 import { useEffect, useState } from 'react';
-import axios from 'axios'
 import axiosInstance from '../../api/axiosInstance';
 import { useDispatch, useSelector } from 'react-redux';
 import { Edit2, Package, CheckCircle, Clock, Camera, Save } from 'lucide-react';
 import { setEditing } from '../../redux/Slices/profileSlice';
 import ChangePasswordButton from './CahngePasswordButton';
 import uploadImageToCloudinary from '../../services/uploadImageToCloudinary';
-const Profile = () => {
-    const dispatch = useDispatch();
-    const { user } = useSelector((state) => state.user);
-    const {  error, isEditing } = useSelector((state) => state.profile);
-    
-    const [profileImage, setProfileImage] = useState(user?.profileImage || '');
-    const [formData, setFormData] = useState({
-      firstName: user?.firstName || '',
-      lastName: user?.lastName || '',
-      userName: user?.userName || '',
-      email: user?.email || '',
-      phone: user?.phone || '',
-    });
+import { updateUserProfile } from '../../redux/Slices/userSlice';
 
-    const [orders, setOrders] = useState([]);
+const Profile = () => {
+  const dispatch = useDispatch();
+  const { user, isAuthenticated } = useSelector((state) => state.user);
+  const { error, isEditing } = useSelector((state) => state.profile);
+  
+  const userId = user?._id || user?.id;
+
+
+  const [loading, setLoading] = useState(true);
+  const [profileImage, setProfileImage] = useState(user?.profileImage || '');
+  const [formData, setFormData] = useState({
+    firstName: user?.firstName || '',
+    lastName: user?.lastName || '',
+    userName: user?.userName || '',
+    email: user?.email || '',
+    phone: user?.phone || '',
+  });
+
+  const [orders, setOrders] = useState([]);
+  const [fetchError, setFetchError] = useState(null);
+
 
   
-    useEffect(() => {
-      if (user?.id) {
-        fetchUserData();
-      }
-    }, [user?.id]);
-    
-    // fetching order data
-    useEffect(() => {
-      const fetchOrders = async () => {
-        if (user?._id) {
-          try {
-            const response = await axiosInstance.get(`/user/orders/user/${user._id}`);
-            setOrders(response.data.data);
-          } catch (err) {
-            console.error('Error fetching orders:', err);
-          }
-        }
-      };
-      fetchOrders();
-    }, [user?._id]);
+// User data fetching with auth check
+useEffect(() => {
+  const fetchData = async () => {
+    if (!isAuthenticated || !userId) {
+      setLoading(false);
+      return;
+    }
 
-    const orderStats = {
-      total: orders.length,
-      pending: orders.filter(order => 
-        order.status.toUpperCase() === 'PENDING' || 
-        order.status.toUpperCase() === 'PROCESSING' ||
-        order.status.toUpperCase() === 'SHIPPED'
-      ).length,
-      completed: orders.filter(order => 
-        order.status.toUpperCase() === 'DELIVERED'
-      ).length
-    };
+    try {
+      setLoading(true);
+      const response = await axiosInstance.get(`/user/profile/${userId}`);
+      if (response.data?.userData) {
+        setFormData({
+          firstName: response.data.userData.firstName || '',
+          lastName: response.data.userData.lastName || '',
+          userName: response.data.userData.userName || '',
+          email: response.data.userData.email || '',
+          phone: response.data.userData.phone || '',
+        });
+        setProfileImage(response.data.userData.profileImage || '');
+      }
+    } catch (err) {
+      console.error('Error fetching user data:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchData();
+}, [userId, isAuthenticated]);
+
+
+    
+useEffect(() => {
+  const fetchOrders = async () => {
+    if (!isAuthenticated || !user?._id) return;
+
+    try {
+      const response = await axiosInstance.get(`/user/orders/user/${user._id}`);
+      setOrders(response.data.data);
+      setFetchError(null);
+    } catch (err) {
+      console.error('Error fetching orders:', err);
+      setFetchError('Failed to load order data');
+    }
+  };
+
+  fetchOrders();
+}, [user?._id, isAuthenticated]);
+
+const orderStats = {
+  total: orders.length,
+  pending: orders.filter(order => 
+    ['PENDING', 'PROCESSING', 'SHIPPED'].includes(order.status.toUpperCase())
+  ).length,
+  completed: orders.filter(order => 
+    order.status.toUpperCase() === 'DELIVERED'
+  ).length
+};
 
   
     // Update profileImage when user data changes
@@ -66,31 +100,22 @@ const Profile = () => {
   
     const fetchUserData = async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/user/profile/${user.id}`, {
-          credentials: 'include',
-          headers:{
-              'Content-Type': 'application/json',
-          }
-        });
-        const data = await response.json();
-        
-        if (response.ok && data.userData) {
+        const response = await axiosInstance.get(`/user/profile/${userId}`);
+        if (response.data.userData) {
           setFormData({
-            firstName: data.userData.firstName || '',
-            lastName: data.userData.lastName || '',
-            userName: data.userData.userName || '',
-            email: data.userData.email || '',
-            phone: data.userData.phone || '',
+            firstName: response.data.userData.firstName || '',
+            lastName: response.data.userData.lastName || '',
+            userName: response.data.userData.userName || '',
+            email: response.data.userData.email || '',
+            phone: response.data.userData.phone || '',
           });
-          // Update profile image state
-          setProfileImage(data.userData.profileImage || '');
-        } else {
-          throw new Error(data.message || 'Failed to fetch profile data');
+          setProfileImage(response.data.userData.profileImage || '');
         }
       } catch (error) {
         console.error('Error fetching user data:', error);
       }
     };
+    
   
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -100,89 +125,82 @@ const Profile = () => {
     }));
   };
 
-  const handleSubmit = async () => {
+   const handleSubmit = async () => {
+    if (!userId) {
+      console.error('User ID is not available');
+      return;
+    }
+
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/user/profileupdate/${user.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ formData }),
+      const response = await axiosInstance.put(`/user/profileupdate/${userId}`, {
+        formData
       });
-
-      const data = await response.json();
-
-      if (response.ok) {
+  
+      if (response.data) {
         dispatch(setEditing(false));
-        await fetchUserData();
-      } else {
-        throw new Error(data.message || 'Failed to update profile');
+        // Update local state with the response data
+        const updatedUser = response.data.user;
+        setFormData({
+          firstName: updatedUser.firstName || '',
+          lastName: updatedUser.lastName || '',
+          userName: updatedUser.userName || '',
+          email: updatedUser.email || '',
+          phone: updatedUser.phone || '',
+        });
       }
     } catch (error) {
       console.error('Error updating profile:', error);
     }
   };
 
+
+
   const handleImageUpload = async (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
-    const MAX_FILE_SIZE = 5 * 1024 * 1024;
-
-    if (!validTypes.includes(file.type)) {
-      alert('Please upload a valid image file (JPEG, PNG, WebP)');
-      return;
+    if(!userId) {
+      console.error('User ID is not available')
+      return
     }
 
-    if (file.size > MAX_FILE_SIZE) {
-      alert('File is too large. Maximum size is 5MB');
-      return;
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
+  const MAX_FILE_SIZE = 5 * 1024 * 1024;
+
+  if (!validTypes.includes(file.type)) {
+    alert('Please upload a valid image file (JPEG, PNG, WebP)');
+    return;
+  }
+
+  if (file.size > MAX_FILE_SIZE) {
+    alert('File is too large. Maximum size is 5MB');
+    return;
+  }
+
+  try {
+    const imageUrls = await uploadImageToCloudinary([file]);
+    
+    if (!imageUrls || imageUrls.length === 0) {
+      throw new Error('Failed to upload image to Cloudinary');
     }
 
-    try {
-      console.log('Starting image upload process...');
-      const imageUrls = await uploadImageToCloudinary([file]);
-      
-      console.log('Cloudinary response:', imageUrls);
+    const cloudinaryUrl = imageUrls[0];
+    
+    const response = await axiosInstance.put(`/user/profileImageupdate/${userId}`, {
+      profileImage: cloudinaryUrl
+    });
 
-      if (!imageUrls || imageUrls.length === 0) {
-        throw new Error('Failed to upload image to Cloudinary');
-      }
-
-      const cloudinaryUrl = imageUrls[0];
-      console.log('Cloudinary URL:', cloudinaryUrl);
-
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/user/profileImageupdate/${user.id}`, {
-        method: 'PUT',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          profileImage: cloudinaryUrl
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to update profile image');
-      }
-
-      const data = await response.json();
-      console.log('Profile update response:', data);
-      
-      // Update the profile image state immediately
+    if (response.data) {
       setProfileImage(cloudinaryUrl);
-      
-      // Force a re-fetch of user data
+      // Update Redux state with new profile image
+      dispatch(updateUserProfile({ profileImage: cloudinaryUrl }));
       await fetchUserData();
-    } catch (error) {
-      console.error('Error uploading image:', error);
-      alert('Failed to upload image. Please try again.');
     }
-  };
-
+  } catch (error) {
+    console.error('Error uploading image:', error);
+    alert('Failed to upload image. Please try again.');
+  }
+};
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 h-full w-full bg-white">

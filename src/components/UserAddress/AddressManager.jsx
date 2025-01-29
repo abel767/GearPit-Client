@@ -44,12 +44,11 @@ AddressMenu.propTypes = {
 
 
 
-const AddressForm = ({ address, onSave, onCancel }) => {
+const AddressForm = ({ address = {}, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
       firstName: address?.firstName || '',
       lastName: address?.lastName || '',
       address: address?.address || '',
-      country: address?.country || 'India',
       state: address?.state || '',
       city: address?.city || '',
       pincode: address?.pincode || '',
@@ -61,7 +60,6 @@ const AddressForm = ({ address, onSave, onCancel }) => {
         firstName: PropTypes.string,
         lastName: PropTypes.string,
         address: PropTypes.string,
-        country: PropTypes.string,
         state: PropTypes.string,
         city: PropTypes.string,
         pincode: PropTypes.string,
@@ -83,171 +81,169 @@ AddressForm.defaultProps = {
   };
 
   const handleSubmit = async (e) => {
-      e.preventDefault();
-      console.log('Submitting form data:', formData);
+    e.preventDefault();
+    console.log('Submitting form data:', formData);
 
-      // Validate required fields
-      const requiredFields = ['firstName', 'lastName', 'address', 'city', 'state', 'pincode', 'phoneNumber'];
-      const missingFields = requiredFields.filter(field => !formData[field]);
+    // Validate required fields
+    const requiredFields = ['firstName', 'lastName', 'address', 'city', 'state', 'pincode', 'phoneNumber'];
+    const missingFields = requiredFields.filter(field => !formData[field]);
 
-      if (missingFields.length > 0) {
-          console.error('Missing required fields:', missingFields);
-          alert('Please fill in all required fields: ' + missingFields.join(', '));
-          return;
-      }
+    if (missingFields.length > 0) {
+        console.error('Missing required fields:', missingFields);
+        alert('Please fill in all required fields: ' + missingFields.join(', '));
+        return;
+    }
 
-      try {
-          await onSave(formData);
-          console.log('Address saved successfully');
-      } catch (error) {
-          console.error('Error saving address:', error);
-      }
-  };
-    
+    try {
+        await onSave(formData);
+        console.log('Address saved successfully');
+    } catch (error) {
+        console.error('Error saving address:', error);
+    }
+};
 
-  return (
-    <form onSubmit={handleSubmit} className="space-y-6 bg-white p-6 rounded-lg shadow-md">
+
+return (
+  <form onSubmit={handleSubmit} className="space-y-6 bg-white p-6 rounded-lg shadow-md">
       <div className="grid gap-6 sm:grid-cols-2">
-        <div>
-          <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">
-            First Name
-          </label>
-          <input
-            id="firstName"
-            name="firstName"
-            type="text"
-            value={formData.firstName}
-            onChange={handleChange}
-            required
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
-          />
-        </div>
-        <div>
-          <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-1">
-            Last Name
-          </label>
-          <input
-            id="lastName"
-            name="lastName"
-            type="text"
-            value={formData.lastName}
-            onChange={handleChange}
-            required
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
-          />
-        </div>
+          <div>
+              <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">
+                  First Name
+              </label>
+              <input
+                  id="firstName"
+                  name="firstName"
+                  type="text"
+                  value={formData.firstName}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
+              />
+          </div>
+          <div>
+              <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-1">
+                  Last Name
+              </label>
+              <input
+                  id="lastName"
+                  name="lastName"
+                  type="text"
+                  value={formData.lastName}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
+              />
+          </div>
       </div>
 
       <div>
-        <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
-          Address
-        </label>
-        <input
-          id="address"
-          name="address"
-          type="text"
-          value={formData.address}
-          onChange={handleChange}
-          required
-          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
-          placeholder="Enter your full street address"
-        />
+          <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
+              Address
+          </label>
+          <input
+              id="address"
+              name="address"
+              type="text"
+              value={formData.address}
+              onChange={handleChange}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
+              placeholder="Enter your full street address"
+          />
       </div>
 
       <div className="grid gap-6 sm:grid-cols-2">
-        <div>
-          <label htmlFor="state" className="block text-sm font-medium text-gray-700 mb-1">
-            State
-          </label>
-          <select
-            id="state"
-            name="state"
-            value={formData.state}
-            onChange={handleChange}
-            required
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
-          >
-            <option value="">Select State</option>
-            <option value="Kerala">Kerala</option>
-            <option value="Tamil Nadu">Tamil Nadu</option>
-            <option value="Karnataka">Karnataka</option>
-          </select>
-        </div>
+          <div>
+              <label htmlFor="state" className="block text-sm font-medium text-gray-700 mb-1">
+                  State
+              </label>
+              <select
+                  id="state"
+                  name="state"
+                  value={formData.state}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
+              >
+                  <option value="">Select State</option>
+                  <option value="Kerala">Kerala</option>
+                  <option value="Tamil Nadu">Tamil Nadu</option>
+                  <option value="Karnataka">Karnataka</option>
+              </select>
+          </div>
+          <div>
+              <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1">
+                  City
+              </label>
+              <select
+                  id="city"
+                  name="city"
+                  value={formData.city}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
+              >
+                  <option value="">Select City</option>
+                  <option value="Kottayam">Kottayam</option>
+                  <option value="Trivandrum">Trivandrum</option>
+                  <option value="Kochi">Kochi</option>
+              </select>
+          </div>
       </div>
 
-      <div className="grid gap-6 sm:grid-cols-2">
-        <div>
-          <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1">
-            City
-          </label>
-          <select
-            id="city"
-            name="city"
-            value={formData.city}
-            onChange={handleChange}
-            required
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
-          >
-            <option value="">Select City</option>
-            <option value="Kottayam">Kottayam</option>
-            <option value="Trivandrum">Trivandrum</option>
-            <option value="Kochi">Kochi</option>
-          </select>
-        </div>
-        <div>
+      <div>
           <label htmlFor="pincode" className="block text-sm font-medium text-gray-700 mb-1">
-            Pincode
+              Pincode
           </label>
           <input
-            id="pincode"
-            name="pincode"
-            type="text"
-            value={formData.pincode}
-            onChange={handleChange}
-            required
-            pattern="[0-9]{6}"
-            maxLength="6"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
-            placeholder="Enter 6-digit pincode"
+              id="pincode"
+              name="pincode"
+              type="text"
+              value={formData.pincode}
+              onChange={handleChange}
+              required
+              pattern="[0-9]{6}"
+              maxLength="6"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
+              placeholder="Enter 6-digit pincode"
           />
-        </div>
       </div>
 
       <div>
-        <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 mb-1">
-          Phone Number
-        </label>
-        <input
-          id="phoneNumber"
-          name="phoneNumber"
-          type="tel"
-          value={formData.phoneNumber}
-          onChange={handleChange}
-          required
-          pattern="[0-9]{10}"
-          maxLength="10"
-          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
-          placeholder="Enter 10-digit phone number"
-        />
+          <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 mb-1">
+              Phone Number
+          </label>
+          <input
+              id="phoneNumber"
+              name="phoneNumber"
+              type="tel"
+              value={formData.phoneNumber}
+              onChange={handleChange}
+              required
+              pattern="[0-9]{10}"
+              maxLength="10"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
+              placeholder="Enter 10-digit phone number"
+          />
       </div>
 
       <div className="flex justify-end space-x-2">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700"
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium"
-        >
-          Save Changes
-        </button>
+          <button
+              type="button"
+              onClick={onCancel}
+              className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700"
+          >
+              Cancel
+          </button>
+          <button
+              type="submit"
+              className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium"
+          >
+              Save Changes
+          </button>
       </div>
-    </form>
-  );
+  </form>
+);
 };
 
 

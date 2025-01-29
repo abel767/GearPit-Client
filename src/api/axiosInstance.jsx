@@ -1,51 +1,79 @@
 import axios from 'axios';
-import { refreshToken, handleAuthError } from '../services/authService';
+import { store } from '../redux/store';
+import { userLogout } from '../redux/Slices/userSlice';
+import { adminLogout } from '../redux/Slices/adminSlice';
 
 const axiosInstance = axios.create({
-    baseURL: import.meta.env.VITE_BACKEND_URL,
-    withCredentials: true
+  baseURL: import.meta.env.VITE_BACKEND_URL,
+  withCredentials: true,
+  headers: {
+    'Content-Type': 'application/json'
+  }
 });
 
+let isRefreshing = false;
+let failedQueue = [];
 
-
-// Request interceptor
-axiosInstance.interceptors.request.use(
-    (config) => {
-        // You could add common headers here if needed
-        return config;
-    },
-    (error) => {
-        return Promise.reject(error);
+const processQueue = (error, token = null) => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
     }
-);
+  });
+  failedQueue = [];
+};
 
-// Response interceptor
 axiosInstance.interceptors.response.use(
-    (response) => response,
-    async (error) => {
-        const originalRequest = error.config;
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
 
-        if (error.response?.status === 401 && 
-            !originalRequest._retry && 
-            !originalRequest.url?.includes('refresh-token')) {
-            
-            originalRequest._retry = true;
-
-            try {
-                await refreshToken();
-                return axiosInstance(originalRequest);
-            } catch (refreshError) {
-                // Handle refresh failure
-                handleAuthError();
-                window.dispatchEvent(new CustomEvent('auth-error', {
-                    detail: { message: 'Session expired. Please login again.' }
-                }));
-                return Promise.reject(refreshError);
-            }
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      if (isRefreshing) {
+        try {
+          return new Promise((resolve, reject) => {
+            failedQueue.push({ resolve, reject });
+          }).then(token => {
+            originalRequest.headers['Authorization'] = `Bearer ${token}`;
+            return axiosInstance(originalRequest);
+          }).catch(err => Promise.reject(err));
+        } catch (err) {
+          return Promise.reject(err);
         }
+      }
 
-        return Promise.reject(error);
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        const response = await axiosInstance.post('/user/refresh-token');
+        const { accessToken } = response.data;
+
+        if (accessToken) {
+          originalRequest.headers['Authorization'] = `Bearer ${accessToken}`;
+          axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
+          
+          processQueue(null, accessToken);
+          return axiosInstance(originalRequest);
+        }
+      } catch (refreshError) {
+        processQueue(refreshError, null);
+        const state = store.getState();
+        if (state.admin.isAuthenticated) {
+          store.dispatch(adminLogout());
+        } else if (state.user.isAuthenticated) {
+          store.dispatch(userLogout());
+        }
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
+      }
     }
+
+    return Promise.reject(error);
+  }
 );
 
 export default axiosInstance;

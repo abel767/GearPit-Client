@@ -5,10 +5,23 @@ export const fetchAddresses = createAsyncThunk(
   'address/fetchAddresses',
   async (userId, { rejectWithValue }) => {
     try {
-      const response = await axiosInstance.get(`/user/address/${userId}`);
+      const response = await axiosInstance.get(`/user/address/${userId}`, {
+        withCredentials: true
+      });
       return response.data.addresses;
     } catch (error) {
-      return rejectWithValue(error.response.data);
+      if (error.response?.status === 401) {
+        // Try to refresh token through axiosInstance interceptor
+        try {
+          const retryResponse = await axiosInstance.get(`/user/address/${userId}`, {
+            withCredentials: true
+          });
+          return retryResponse.data.addresses;
+        } catch (retryError) {
+          return rejectWithValue(retryError.response?.data || 'Failed to fetch addresses');
+        }
+      }
+      return rejectWithValue(error.response?.data || 'Failed to fetch addresses');
     }
   }
 );
@@ -17,13 +30,12 @@ export const addAddress = createAsyncThunk(
   'address/addAddress',
   async ({ userId, addressData }, { rejectWithValue }) => {
     try {
-      const response = await axiosInstance.post(`/user/address/${userId}`, addressData);
-      if (response.data.success) {
-        return response.data;
-      }
-      return rejectWithValue(response.data.message);
+      const response = await axiosInstance.post(`/user/address/${userId}`, addressData, {
+        withCredentials: true
+      });
+      return response.data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to add address');
+      return rejectWithValue(error.response?.data || 'Failed to add address');
     }
   }
 );
@@ -32,10 +44,14 @@ export const updateAddress = createAsyncThunk(
   'address/updateAddress',
   async ({ userId, addressId, addressData }, { rejectWithValue }) => {
     try {
-      const response = await axiosInstance.put(`/user/address/${userId}/${addressId}`, addressData);
+      const response = await axiosInstance.put(
+        `/user/address/${userId}/${addressId}`, 
+        addressData,
+        { withCredentials: true }
+      );
       return response.data.data.addresses;
     } catch (error) {
-      return rejectWithValue(error.response.data);
+      return rejectWithValue(error.response?.data || 'Failed to update address');
     }
   }
 );
@@ -44,13 +60,13 @@ export const deleteAddress = createAsyncThunk(
   'address/deleteAddress',
   async ({ userId, addressId }, { rejectWithValue }) => {
     try {
-      const response = await axiosInstance.delete(`/user/address/${userId}/${addressId}`);
-      if (response.data.success) {
-        return response.data.data?.addresses || [];
-      }
-      return rejectWithValue(response.data.message);
+      const response = await axiosInstance.delete(
+        `/user/address/${userId}/${addressId}`,
+        { withCredentials: true }
+      );
+      return response.data.data?.addresses || [];
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(error.response?.data || 'Failed to delete address');
     }
   }
 );

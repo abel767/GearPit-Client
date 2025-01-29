@@ -151,19 +151,13 @@ export default function ProductDetail() {
       return;
     }
   
+    // Check if a variant is selected
+    if (!selectedVariant) {
+      alert('Please select a size');
+      return;
+    }
+  
     try {
-      // Find default variant with lowest price
-      const defaultVariant = product.variants.reduce((lowest, current) => {
-        const currentFinalPrice = current.finalPrice || current.price * (1 - (current.discount || 0) / 100);
-        const lowestFinalPrice = lowest.finalPrice || lowest.price * (1 - (lowest.discount || 0) / 100);
-        return currentFinalPrice < lowestFinalPrice ? current : lowest;
-      }, product.variants[0]);
-  
-      if (!defaultVariant) {
-        alert('No variant available for this product');
-        return;
-      }
-  
       if (!userId) {
         alert('User ID not found');
         return;
@@ -173,15 +167,15 @@ export default function ProductDetail() {
       console.log('Sending cart request with data:', {
         userId,
         productId: product._id,
-        variantId: defaultVariant._id,
-        quantity: 1
+        variantId: selectedVariant._id, // Use the selected variant
+        quantity: quantity // Use the selected quantity
       });
   
       const response = await axiosInstance.post('/user/cart/add', {
         userId,
         productId: product._id,
-        variantId: defaultVariant._id,
-        quantity: 1
+        variantId: selectedVariant._id, // Use the selected variant
+        quantity: quantity // Use the selected quantity
       }, {
         headers: {
           'Content-Type': 'application/json'
@@ -189,15 +183,29 @@ export default function ProductDetail() {
       });
   
       if (response.status === 200) {
+        // Dispatch with selected variant and quantity
         dispatch(addToCart({
-          product,
-          quantity: 1,
-          variant: defaultVariant
+          product: {
+            _id: product._id,
+            productName: product.productName,
+            images: product.images,
+          },
+          quantity: quantity,
+          variant: {
+            _id: selectedVariant._id,
+            price: selectedVariant.price,
+            finalPrice: selectedVariant.finalPrice,
+            discount: selectedVariant.discount,
+            size: selectedVariant.size,
+            stock: selectedVariant.stock
+          }
         }));
   
         // Check if item already exists in cart
         const existingCartItem = cartItems.find(
-          item => item.productId === product._id && item.variantId === defaultVariant._id
+          item => 
+            item.productId === product._id && 
+            item.variantId === selectedVariant._id
         );
   
         const message = existingCartItem 
@@ -220,7 +228,6 @@ export default function ProductDetail() {
       }
     }
   };
- 
 
 
   const getFinalPrice = (variant) => {

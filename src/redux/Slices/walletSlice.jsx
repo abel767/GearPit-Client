@@ -5,21 +5,44 @@ import axiosInstance from '../../api/axiosInstance';
 
 export const fetchWalletDetails = createAsyncThunk(
   'wallet/fetchDetails',
-  async (userId) => {
-    const response = await axiosInstance.get(`/user/wallet/${userId}`);
-    return response.data.data;
+  async (userId, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.get(`/user/wallet/${userId}`, {
+        withCredentials: true
+      });
+      return response.data.data;
+    } catch (error) {
+      if (error.response?.status === 401) {
+        // Try to refresh token through axiosInstance interceptor
+        try {
+          const retryResponse = await axiosInstance.get(`/user/wallet/${userId}`, {
+            withCredentials: true
+          });
+          return retryResponse.data.data;
+        } catch (retryError) {
+          return rejectWithValue(retryError.response?.data || 'Failed to fetch wallet details');
+        }
+      }
+      return rejectWithValue(error.response?.data || 'Failed to fetch wallet details');
+    }
   }
 );
 
 export const processPayment = createAsyncThunk(
   'wallet/processPayment',
-  async ({ userId, orderId, amount }) => {
-    const response = await axiosInstance.post('/user/wallet/payment', {
-      userId,
-      orderId,
-      amount
-    });
-    return response.data;
+  async ({ userId, orderId, amount }, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.post('/user/wallet/payment', {
+        userId,
+        orderId,
+        amount
+      }, {
+        withCredentials: true
+      });
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || 'Payment processing failed');
+    }
   }
 );
 

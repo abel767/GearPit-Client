@@ -1,8 +1,7 @@
 import axiosInstance from '../api/axiosInstance';
 import { store } from '../redux/store';
-import { userLogin, userLogout } from '../redux/Slices/userSlice';
+import { userLogin, userLogout, setAuthLoading } from '../redux/Slices/userSlice';
 import { adminLogin, adminLogout } from '../redux/Slices/adminSlice';
-
 
 const handleAuthError = () => {
     const state = store.getState();
@@ -13,6 +12,8 @@ const handleAuthError = () => {
     }
 };
 
+
+
 const handleError = (error) => {
     if (error.response?.status === 401) {
         handleAuthError();
@@ -22,21 +23,26 @@ const handleError = (error) => {
 
 const formatUserData = (userData) => {
     return {
-        user: {
-            id: userData.id || userData._id,
-            firstName: userData.firstName,
-            lastName: userData.lastName,
-            userName: userData.userName,
-            email: userData.email,
-            phone: userData.phone,
-            profileImage: userData.profileImage,
-            verified: userData.verified,
-            isBlocked: userData.isBlocked,
-            isAdmin: false,
-            ...userData
-        }
+      user: {
+        id: userData.id || userData._id,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        userName: userData.userName,
+        email: userData.email,
+        phone: userData.phone,
+        profileImage: userData.profileImage,
+        verified: userData.verified,
+        isBlocked: userData.isBlocked,
+        isAdmin: false,
+        isGoogleUser: userData.isGoogleUser || false
+      },
+      tokens: {
+        accessToken: userData.accessToken || userData.token
+      }
     };
-};
+  };
+  
+
 
 const formatAdminData = (adminData) => {
     return {
@@ -54,16 +60,79 @@ const formatAdminData = (adminData) => {
     };
 };
 
-const loginUser = async (credentials) => {
+export const handleGoogleLoginSuccess = async (userData) => {
     try {
-        const response = await axiosInstance.post('/user/login', credentials);
-        const formattedData = formatUserData(response.data.user);
-        store.dispatch(userLogin(formattedData));
-        return response.data;
+      store.dispatch(setAuthLoading(true));
+      
+      const formattedData = {
+        user: {
+          id: userData._id,
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          userName: userData.userName,
+          email: userData.email,
+          profileImage: userData.profileImage,
+          verified: true,
+          isBlocked: false,
+          isAdmin: false,
+          isGoogleUser: true
+        },
+        tokens: {
+          accessToken: userData.accessToken
+        }
+      };
+  
+      store.dispatch(userLogin(formattedData));
+  
+      // Set authorization header
+      if (userData.accessToken) {
+        axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${userData.accessToken}`;
+      }
+  
+      return true;
     } catch (error) {
-        throw handleError(error);
+      console.error('Google login error:', error);
+      handleAuthError();
+      return false;
+    } finally {
+      store.dispatch(setAuthLoading(false));
     }
-};
+  };
+
+  const loginUser = async (credentials) => {
+    try {
+      store.dispatch(setAuthLoading(true));
+      
+      const response = await axiosInstance.post('/user/login', credentials, {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+  
+      if (!response.data || !response.data.user) {
+        throw new Error('Invalid response from server');
+      }
+  
+      const formattedData = formatUserData(response.data.user);
+      store.dispatch(userLogin(formattedData));
+      
+      // Set authorization header for future requests
+      if (formattedData.tokens.accessToken) {
+        axiosInstance.defaults.headers.common['Authorization'] = 
+          `Bearer ${formattedData.tokens.accessToken}`;
+      }
+  
+      return response.data;
+    } catch (error) {
+      if (error.response?.status === 401) {
+        handleAuthError();
+      }
+      throw error;
+    } finally {
+      store.dispatch(setAuthLoading(false));
+    }
+  };
 
 const loginAdmin = async (credentials) => {
     try {
@@ -78,10 +147,12 @@ const loginAdmin = async (credentials) => {
 
 const logoutUser = async () => {
     try {
-        await axiosInstance.post('/user/logout');
+        await axiosInstance.post('/user/logout', {}, { withCredentials: true });
+        // Clear authorization header
+        delete axiosInstance.defaults.headers.common['Authorization'];
         store.dispatch(userLogout());
     } catch (error) {
-        console.error('Logout error: ', error);
+        console.error('Logout error:', error);
         store.dispatch(userLogout());
     }
 };
@@ -98,15 +169,23 @@ const logoutAdmin = async () => {
 
 const refreshToken = async () => {
     try {
-        const response = await axiosInstance.post('/user/refresh-token');
-        const state = store.getState();
+        const response = await axiosInstance.post('/user/refresh-token', {}, {
+            withCredentials: true
+        });
 
+        const state = store.getState();
+        
         if (state.admin.isAuthenticated) {
             const formattedData = formatAdminData(response.data.user);
             store.dispatch(adminLogin(formattedData));
         } else {
             const formattedData = formatUserData(response.data.user);
             store.dispatch(userLogin(formattedData));
+        }
+
+        // Update authorization header
+        if (response.data.accessToken) {
+            axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${response.data.accessToken}`;
         }
 
         return response.data;
@@ -118,27 +197,25 @@ const refreshToken = async () => {
 
 const checkAuthStatus = async () => {
     try {
-        const response = await axiosInstance.get('/user/check-auth');
-        const state = store.getState();
-
-        if (state.response.data.isAuthenticated) {
-            if (response.data.role === 'admin') {
-                const formattedData = formatAdminData(response.data.user);
-                store.dispatch(adminLogin(formattedData));
-            } else {
-                const formattedData = formatUserData(response.data.user);
-                store.dispatch(userLogin(formattedData));
-            }
-        }
-
-        return response.data;
+      const response = await axiosInstance.get('/user/check-auth');
+  
+      if (response.data.isAuthenticated) {
+        const formattedData = response.data.role === 'admin' 
+          ? formatAdminData(response.data.user)
+          : formatUserData(response.data.user);
+  
+        store.dispatch(response.data.role === 'admin' ? adminLogin(formattedData) : userLogin(formattedData));
+      }
+  
+      return response.data;
     } catch (error) {
-        console.error('check auth error', error)
-        handleAuthError();
-        return { isAuthenticated: false };
-
+      console.error('check auth error', error);
+      handleAuthError();
+      return { isAuthenticated: false };
     }
-};
+  };
+
+  
 
 export {
     loginUser,
@@ -147,5 +224,6 @@ export {
     logoutAdmin,
     refreshToken,
     checkAuthStatus,
-    handleAuthError
+    handleAuthError,
+    
 };

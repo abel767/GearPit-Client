@@ -19,10 +19,10 @@ export default function Dashboard() {
     const fetchDashboardData = async () => {
       try {
         const [todayResponse, revenueResponse, categoriesResponse, usersResponse] = await Promise.all([
-          fetch('http://localhost:3000/admin/sales/today-analytics'),
-          fetch('http://localhost:3000/admin/sales/revenue'),
-          fetch('http://localhost:3000/admin/sales/most-sold-categories'),
-          fetch('http://localhost:3000/admin/user-count')
+          fetch(`${import.meta.env.VITE_BACKEND_URL}/admin/sales/today-analytics`),
+          fetch(`${import.meta.env.VITE_BACKEND_URL}/sales/revenue`),
+          fetch(`${import.meta.env.VITE_BACKEND_URL}admin/sales/most-sold-categories`),
+          fetch(`${import.meta.env.VITE_BACKEND_URL}/admin/user-count`)
         ]);
 
         const todayData = await todayResponse.json();

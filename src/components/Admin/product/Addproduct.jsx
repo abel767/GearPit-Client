@@ -116,12 +116,25 @@ const AddProduct = () => {
             )
           : newVariants[index].finalPrice
       };
+  
+      // Validate size uniqueness
+      if (field === 'size') {
+        const isDuplicate = newVariants.some(
+          (variant, i) => i !== index && variant.size.toLowerCase() === value.toLowerCase()
+        );
+        if (isDuplicate) {
+          toast.error('This size variant already exists');
+          return prev;
+        }
+      }
+  
       return {
         ...prev,
         variants: newVariants
       };
     });
   };
+  
     
 
 
@@ -151,35 +164,51 @@ const AddProduct = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      // Validate unique sizes
+      const sizes = productData.variants.map(v => v.size.toLowerCase());
+      const uniqueSizes = new Set(sizes);
+      if (sizes.length !== uniqueSizes.size) {
+        toast.error('Each variant must have a unique size');
+        return;
+      }
+  
       if (imageFiles.length !== MAX_IMAGES) {
         toast.error(`Please upload exactly ${MAX_IMAGES} images`);
         return;
       }
-
+  
       // Upload images to Cloudinary
       const uploadedImageUrls = await uploadImageToCloudinary(imageFiles);
       if (!uploadedImageUrls || uploadedImageUrls.length !== MAX_IMAGES) {
         toast.error('Failed to upload images');
         return;
       }
-
+  
       // Convert price and stock to numbers
       const formattedData = {
         ...productData,
         images: uploadedImageUrls,
         variants: productData.variants.map((variant) => ({
-          size: variant.size,
+          size: variant.size.trim(), // Ensure no whitespace
           price: parseFloat(variant.price),
           discount: parseFloat(variant.discount),
           finalPrice: calculateFinalPrice(variant.price, variant.discount),
           stock: parseInt(variant.stock)
         }))
       };
-
+  
+      // Ensure all required fields are filled
+      if (!formattedData.variants.every(v => 
+        v.size && v.price && v.stock !== undefined && v.stock !== null
+      )) {
+        toast.error('Please fill all required fields for each variant');
+        return;
+      }
+  
       await axiosInstance.post('/admin/addproduct', formattedData, {
         withCredentials: true,
       });
-
+  
       toast.success('Product added successfully');
       navigate('/admin/productdata');
     } catch (error) {
@@ -188,6 +217,7 @@ const AddProduct = () => {
     }
   };
 
+  
   return (
     <div className="p-6">
       <form onSubmit={handleSubmit}>

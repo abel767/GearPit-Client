@@ -13,7 +13,6 @@ export default function ShoppingCart() {
   const [loading, setLoading] = useState(false)
   const [initialLoading, setInitialLoading] = useState(true)
 
-  // Existing useEffect and handlers remain the same...
   useEffect(() => {
     const fetchCartItems = async () => {
       if (!userId) {
@@ -25,21 +24,24 @@ export default function ShoppingCart() {
         const response = await axiosInstance.get(`/user/cart/${userId}`)
         
         if (response.status === 200 && response.data?.items) {
+          // Clear the cart before adding fetched items
           dispatch({ type: 'cart/clearCart' })
           
+          // Process each cart item
           response.data.items.forEach(item => {
             if (!item.productId || !item.productId.variants) {
-              console.warn('Invalid product data:', item);
-              return;
+              console.warn('Invalid product data:', item)
+              return
             }
             
-            const variant = item.productId.variants.find(v => v._id === item.variantId)
+            // Find the specific variant
+            const variant = item.productId.variants.find(v => v._id.toString() === item.variantId.toString())
             if (variant) {
               dispatch(addToCart({
                 product: {
                   _id: item.productId._id,
                   productName: item.productId.productName,
-                  images: item.productId.images || []
+                  images: item.productId.images || [],
                 },
                 quantity: item.quantity,
                 variant: {
@@ -48,7 +50,6 @@ export default function ShoppingCart() {
                   finalPrice: variant.finalPrice,
                   discount: variant.discount,
                   size: variant.size,
-                  color: variant.color,
                   stock: variant.stock
                 }
               }))
@@ -110,7 +111,6 @@ export default function ShoppingCart() {
   }
 
   const subtotal = items.reduce((sum, item) => sum + (item.finalPrice * item.quantity), 0)
-  // const discount = 100.00
   const total = subtotal
 
   if (initialLoading) {
@@ -121,6 +121,27 @@ export default function ShoppingCart() {
     )
   }
 
+  if (!userId) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-xl font-semibold text-gray-600">Please login to view your cart</div>
+      </div>
+    )
+  }
+
+  // Group items by product ID, maintaining all variants
+  const groupedItems = items.reduce((acc, item) => {
+    const key = item.productId
+    if (!acc[key]) {
+      acc[key] = []
+    }
+    // Ensure we're adding each unique variant
+    if (!acc[key].some(existingItem => existingItem.variantId === item.variantId)) {
+      acc[key].push(item)
+    }
+    return acc
+  }, {})
+
   const handleCheckout = () => {
     const cartItems = items.map(item => ({
       productId: item.productId,
@@ -129,7 +150,7 @@ export default function ShoppingCart() {
       price: item.finalPrice,
       name: item.name,
       size: item.size,
-    }));
+    }))
 
     navigate('/user/Checkout', {
       state: {
@@ -139,19 +160,14 @@ export default function ShoppingCart() {
           total
         }
       }
-    });
-  };
-
-  if (!userId) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-xl font-semibold text-gray-600">Please login to view your cart</div>
-      </div>
-    )
+    })
   }
 
+  
+
+  
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row">
+   <div className="min-h-screen flex flex-col lg:flex-row">
       {/* Cart Items Section */}
       <div className="w-full lg:w-2/3 bg-white min-h-screen overflow-y-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="max-w-3xl mx-auto">
@@ -159,59 +175,75 @@ export default function ShoppingCart() {
             <h1 className="text-xl font-normal">Cart</h1>
           </div>
 
-          <div className="space-y-4">
-            {items.map((item) => (
-              <div 
-                key={`${item.productId}-${item.variantId}`}
-                className="flex flex-col sm:flex-row items-start sm:items-center gap-4 py-4 border-b"
-              >
-                <div className="relative">
-                  <img 
-                    src={item.image} 
-                    alt={item.name}
-                    className="w-20 h-20 object-cover rounded"
-                  />
-                </div>
+          <div className="space-y-6">
+            {Object.entries(groupedItems).map(([productId, productVariants]) => (
+              <div key={productId} className="space-y-4">
+                {/* Product header */}
+                <h3 className="text-lg font-medium border-b pb-2">
+                  {productVariants[0].name}
+                </h3>
                 
-                <div className="flex-1 w-full">
-                  <div className="flex flex-col sm:flex-row sm:justify-between">
-                    <div>
-                      <h3 className="text-sm font-medium">{item.name}</h3>
-                      <p className="text-sm text-gray-500 mt-1">
-                        {item.size && `Size: ${item.size}`}
-                      </p>
+                {/* Product variants */}
+                {productVariants.map((item) => (
+                  <div 
+                    key={`${item.productId}-${item.variantId}`}
+                    className="flex flex-col sm:flex-row items-start sm:items-center gap-4 py-4 pl-4 border-b last:border-0"
+                  >
+                    <div className="relative">
+                      <img 
+                        src={item.image} 
+                        alt={item.name}
+                        className="w-20 h-20 object-cover rounded"
+                      />
                     </div>
-                    <div className="text-sm mt-2 sm:mt-0">₹{(item.finalPrice * item.quantity).toFixed(2)}</div>
-                  </div>
-                  
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mt-3 gap-3 sm:gap-0">
-                    <button
-                      disabled={loading}
-                      onClick={() => handleRemoveItem(item.productId, item.variantId)}
-                      className="text-xs text-gray-500 hover:text-gray-700"
-                    >
-                      Remove
-                    </button>
                     
-                    <div className="flex items-center border rounded">
-                      <button
-                        disabled={loading}
-                        onClick={() => handleUpdateQuantity(item.productId, item.variantId, -1, item.quantity)}
-                        className="px-2 py-1 text-gray-500 hover:bg-gray-50"
-                      >
-                        <MinusIcon size={14} />
-                      </button>
-                      <span className="px-3 py-1 text-sm border-x">{item.quantity}</span>
-                      <button
-                        disabled={loading || item.quantity >= item.stock}
-                        onClick={() => handleUpdateQuantity(item.productId, item.variantId, 1, item.quantity)}
-                        className="px-2 py-1 text-gray-500 hover:bg-gray-50"
-                      >
-                        <PlusIcon size={14} />
-                      </button>
+                    <div className="flex-1 w-full">
+                      <div className="flex flex-col sm:flex-row sm:justify-between">
+                        <div>
+                          <p className="text-sm text-gray-500">
+                            Size: {item.size}
+                          </p>
+                          <p className="text-sm text-gray-500 mt-1">
+                            Price: ₹{item.finalPrice.toFixed(2)}
+                          </p>
+                        </div>
+                        <div className="text-sm mt-2 sm:mt-0">
+                          ₹{(item.finalPrice * item.quantity).toFixed(2)}
+                        </div>
+                      </div>
+                      
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mt-3 gap-3 sm:gap-0">
+                        <button
+                          disabled={loading}
+                          onClick={() => handleRemoveItem(item.productId, item.variantId)}
+                          className="text-xs text-gray-500 hover:text-gray-700"
+                        >
+                          Remove
+                        </button>
+                        
+                        <div className="flex items-center border rounded">
+                          <button
+                            disabled={loading}
+                            onClick={() => handleUpdateQuantity(item.productId, item.variantId, -1, item.quantity)}
+                            className="px-2 py-1 text-gray-500 hover:bg-gray-50"
+                          >
+                            <MinusIcon size={14} />
+                          </button>
+                          <span className="px-3 py-1 text-sm border-x">
+                            {item.quantity}
+                          </span>
+                          <button
+                            disabled={loading || item.quantity >= item.stock}
+                            onClick={() => handleUpdateQuantity(item.productId, item.variantId, 1, item.quantity)}
+                            className="px-2 py-1 text-gray-500 hover:bg-gray-50"
+                          >
+                            <PlusIcon size={14} />
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
+                ))}
               </div>
             ))}
           </div>
@@ -225,7 +257,7 @@ export default function ShoppingCart() {
         </div>
       </div>
 
-      {/* Summary Section - Fixed on mobile */}
+      {/* Summary Section */}
       <div className="w-full lg:w-1/3 bg-minGrey">
         <div className="p-4 sm:p-6 lg:p-8">
           <h2 className="text-xl font-medium mb-6">Order Summary</h2>
@@ -241,20 +273,14 @@ export default function ShoppingCart() {
               <span className="text-green-600 font-medium">Free</span>
             </div>
 
-            {/* {discount > 0 && (
-              <div className="flex justify-between pb-4 sm:pb-6 border-b">
-                <span className="text-gray-600">Discount</span>
-                <span className="text-red-600 font-medium">-₹{discount.toFixed(2)}</span>
-              </div>
-            )} */}
-
             <div className="flex justify-between items-center pt-4 sm:pt-6">
               <span className="text-gray-900 font-medium">Total</span>
-              <span className="text-2xl sm:text-3xl font-medium">₹{total.toFixed(2)}</span>
+              <span className="text-2xl sm:text-3xl font-medium">
+                ₹{total.toFixed(2)}
+              </span>
             </div>
           </div>
 
-          {/* Checkout button - Fixed at bottom on mobile */}
           <div className="mt-6 sm:mt-20">
             <button 
               onClick={handleCheckout}
@@ -267,5 +293,5 @@ export default function ShoppingCart() {
         </div>
       </div>
     </div>
-  );
+  )
 }

@@ -32,8 +32,15 @@ function Login() {
   };
 
   const googleAuth = () => {
-    window.open(`${import.meta.env.VITE_BACKEND_URL}/auth/google`, "_self");
+    try {
+      const backendUrl = 'http://localhost:3000'; // Hardcode for testing
+      console.log('Starting Google Auth, redirecting to:', `${backendUrl}/auth/google`);
+      window.location.href = `${backendUrl}/auth/google`;
+    } catch (error) {
+      console.error('Google auth error:', error);
+    }
   };
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();

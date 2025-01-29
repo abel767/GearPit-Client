@@ -1,7 +1,13 @@
-import  { useState } from 'react';
+import { useState } from 'react';
 import { Lock, X, AlertCircle, CheckCircle } from 'lucide-react';
+import axiosInstance from '../../api/axiosInstance';
+import { useSelector } from 'react-redux';
 
-const ChangePasswordButton = ({ userId }) => {
+const ChangePasswordButton = () => {
+  // Get user ID from Redux store instead of props
+  const user = useSelector((state) => state.user.user);
+  const userId = user?._id || user?.id;
+
   const [showModal, setShowModal] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -25,39 +31,41 @@ const ChangePasswordButton = ({ userId }) => {
     setError('');
     setSuccess('');
 
+    // Validate user ID
+    if (!userId) {
+      setError('User not authenticated');
+      return;
+    }
+
+    // Validate passwords
     if (formData.newPassword !== formData.confirmPassword) {
       setError('New passwords do not match');
       return;
     }
 
+    // Validate password length
+    if (formData.newPassword.length < 6) {
+      setError('Password must be at least 6 characters long');
+      return;
+    }
+
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/user/change-password/${userId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          currentPassword: formData.currentPassword,
-          newPassword: formData.newPassword
-        }),
+      const response = await axiosInstance.put(`/user/change-password/${userId}`, {
+        currentPassword: formData.currentPassword,
+        newPassword: formData.newPassword
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to change password');
+      if (response.data) {
+        setSuccess('Password changed successfully');
+        setFormData({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: '',
+        });
+        setTimeout(() => setShowModal(false), 2000);
       }
-
-      setSuccess('Password changed successfully');
-      setFormData({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: '',
-      });
-      setTimeout(() => setShowModal(false), 2000);
-
     } catch (error) {
-      setError(error.message);
+      setError(error.response?.data?.message || 'Failed to change password');
     }
   };
 
@@ -112,6 +120,7 @@ const ChangePasswordButton = ({ userId }) => {
                     name="currentPassword"
                     value={formData.currentPassword}
                     onChange={handleChange}
+                    required
                     className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
@@ -125,6 +134,8 @@ const ChangePasswordButton = ({ userId }) => {
                     name="newPassword"
                     value={formData.newPassword}
                     onChange={handleChange}
+                    required
+                    minLength={6}
                     className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
@@ -138,6 +149,7 @@ const ChangePasswordButton = ({ userId }) => {
                     name="confirmPassword"
                     value={formData.confirmPassword}
                     onChange={handleChange}
+                    required
                     className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
