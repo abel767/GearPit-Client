@@ -125,44 +125,64 @@ const orderStats = {
     }));
   };
 
-   const handleSubmit = async () => {
+  const handleSubmit = async () => {
     if (!userId) {
-      console.error('User ID is not available');
+      alert('Please log in to update your profile');
       return;
     }
-
+  
+    // Basic validation
+    if (!formData.firstName || !formData.email) {
+      alert('First name and email are required');
+      return;
+    }
+  
     try {
-      const response = await axiosInstance.put(`/user/profileupdate/${userId}`, {
-        formData
-      });
+      // Show loading state if you want
+      setLoading(true);
+  
+      const response = await axiosInstance.put(`/user/profileupdate/${userId}`, formData);
   
       if (response.data) {
+        // Update Redux state
+        dispatch(updateUserProfile(formData));
         dispatch(setEditing(false));
-        // Update local state with the response data
-        const updatedUser = response.data.user;
-        setFormData({
-          firstName: updatedUser.firstName || '',
-          lastName: updatedUser.lastName || '',
-          userName: updatedUser.userName || '',
-          email: updatedUser.email || '',
-          phone: updatedUser.phone || '',
-        });
+        
+        // Update local state
+        setFormData(prev => ({
+          ...prev,
+          ...response.data.user
+        }));
+  
+        // Show success message
+        alert('Profile updated successfully');
       }
     } catch (error) {
       console.error('Error updating profile:', error);
+      let errorMessage = 'Failed to update profile. Please try again.';
+      
+      if (error.response?.status === 500) {
+        errorMessage = 'Server error. Please try again later.';
+      } else if (error.response?.status === 400) {
+        errorMessage = error.response.data.message || 'Invalid input data';
+      }
+      
+      alert(errorMessage);
+    } finally {
+      setLoading(false);
     }
   };
 
 
 
-  const handleImageUpload = async (event) => {
-    if(!userId) {
-      console.error('User ID is not available')
-      return
+const handleImageUpload = async (event) => {
+    if (!userId) {
+      alert('Please log in to update your profile image');
+      return;
     }
-
-  const file = event.target.files[0];
-  if (!file) return;
+  
+    const file = event.target.files[0];
+    if (!file) return;
 
   const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
   const MAX_FILE_SIZE = 5 * 1024 * 1024;
@@ -178,6 +198,9 @@ const orderStats = {
   }
 
   try {
+    // Show loading state if you want
+    setLoading(true);
+
     const imageUrls = await uploadImageToCloudinary([file]);
     
     if (!imageUrls || imageUrls.length === 0) {
@@ -186,19 +209,40 @@ const orderStats = {
 
     const cloudinaryUrl = imageUrls[0];
     
+    if (!cloudinaryUrl) {
+      throw new Error('No URL received from Cloudinary');
+    }
+
     const response = await axiosInstance.put(`/user/profileImageupdate/${userId}`, {
       profileImage: cloudinaryUrl
     });
 
     if (response.data) {
+      // Update both local and Redux state
       setProfileImage(cloudinaryUrl);
-      // Update Redux state with new profile image
       dispatch(updateUserProfile({ profileImage: cloudinaryUrl }));
-      await fetchUserData();
+      
+      // Optionally show success message
+      alert('Profile image updated successfully');
     }
   } catch (error) {
     console.error('Error uploading image:', error);
-    alert('Failed to upload image. Please try again.');
+    let errorMessage = 'Failed to upload image. Please try again.';
+    
+    if (error.response?.status === 500) {
+      errorMessage = 'Server error. Please try again later.';
+    }
+    
+    alert(errorMessage);
+  } finally {
+    setLoading(false);
+    // Fetch user data only if needed
+    try {
+      await fetchUserData();
+    } catch (fetchError) {
+      console.error('Error fetching updated user data:', fetchError);
+      // Don't show this error to user since the image update already worked
+    }
   }
 };
 
