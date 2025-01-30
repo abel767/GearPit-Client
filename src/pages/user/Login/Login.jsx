@@ -11,6 +11,8 @@ function Login() {
   const [, setIsSubmitted] = useState(false);
   const navigate = useNavigate();
 
+  
+
   const validateForm = () => {
     const newErrors = {};
     const trimmedEmail = email.trim();
@@ -54,18 +56,25 @@ function Login() {
     
     try {
       const response = await loginUser({ email, password });
+      console.log('Login response:', response); // Debug log
       
-      if (response.status === 'VERIFIED') {
-        toast.success(response.message, {
+      if (response.status === 'VERIFIED' && response.user) {
+        toast.success(response.message || 'Login successful', {
           position: "top-right",
-          autoClose: 3000,
+          autoClose: 2000,
           theme: "colored"
         });
   
-        navigate('/user/home');
+        // Wait for the redux store to update
+        setTimeout(() => {
+          navigate('/user/home', { replace: true });
+        }, 2000);
+      } else {
+        throw new Error(response.message || 'Login failed');
       }
     } catch(error) {
-      toast.error(error.response?.data?.message || "Something went wrong", {
+      console.error('Login error:', error); // Debug log
+      toast.error(error.response?.data?.message || error.message || "Something went wrong", {
         position: "top-right",
         autoClose: 3000,
         hideProgressBar: false,
@@ -75,7 +84,6 @@ function Login() {
       });
     }
   };
-
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-white">
       {/* Left side - Logo */}

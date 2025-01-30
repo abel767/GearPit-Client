@@ -19,13 +19,16 @@ import WhishlistPage from '../../pages/user/whishlist/WhislistPage';
 import PaymentFailurePage from '../../pages/user/Checkout/PaymentFailurePage';
 import ContactUsPage from '../../pages/user/contact/ContactUsPage';
 import AboutUsPage from '../../pages/user/AboutUsPage/AboutUsPage';
+import GoogleCallback from '../../services/GoogleCallBack';
 function UserRoute() {
   return (
     <Routes>
+
       <Route element={<LoginProtect/>}>
         <Route path='/signup' element={<Signup/>}/>
         <Route path='/verify-otp/:userId/:email' element={<VerifyOTP/>}/>
         <Route path='/login' element={<Login/>}/>
+        <Route path='/auth/google/callback' element={<GoogleCallback/>}/>
       </Route>
 
       <Route element={<ProtectedRoute/>}>

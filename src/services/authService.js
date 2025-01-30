@@ -110,21 +110,44 @@ export const handleGoogleLoginSuccess = async (userData) => {
         }
       });
   
+      console.log('Login response from server:', response.data); // Debug log
+  
       if (!response.data || !response.data.user) {
         throw new Error('Invalid response from server');
       }
   
-      const formattedData = formatUserData(response.data.user);
+      const formattedData = {
+        user: {
+          id: response.data.user.id,
+          firstName: response.data.user.firstName,
+          lastName: response.data.user.lastName,
+          userName: response.data.user.userName,
+          email: response.data.user.email,
+          phone: response.data.user.phone,
+          profileImage: response.data.user.profileImage,
+          verified: response.data.user.verified,
+          isBlocked: response.data.user.isBlocked,
+          isAdmin: false,
+        },
+        tokens: {
+          accessToken: response.data.accessToken
+        }
+      };
+  
+      console.log('Formatted user data:', formattedData); // Debug log
+      
+      // Dispatch to Redux store
       store.dispatch(userLogin(formattedData));
       
-      // Set authorization header for future requests
-      if (formattedData.tokens.accessToken) {
+      // Set authorization header
+      if (response.data.accessToken) {
         axiosInstance.defaults.headers.common['Authorization'] = 
-          `Bearer ${formattedData.tokens.accessToken}`;
+          `Bearer ${response.data.accessToken}`;
       }
   
       return response.data;
     } catch (error) {
+      console.error('Login error in service:', error); // Debug log
       if (error.response?.status === 401) {
         handleAuthError();
       }
@@ -133,6 +156,7 @@ export const handleGoogleLoginSuccess = async (userData) => {
       store.dispatch(setAuthLoading(false));
     }
   };
+
 
 const loginAdmin = async (credentials) => {
     try {
@@ -196,24 +220,39 @@ const refreshToken = async () => {
 };
 
 const checkAuthStatus = async () => {
-    try {
-      const response = await axiosInstance.get('/user/check-auth');
-  
-      if (response.data.isAuthenticated) {
-        const formattedData = response.data.role === 'admin' 
-          ? formatAdminData(response.data.user)
-          : formatUserData(response.data.user);
-  
-        store.dispatch(response.data.role === 'admin' ? adminLogin(formattedData) : userLogin(formattedData));
+  try {
+    store.dispatch(setAuthLoading(true));
+    
+    // First try /auth/google/success for Google OAuth
+    const response = await axiosInstance.get('/auth/google/success', {
+      withCredentials: true
+    }).catch(() => {
+      // If Google check fails, try regular auth check
+      return axiosInstance.get('/auth/login/success', {
+        withCredentials: true
+      });
+    });
+
+    if (response.data && !response.data.error) {
+      const formattedData = formatUserData(response.data.user);
+      store.dispatch(userLogin(formattedData));
+      
+      if (response.data.token) {
+        axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
       }
-  
-      return response.data;
-    } catch (error) {
-      console.error('check auth error', error);
-      handleAuthError();
-      return { isAuthenticated: false };
+
+      return { isAuthenticated: true, user: formattedData.user };
     }
-  };
+
+    return { isAuthenticated: false };
+  } catch (error) {
+    console.error('Auth check error:', error);
+    handleAuthError();
+    return { isAuthenticated: false };
+  } finally {
+    store.dispatch(setAuthLoading(false));
+  }
+};
 
   
 

@@ -18,12 +18,20 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
+        // Ensure proper URL construction by joining paths correctly
+        const baseUrl = import.meta.env.VITE_BACKEND_URL.replace(/\/$/, ''); // Remove trailing slash if present
+        
         const [todayResponse, revenueResponse, categoriesResponse, usersResponse] = await Promise.all([
-          fetch(`${import.meta.env.VITE_BACKEND_URL}/admin/sales/today-analytics`),
-          fetch(`${import.meta.env.VITE_BACKEND_URL}/sales/revenue`),
-          fetch(`${import.meta.env.VITE_BACKEND_URL}admin/sales/most-sold-categories`),
-          fetch(`${import.meta.env.VITE_BACKEND_URL}/admin/user-count`)
+          fetch(`${baseUrl}/admin/sales/today-analytics`),
+          fetch(`${baseUrl}/admin/sales/revenue`),
+          fetch(`${baseUrl}/admin/sales/most-sold-categories`),
+          fetch(`${baseUrl}/admin/user-count`)
         ]);
+
+        // Add error checking for response status
+        if (!todayResponse.ok || !revenueResponse.ok || !categoriesResponse.ok || !usersResponse.ok) {
+          throw new Error('One or more API calls failed');
+        }
 
         const todayData = await todayResponse.json();
         const revenueData = await revenueResponse.json();
@@ -45,11 +53,13 @@ export default function Dashboard() {
         setUserCount(usersData.count);
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
+        // You might want to add error state handling here
       }
     };
 
     fetchDashboardData();
   }, []);
+
 
   const filterRevenue = (filter) => {
     if (!originalRevenueData.length) return;

@@ -4,12 +4,14 @@ import { userLogout } from '../redux/Slices/userSlice';
 import { adminLogout } from '../redux/Slices/adminSlice';
 
 const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_BACKEND_URL,
+  baseURL: import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000',
   withCredentials: true,
   headers: {
-    'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
   }
 });
+
 
 let isRefreshing = false;
 let failedQueue = [];
