@@ -12,6 +12,10 @@ export default function ShoppingCart() {
   const userId = useSelector(state => state.user.user?._id)
   const [loading, setLoading] = useState(false)
   const [initialLoading, setInitialLoading] = useState(true)
+  const [subtotal, setSubtotal] = useState(0)
+
+
+  const total = subtotal
 
   useEffect(() => {
     const fetchCartItems = async () => {
@@ -101,6 +105,12 @@ export default function ShoppingCart() {
 
       if (response.status === 200) {
         dispatch(removeFromCart({ productId, variantId }))
+        // After successful removal, recalculate totals
+        const updatedItems = items.filter(item => 
+          !(item.productId === productId && item.variantId === variantId)
+        )
+        const newSubtotal = updatedItems.reduce((sum, item) => sum + (item.finalPrice * item.quantity), 0)
+        setSubtotal(newSubtotal)
       }
     } catch (error) {
       console.error('Error removing item:', error)
@@ -110,8 +120,12 @@ export default function ShoppingCart() {
     }
   }
 
-  const subtotal = items.reduce((sum, item) => sum + (item.finalPrice * item.quantity), 0)
-  const total = subtotal
+  useEffect(() => {
+    // Update subtotal whenever items change
+    const newSubtotal = items.reduce((sum, item) => sum + (item.finalPrice * item.quantity), 0)
+    setSubtotal(newSubtotal)
+  }, [items])
+
 
   if (initialLoading) {
     return (
@@ -143,21 +157,31 @@ export default function ShoppingCart() {
   }, {})
 
   const handleCheckout = () => {
-    const cartItems = items.map(item => ({
+    // Get the current cart items directly from Redux state
+    const currentCartItems = items.map(item => ({
       productId: item.productId,
       variantId: item.variantId,
       quantity: item.quantity,
       price: item.finalPrice,
       name: item.name,
       size: item.size,
+      variant: item.size, // Adding variant info for display
+      images: [item.image], // Ensuring images are available
     }))
 
+    // Only proceed to checkout if there are items in the cart
+    if (currentCartItems.length === 0) {
+      alert('Your cart is empty')
+      return
+    }
+
+    // Navigate with current cart state
     navigate('/user/Checkout', {
       state: {
         productDetails: {
-          items: cartItems,
+          items: currentCartItems,
           subtotal,
-          total
+          total: subtotal // Since shipping is free
         }
       }
     })

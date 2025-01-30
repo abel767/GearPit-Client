@@ -19,7 +19,7 @@ export const useRazorpay = () => {
       // Load Razorpay SDK
       const isLoaded = await loadRazorpay();
       if (!isLoaded) {
-        throw new Error('Razorpay SDK failed to load. Please check your internet connection.');
+        throw new Error('Razorpay SDK failed to load');
       }
 
       // Create payment order
@@ -28,7 +28,6 @@ export const useRazorpay = () => {
         throw new Error('Invalid payment order response');
       }
 
-      // Set up payment timeout
       let paymentTimeout;
       
       const options = {
@@ -45,10 +44,17 @@ export const useRazorpay = () => {
           onError: (error) => {
             clearTimeout(paymentTimeout);
             setIsProcessing(false);
-            onError(error);
+            // Ensure error has proper metadata
+            const enhancedError = {
+              ...error,
+              metadata: {
+                ...error.metadata,
+                order_id: error.metadata?.order_id || orderData.id
+              }
+            };
+            onError(enhancedError);
           }
         }),
-        // Add modal closing handler
         modal: {
           ondismiss: () => {
             clearTimeout(paymentTimeout);
@@ -64,27 +70,30 @@ export const useRazorpay = () => {
         }
       };
 
-      // Initialize Razorpay
       const paymentObject = new window.Razorpay(options);
       
-      // Set timeout for payment completion
+      // Set payment timeout
       paymentTimeout = setTimeout(() => {
         paymentObject.close();
         setIsProcessing(false);
         onError({
           code: 'PAYMENT_TIMEOUT',
-          description: 'Payment was not completed within the time limit',
+          description: 'Payment timed out',
           metadata: {
             order_id: orderData.id
           }
         });
-      }, 50000); // 50 seconds timeout
+      }, 300000); // 5 minutes timeout
 
       paymentObject.open();
       
     } catch (error) {
       setIsProcessing(false);
-      onError(new Error(`Payment initialization failed: ${error.message}`));
+      onError({
+        code: 'INITIALIZATION_FAILED',
+        description: error.message || 'Payment initialization failed',
+        metadata: {}
+      });
     }
   }, [isProcessing]);
 

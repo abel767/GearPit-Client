@@ -27,6 +27,16 @@ const processQueue = (error, token = null) => {
   failedQueue = [];
 };
 
+axiosInstance.interceptors.request.use((config) => {
+  const state = store.getState();
+  const token = state.user.tokens?.accessToken;
+  
+  if (token) {
+    config.headers['Authorization'] = `Bearer ${token}`;
+  }
+  return config;
+});
+
 axiosInstance.interceptors.response.use(
   (response) => response,
   async (error) => {

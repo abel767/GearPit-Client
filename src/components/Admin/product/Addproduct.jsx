@@ -22,7 +22,7 @@ const AddProduct = () => {
       {
         size: '',
         price: '',
-        discount: '0',
+        // discount: '0',
         finalPrice: '0',
         stock: ''
       }
@@ -333,7 +333,7 @@ const AddProduct = () => {
         className="w-full px-4 py-2 border border-gray-300 rounded-lg"
       />
     </div>
-    <div className="flex-1">
+    {/* <div className="flex-1">
       <label className="block text-sm font-medium text-gray-700 mb-2">
         Discount (%)
       </label>
@@ -350,7 +350,7 @@ const AddProduct = () => {
           Final Price: ₹{calculateFinalPrice(variant.price, variant.discount).toFixed(2)}
         </div>
       )}
-    </div>
+    </div> */}
     <div className="flex-1">
       <label className="block text-sm font-medium text-gray-700 mb-2">Stock</label>
       <input

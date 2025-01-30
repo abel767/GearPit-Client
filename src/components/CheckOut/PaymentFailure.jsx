@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { XCircle, AlertTriangle, ArrowLeft, RefreshCcw, Mail } from 'lucide-react';
 import { useRazorpayRetry } from '../../hooks/useRazorpayRetry';
-import axiosInstance from '../../api/axiosInstance';
+// import axiosInstance from '../../api/axiosInstance';
+
 export default function PaymentFailure() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -21,7 +22,7 @@ export default function PaymentFailure() {
     if (location.state) {
       const retryWindowEnds = location.state.retryWindowEnds 
         ? new Date(location.state.retryWindowEnds)
-        : new Date(Date.now() + 11 * 60000);
+        : new Date(Date.now() + 1 * 60000); // 1 minute retry window
 
       setErrorDetails({
         code: location.state.errorCode || '',
@@ -61,27 +62,23 @@ export default function PaymentFailure() {
   
     setIsRetrying(true);
     try {
-      // First, handle the payment failure
-      await axiosInstance.post('/user/razorpay/payment-failure', {
-        error: {
-          metadata: {
-            order_id: errorDetails.orderId
-          }
-        }
-      });
-  
-      // Then initiate retry payment
+      // Get clean order ID
+      const cleanOrderId = errorDetails.orderId.replace('order_', '');
+      
       await initiateRetryPayment({
-        orderId: errorDetails.orderId,
+        orderId: cleanOrderId,
         onSuccess: () => {
-          navigate('/user/orders', {
+          navigate('/user/PaymentSuccess', {
             state: { message: 'Payment successful!' }
           });
         },
         onError: (error) => {
+          // Update error details with new failure
           setErrorDetails(prev => ({
             ...prev,
-            message: error.message || 'Payment retry failed. Please try again.'
+            code: error.code || 'RETRY_FAILED',
+            message: error.message || 'Payment retry failed. Please try again.',
+            orderId: error.metadata?.order_id || prev.orderId
           }));
         }
       });
@@ -95,8 +92,6 @@ export default function PaymentFailure() {
       setIsRetrying(false);
     }
   };
-
-
 
   const handleBackToStore = () => {
     navigate('/user/store');

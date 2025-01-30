@@ -3,11 +3,14 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { X, Check } from 'lucide-react';
 import { toast } from 'react-toastify';
 import axiosInstance from '../../../api/axiosInstance';
+import uploadImageToCloudinary from '../../../services/uploadImageToCloudinary'; // Assuming you have this utility
+
 const EditProduct = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const [categories, setCategories] = useState([]);
   const [imageUrls, setImageUrls] = useState([]);
+  const [imageFiles, setImageFiles] = useState([]);
   const [productData, setProductData] = useState({
     productName: '',
     category: '',
@@ -33,7 +36,7 @@ const EditProduct = () => {
           withCredentials: true
         });
         const product = response.data.find(p => p._id === id);
-        
+
         if (product) {
           setProductData({
             productName: product.productName,
@@ -44,7 +47,6 @@ const EditProduct = () => {
             variants: product.variants.map(variant => ({
               size: variant.size,
               price: variant.price.toString(),
-              discount: variant.discount.toString(),
               finalPrice: variant.finalPrice.toString(),
               stock: variant.stock.toString()
             }))
@@ -94,7 +96,7 @@ const EditProduct = () => {
       newVariants[index] = {
         ...newVariants[index],
         [field]: value,
-        finalPrice: field === 'price' || field === 'discount' 
+        finalPrice: field === 'price' || field === 'discount'
           ? calculateFinalPrice(
               field === 'price' ? value : newVariants[index].price,
               field === 'discount' ? value : newVariants[index].discount
@@ -116,7 +118,6 @@ const EditProduct = () => {
         {
           size: '',
           price: '',
-          discount: '0',
           finalPrice: '0',
           stock: ''
         }
@@ -130,6 +131,33 @@ const EditProduct = () => {
         ...prev,
         variants: prev.variants.filter((_, i) => i !== index)
       }));
+    }
+  };
+
+  const handleImageUpload = async (e) => {
+    const files = Array.from(e.target.files);
+    const MAX_IMAGES = 3;
+
+    if (files.length !== MAX_IMAGES) {
+      toast.error(`Please upload exactly ${MAX_IMAGES} images`);
+      return;
+    }
+
+    // Upload images to Cloudinary
+    try {
+      const uploadedImageUrls = await uploadImageToCloudinary(files);
+      if (uploadedImageUrls.length === MAX_IMAGES) {
+        setImageUrls(uploadedImageUrls);
+        setProductData(prev => ({
+          ...prev,
+          images: uploadedImageUrls
+        }));
+      } else {
+        toast.error('Failed to upload images');
+      }
+    } catch (error) {
+      console.error('Error uploading images:', error);
+      toast.error('Failed to upload images');
     }
   };
 
@@ -276,24 +304,7 @@ const EditProduct = () => {
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                       />
                     </div>
-                    <div className="flex-1">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Discount (%)
-                      </label>
-                      <input
-                        type="number"
-                        value={variant.discount}
-                        onChange={(e) => handleVariantChange(index, 'discount', e.target.value)}
-                        min="0"
-                        max="100"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                      />
-                      {variant.price && variant.discount > 0 && (
-                        <div className="text-sm text-green-600 mt-1">
-                          Final Price: ₹{calculateFinalPrice(variant.price, variant.discount).toFixed(2)}
-                        </div>
-                      )}
-                    </div>
+                   
                     <div className="flex-1">
                       <label className="block text-sm font-medium text-gray-700 mb-2">Stock</label>
                       <input
@@ -337,6 +348,16 @@ const EditProduct = () => {
                     </div>
                   ))}
                 </div>
+                <label className="block text-sm font-medium text-gray-700 mt-4 mb-1">
+                  Replace Images (Upload exactly 3 images)
+                </label>
+                <input
+                  type="file"
+                  multiple
+                  onChange={handleImageUpload}
+                  accept="image/*"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                />
               </div>
             </div>
           </div>

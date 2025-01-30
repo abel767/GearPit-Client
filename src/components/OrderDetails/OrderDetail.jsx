@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axiosInstance from '../../api/axiosInstance';
 import { ArrowLeft, Package, Truck, CheckCircle, Home, AlertCircle, Star, XCircle, AlertTriangle, X } from 'lucide-react';
+import { Download } from 'lucide-react';
 
 const Dialog = ({ isOpen, onClose, children }) => {
   useEffect(() => {
@@ -21,6 +22,8 @@ const Dialog = ({ isOpen, onClose, children }) => {
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
+
+  
 
   return (
     <div 
@@ -80,6 +83,49 @@ const OrderDetailAndTrack = () => {
       setError(err.response?.data?.message || 'Failed to fetch order details');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDownloadInvoice = async () => {
+    try {
+      const response = await axiosInstance.get(`/user/orders/invoice/${orderId}`, {
+        responseType: 'blob',
+        headers: {
+          Accept: 'application/pdf',
+        },
+        withCredentials: true
+      });
+  
+      // Check if the response is actually a PDF
+      if (response.data.type !== 'application/pdf') {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const error = JSON.parse(reader.result);
+          console.error('Error downloading invoice:', error);
+          alert('Failed to download invoice. Please try again later.');
+        };
+        reader.readAsText(response.data);
+        return;
+      }
+  
+      // Create blob link to download
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `invoice-${order.orderNumber}.pdf`);
+  
+      // Append to html link element page
+      document.body.appendChild(link);
+  
+      // Start download
+      link.click();
+  
+      // Clean up
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Failed to download invoice:', error);
+      alert('Failed to download invoice. Please try again later.');
     }
   };
 
@@ -522,22 +568,37 @@ const OrderDetailAndTrack = () => {
 
               {/* Price Summary */}
               <div className="bg-white rounded-lg p-6">
-                <h2 className="font-medium mb-4">Price Details</h2>
-                <div className="space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Items Total</span>
-                    <span>₹{order.totalAmount.toLocaleString('en-IN')}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Delivery Charges</span>
-                    <span className="text-green-600">FREE</span>
-                  </div>
-                  <div className="border-t pt-3 flex justify-between font-medium">
-                    <span>Total Amount</span>
-                    <span>���{order.totalAmount.toLocaleString('en-IN')}</span>
-                  </div>
-                </div>
-              </div>
+    <h2 className="font-medium mb-4">Price Details</h2>
+    <div className="space-y-3">
+      <div className="flex justify-between text-sm">
+        <span className="text-gray-600">Items Total</span>
+        <span>₹{order.totalAmount.toLocaleString('en-IN')}</span>
+      </div>
+      {order.discount > 0 && (
+        <div className="flex justify-between text-sm">
+          <span className="text-gray-600">Discount</span>
+          <span className="text-green-600">-₹{order.discount.toLocaleString('en-IN')}</span>
+        </div>
+      )}
+      <div className="flex justify-between text-sm">
+        <span className="text-gray-600">Delivery Charges</span>
+        <span className="text-green-600">FREE</span>
+      </div>
+      <div className="border-t pt-3 flex justify-between font-medium">
+        <span>Total Amount</span>
+        <span>₹{order.totalAmount.toLocaleString('en-IN')}</span>
+      </div>
+    </div>
+    
+    {/* Add Invoice Download Button */}
+    <button 
+      onClick={handleDownloadInvoice}
+      className="mt-4 w-full flex items-center justify-center gap-2 px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors duration-200"
+    >
+      <Download className="w-4 h-4" />
+      Download Invoice
+    </button>
+  </div>
             </div>
             {['PENDING', 'PROCESSING'].includes(order.status.toUpperCase()) && (
   <div className="bg-white rounded-lg p-6">
