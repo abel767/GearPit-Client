@@ -138,23 +138,20 @@ const orderStats = {
     }
   
     try {
-      // Show loading state if you want
       setLoading(true);
   
+      // Send formData directly in request body, not nested
       const response = await axiosInstance.put(`/user/profileupdate/${userId}`, formData);
   
       if (response.data) {
-        // Update Redux state
         dispatch(updateUserProfile(formData));
         dispatch(setEditing(false));
         
-        // Update local state
         setFormData(prev => ({
           ...prev,
           ...response.data.user
         }));
   
-        // Show success message
         alert('Profile updated successfully');
       }
     } catch (error) {

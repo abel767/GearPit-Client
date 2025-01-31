@@ -11,6 +11,7 @@ export default function Dashboard() {
   const [originalRevenueData, setOriginalRevenueData] = useState([]);
   const [revenueData, setRevenueData] = useState([]);
   const [mostSoldCategories, setMostSoldCategories] = useState([]);
+  const [mostSoldProducts, setMostSoldProducts] = useState([]);
   const [userCount, setUserCount] = useState(0);
   const [dateFilter, setDateFilter] = useState('6m');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -18,24 +19,31 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        // Ensure proper URL construction by joining paths correctly
-        const baseUrl = import.meta.env.VITE_BACKEND_URL.replace(/\/$/, ''); // Remove trailing slash if present
+        const baseUrl = import.meta.env.VITE_BACKEND_URL.replace(/\/$/, '');
         
-        const [todayResponse, revenueResponse, categoriesResponse, usersResponse] = await Promise.all([
+        const [
+          todayResponse, 
+          revenueResponse, 
+          categoriesResponse, 
+          productsResponse,
+          usersResponse
+        ] = await Promise.all([
           fetch(`${baseUrl}/admin/sales/today-analytics`),
           fetch(`${baseUrl}/admin/sales/revenue`),
           fetch(`${baseUrl}/admin/sales/most-sold-categories`),
+          fetch(`${baseUrl}/admin/sales/most-sold-products`),
           fetch(`${baseUrl}/admin/user-count`)
         ]);
 
-        // Add error checking for response status
-        if (!todayResponse.ok || !revenueResponse.ok || !categoriesResponse.ok || !usersResponse.ok) {
+        if (!todayResponse.ok || !revenueResponse.ok || !categoriesResponse.ok || 
+            !productsResponse.ok || !usersResponse.ok) {
           throw new Error('One or more API calls failed');
         }
 
         const todayData = await todayResponse.json();
         const revenueData = await revenueResponse.json();
         const categoriesData = await categoriesResponse.json();
+        const productsData = await productsResponse.json();
         const usersData = await usersResponse.json();
 
         const formattedRevenueData = revenueData.data.map(item => ({
@@ -51,6 +59,7 @@ export default function Dashboard() {
         setRevenueData(formattedRevenueData);
         setMostSoldCategories(categoriesData.data);
         setUserCount(usersData.count);
+        setMostSoldProducts(productsData.data);
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
         // You might want to add error state handling here
@@ -239,6 +248,28 @@ export default function Dashboard() {
                 </div>
                 <p className="text-xs text-gray-500 mt-1">
                   {category.totalSold} items sold - ₹{category.totalRevenue.toLocaleString()}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="bg-white p-6 rounded-lg shadow-sm">
+          <h3 className="font-semibold mb-6">Most Sold Products</h3>
+          <div className="space-y-6">
+            {mostSoldProducts.map((product) => (
+              <div key={product._id}>
+                <div className="flex justify-between mb-2">
+                  <span className="text-sm font-medium">{product.product}</span>
+                  <span className="text-sm text-gray-500">{product.percentage.toFixed(1)}%</span>
+                </div>
+                <div className="w-full bg-gray-100 rounded-full h-2">
+                  <div 
+                    className="bg-blue-500 h-2 rounded-full"
+                    style={{ width: `${product.percentage}%` }}
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  {product.totalSold} items sold - ₹{product.totalRevenue.toLocaleString()}
                 </p>
               </div>
             ))}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import  { useState, useEffect } from 'react';
 
 const TopAnalytics = () => {
   const [topProducts, setTopProducts] = useState([]);
@@ -6,22 +6,27 @@ const TopAnalytics = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const baseUrl = import.meta.env.VITE_BACKEND_URL
+
   useEffect(() => {
     const fetchTopAnalytics = async () => {
       try {
         setLoading(true);
         const [productsRes, categoriesRes] = await Promise.all([
-          fetch('http://localhost:3000/admin/sales/top-products'),
-          fetch('http://localhost:3000/admin/sales/top-categories')
+          fetch(`${baseUrl}/admin/sales/top-products`),
+          fetch(`${baseUrl}/admin/sales/top-categories`)
         ]);
-
+    
         if (!productsRes.ok || !categoriesRes.ok) {
           throw new Error('Failed to fetch analytics data');
         }
-
+    
         const products = await productsRes.json();
         const categories = await categoriesRes.json();
-
+    
+        console.log('Top Products Response:', products);
+        console.log('Top Categories Response:', categories);
+    
         if (products.success && categories.success) {
           setTopProducts(products.data || []);
           setTopCategories(categories.data || []);

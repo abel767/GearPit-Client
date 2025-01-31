@@ -81,15 +81,27 @@ export default function OrderManagement() {
   
       const data = await response.json();
       if (data.success) {
-        setOrders(orders.map(order => 
-          order._id === orderId ? { ...order, status: newStatus.toLowerCase() } : order
-        ));
+        // Immediately update the orders state with the new status
+        setOrders(prevOrders => 
+          prevOrders.map(order => 
+            order._id === orderId 
+              ? { ...order, status: newStatus.toLowerCase() }
+              : order
+          )
+        );
+        
+        // Close the dialog and reset selected status
+        setShowStatusDialog(false);
+        setSelectedNewStatus(null);
+        setSelectedOrder(null);
+      } else {
+        throw new Error(data.message || 'Failed to update order status');
       }
     } catch (error) {
       console.error('Failed to update order status:', error);
+      // You might want to show an error message to the user here
     }
   };
-
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
       case 'pending':
@@ -430,20 +442,20 @@ export default function OrderManagement() {
       
   
       <StatusUpdateModal
-    show={showStatusDialog}
-    onClose={() => {
-      setShowStatusDialog(false);
-      setSelectedNewStatus(null);
-    }}
-    onConfirm={() => {
-      if (selectedOrder && selectedNewStatus) {
-        updateOrderStatus(selectedOrder._id, selectedNewStatus);
-      }
-      setShowStatusDialog(false);
-      setSelectedNewStatus(null);
-    }}
-    orderNumber={selectedOrder?.orderNumber}
-  />
+  show={showStatusDialog}
+  onClose={() => {
+    setShowStatusDialog(false);
+    setSelectedNewStatus(null);
+    setSelectedOrder(null);
+  }}
+  onConfirm={() => {
+    if (selectedOrder && selectedNewStatus) {
+      updateOrderStatus(selectedOrder._id, selectedNewStatus);
+    }
+  }}
+  orderNumber={selectedOrder?.orderNumber}
+/>
+
     </div>
   );
 }
