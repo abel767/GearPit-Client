@@ -52,18 +52,25 @@ const validateField = (name, value) => {
       if (!value) return 'This field is required';
       if (value.length < 2) return 'Must be at least 2 characters';
       if (!/^[a-zA-Z\s]*$/.test(value)) return 'Only letters and spaces allowed';
+      if (/^\s+$/.test(value)) return 'Cannot contain only spaces';
       break;
     case 'address':
       if (!value) return 'Address is required';
       if (value.length < 10) return 'Address must be at least 10 characters';
+      if (/^\s+$/.test(value)) return 'Cannot contain only spaces';
+      if (/^[_\s]*$/.test(value)) return 'Cannot contain only underscores or spaces';
       break;
     case 'phoneNumber':
       if (!value) return 'Phone number is required';
       if (!/^\d{10}$/.test(value)) return 'Must be exactly 10 digits';
+      if (/^0{10}$/.test(value)) return 'Cannot be all zeros';
+      if (/^(\d)\1{9}$/.test(value)) return 'Cannot be all same digits';
       break;
     case 'pincode':
       if (!value) return 'Pincode is required';
       if (!/^\d{6}$/.test(value)) return 'Must be exactly 6 digits';
+      if (/^0{6}$/.test(value)) return 'Cannot be all zeros';
+      if (/^(\d)\1{5}$/.test(value)) return 'Cannot be all same digits';
       break;
     case 'state':
     case 'city':
