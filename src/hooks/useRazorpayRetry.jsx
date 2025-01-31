@@ -22,7 +22,7 @@ export const useRazorpayRetry = () => {
       }
 
       // Create new payment order for retry
-      const retryResponse = await axiosInstance.post(`/orders/${orderId}/retry-payment`);
+      const retryResponse = await axiosInstance.post(`/user/orders/${orderId}/retry-payment`);
       
       if (!retryResponse.data.success || !retryResponse.data.data) {
         throw new Error('Failed to create retry payment order');

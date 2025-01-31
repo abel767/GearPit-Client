@@ -48,25 +48,34 @@ const OrderHistory = () => {
   const fetchOrders = async () => {
     try {
       setLoading(true);
+      console.log('Fetching orders for userId:', userId);
       const response = await axiosInstance.get(`/user/orders/user/${userId}`);
+      console.log('Orders API Response:', response.data);
       
-      // Sort orders to bring failed orders to the top
       const sortedOrders = response.data.data.sort((a, b) => {
         if (a.paymentStatus === 'failed' && b.paymentStatus !== 'failed') return -1;
         if (b.paymentStatus === 'failed' && a.paymentStatus !== 'failed') return 1;
         return new Date(b.createdAt) - new Date(a.createdAt);
       });
-
+  
+      console.log('Sorted orders:', sortedOrders);
+      console.log('Orders with failed payments:', sortedOrders.filter(order => order.paymentStatus === 'failed'));
+      
       setOrders(sortedOrders);
-      setError(null);
     } catch (err) {
-      const errorMessage = err.response?.data?.message || 'Failed to fetch orders. Please try again later.';
-      setError(errorMessage);
-      console.error('Error fetching orders:', err);
+      console.error('Error in fetchOrders:', err);
+      console.error('Error response:', err.response);
+      setError(err.response?.data?.message || 'Failed to fetch orders');
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (orders.length > 0) {
+      console.log('Failed orders:', orders.filter(order => order.paymentStatus === 'failed'));
+    }
+  }, [orders]);
 
   const handleViewOrderDetails = (orderId) => {
     navigate('/user/OrderDetail', { state: { orderId } });
@@ -213,11 +222,11 @@ const OrderHistory = () => {
             ) : (
               orders.map((order) => (
                 <div 
-                  key={order._id} 
-                  className={`flex flex-col md:grid md:grid-cols-7 gap-2 md:gap-4 px-4 md:px-6 py-4 items-start md:items-center ${
-                    order.paymentStatus === 'failed' ? 'bg-red-25 border-l-4 border-red-500' : ''
-                  }`}
-                >
+                key={order._id} 
+                className={`flex flex-col md:grid md:grid-cols-7 gap-2 md:gap-4 px-4 md:px-6 py-4 items-start md:items-center ${
+                  order.paymentStatus === 'failed' ? 'bg-red-25 border-l-4 border-red-500' : ''
+                }`}
+              >
                   {/* Order Details Rendering */}
                   <div className="w-full md:w-auto flex flex-col space-y-1">
                     <span className="md:hidden text-xs text-gray-500">Order ID:</span>

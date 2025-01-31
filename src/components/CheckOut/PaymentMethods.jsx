@@ -18,8 +18,37 @@ const UPIIcon = () => (
 
 
 export default function PaymentMethod() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const dispatch = useDispatch();
+  const { initializePayment, isProcessing } = useRazorpay();
+  const {
+    processWalletPayment,
+    isProcessing: walletProcessing,
+    error: walletError,
+    canPayWithWallet,
+    balance: walletBalance
+  } = useWalletPayment();
+
+   // Redux selectors
+   const cartItems = useSelector((state) => state.cart.items);
+   const isAuthenticated = useSelector((state) => state.user.isAuthenticated);
+   const user = useSelector((state) => state.user.user);
+   const { addresses, loading: addressesLoading, error: addressesError } = useSelector((state) => state.address);
+
+   // Local state
   const [selectedPayment, setSelectedPayment] = useState('card');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedAddress, setSelectedAddress] = useState(null);
+  const [selectedAddressId, setSelectedAddressId] = useState(null);
+  const [error, setError] = useState(null);
+  const [discountAmount, setDiscountAmount] = useState(0);
+  const [couponCode, setCouponCode] = useState('');
+  const [couponError, setCouponError] = useState('');
+  const [couponSuccess, setCouponSuccess] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [availableCoupons, setAvailableCoupons] = useState([]);
+  const [isCouponsLoading, setIsCouponsLoading] = useState(false);
   const [orderSummary, setOrderSummary] = useState({
     subtotal: 0,
     shipping: 0,
@@ -27,14 +56,20 @@ export default function PaymentMethod() {
     codFee: 0,
     total: 0
   });
-  const [selectedAddress, setSelectedAddress] = useState(null);
-  const [error, setError] = useState(null);
-  const [couponCode, setCouponCode] = useState('');
-  const [couponError, setCouponError] = useState('');
-  const [couponSuccess, setCouponSuccess] = useState('');
-  const [appliedCoupon, setAppliedCoupon] = useState(null);
-  const [availableCoupons, setAvailableCoupons] = useState([]);
-  const [isCouponsLoading, setIsCouponsLoading] = useState(false);
+
+ // Route state
+ const productDetails = location.state?.productDetails;
+ const cartDetails = location.state?.productDetails;
+ const isRetry = location.state?.isRetry;
+ const retryOrderId = location.state?.productDetails?.orderId;
+  
+
+  useEffect(() => {
+    if (!cartItems.length) {
+      navigate('/user/cart');
+      return;
+    }
+  }, [cartItems, navigate]);
 
   useEffect(() => {
     fetchAvailableCoupons();
@@ -60,22 +95,12 @@ export default function PaymentMethod() {
   };
 
 
-
-  const [discountAmount, setDiscountAmount] = useState(0);
-
-  const location = useLocation();
-  const navigate = useNavigate();
-  const dispatch = useDispatch();
-  
-  const isAuthenticated = useSelector((state) => state.user.isAuthenticated);
-  const user = useSelector((state) => state.user.user);
-  const productDetails = location.state?.productDetails;
-  const cartDetails = location.state?.productDetails;
-  const { addresses, loading: addressesLoading, error: addressesError } = useSelector((state) => state.address);
-  const [selectedAddressId, setSelectedAddressId] = useState(null);
-
-  const isRetry = location.state?.isRetry;
-  const retryOrderId = location.state?.productDetails?.orderId;
+  useEffect(() => {
+    if (!cartItems.length) {
+      navigate('/user/cart');
+      return;
+    }
+  }, [cartItems, navigate]);
 
   useEffect(() => {
     if (!isAuthenticated || !user) {
@@ -108,14 +133,6 @@ export default function PaymentMethod() {
       setSelectedAddress(addresses[0]);
     }
   }, [addresses, selectedAddressId]);
-
-  const {
-    processWalletPayment,
-    isProcessing: walletProcessing,
-    error: walletError,
-    canPayWithWallet,
-    balance: walletBalance
-  } = useWalletPayment()
 
 
   useEffect(() => {
@@ -279,10 +296,20 @@ const handleApplyCoupon = (code) => {
   };
 
   useEffect(() => {
-    calculateOrderSummary();
-  }, [selectedPayment]);
+    const subtotal = cartItems.reduce((sum, item) => sum + (item.finalPrice * item.quantity), 0);
+    const shipping = 0;
+    const codFee = selectedPayment === 'cod' ? 49 : 0;
+    const total = subtotal + shipping + codFee - orderSummary.discount;
 
-  const { initializePayment, isProcessing } = useRazorpay();
+    setOrderSummary({
+      subtotal,
+      shipping,
+      discount: orderSummary.discount,
+      codFee,
+      total
+    });
+  }, [cartItems, selectedPayment, orderSummary.discount]);
+
 
   const handleSubmitOrder = async (paymentId = null) => {
     setError(null);
