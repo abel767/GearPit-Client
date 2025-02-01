@@ -30,6 +30,8 @@ export default function PaymentMethod() {
     balance: walletBalance
   } = useWalletPayment();
 
+  
+
    // Redux selectors
    const cartItems = useSelector((state) => state.cart.items);
    const isAuthenticated = useSelector((state) => state.user.isAuthenticated);

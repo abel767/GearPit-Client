@@ -4,14 +4,17 @@ import axiosInstance from '../../../api/axiosInstance';
 import { X, Plus } from 'lucide-react';
 import { toast } from 'react-toastify';
 import uploadImageToCloudinary from '../../../services/uploadImageToCloudinary';
+import ImageUploader from './ImageUploader';
 
 const AddProduct = () => {
   const navigate = useNavigate();
   const [errors, setErrors] = useState({});
   const [imageFiles, setImageFiles] = useState([]);
   const [imageUrls, setImageUrls] = useState([]);
-  const MAX_IMAGES = 3;
+  const [productImages, setProductImages] = useState([]);
 
+  const MAX_IMAGES = 3;
+  
   const [productData, setProductData] = useState({
     productName: '',
     category: '',
@@ -164,51 +167,36 @@ const AddProduct = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // Validate unique sizes
-      const sizes = productData.variants.map(v => v.size.toLowerCase());
-      const uniqueSizes = new Set(sizes);
-      if (sizes.length !== uniqueSizes.size) {
-        toast.error('Each variant must have a unique size');
+      if (productImages.length === 0) {
+        toast.error('Please add at least one product image');
         return;
       }
-  
-      if (imageFiles.length !== MAX_IMAGES) {
-        toast.error(`Please upload exactly ${MAX_IMAGES} images`);
-        return;
-      }
-  
+
       // Upload images to Cloudinary
+      const imageFiles = productImages.map(img => img.file);
       const uploadedImageUrls = await uploadImageToCloudinary(imageFiles);
-      if (!uploadedImageUrls || uploadedImageUrls.length !== MAX_IMAGES) {
+
+      if (!uploadedImageUrls || uploadedImageUrls.length === 0) {
         toast.error('Failed to upload images');
         return;
       }
-  
-      // Convert price and stock to numbers
+
       const formattedData = {
         ...productData,
         images: uploadedImageUrls,
         variants: productData.variants.map((variant) => ({
-          size: variant.size.trim(), // Ensure no whitespace
+          size: variant.size.trim(),
           price: parseFloat(variant.price),
-          discount: parseFloat(variant.discount),
-          finalPrice: calculateFinalPrice(variant.price, variant.discount),
+          discount: parseFloat(variant.discount || 0),
+          finalPrice: calculateFinalPrice(variant.price, variant.discount || 0),
           stock: parseInt(variant.stock)
         }))
       };
-  
-      // Ensure all required fields are filled
-      if (!formattedData.variants.every(v => 
-        v.size && v.price && v.stock !== undefined && v.stock !== null
-      )) {
-        toast.error('Please fill all required fields for each variant');
-        return;
-      }
-  
+
       await axiosInstance.post('/admin/addproduct', formattedData, {
         withCredentials: true,
       });
-  
+
       toast.success('Product added successfully');
       navigate('/admin/productdata');
     } catch (error) {
@@ -216,6 +204,17 @@ const AddProduct = () => {
       toast.error(error.response?.data?.message || 'Failed to add product');
     }
   };
+
+  // const mediaSection = (
+  //   <div className="bg-white rounded-lg border border-gray-200 p-6">
+  //     <h3 className="text-lg font-semibold mb-4">Media</h3>
+  //     <ImageUploader
+  //       images={productImages}
+  //       onImagesChange={setProductImages}
+  //       showCrop={true}
+  //     />
+  //   </div>
+  // );
 
   
   return (
@@ -249,7 +248,7 @@ const AddProduct = () => {
             </button>
           </div>
         </div>
-
+  
         <div className="flex gap-6">
           {/* Main Form */}
           <div className="flex-1 space-y-6">
@@ -296,157 +295,77 @@ const AddProduct = () => {
                 </div>
               </div>
             </div>
-
-{/* Variants */}
-<div className="bg-white rounded-lg border border-gray-200 p-6">
-  <div className="flex justify-between items-center mb-4">
-    <h3 className="text-lg font-semibold">Variants</h3>
-    <button
-      type="button"
-      onClick={addVariant}
-      className="px-3 py-1 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg"
-    >
-      Add Variant
-    </button>
-  </div>
-  <div className="space-y-4">
-  {productData.variants.map((variant, index) => (
-  <div key={index} className="flex gap-6 items-start border-b pb-6">
-    <div className="flex-1">
-      <label className="block text-sm font-medium text-gray-700 mb-2">Size</label>
-      <input
-        type="text"
-        value={variant.size}
-        onChange={(e) => handleVariantChange(index, 'size', e.target.value)}
-        required
-        className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-      />
-    </div>
-    <div className="flex-1">
-      <label className="block text-sm font-medium text-gray-700 mb-2">Price</label>
-      <input
-        type="number"
-        value={variant.price}
-        onChange={(e) => handleVariantChange(index, 'price', e.target.value)}
-        required
-        min="0"
-        className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-      />
-    </div>
-    {/* <div className="flex-1">
-      <label className="block text-sm font-medium text-gray-700 mb-2">
-        Discount (%)
-      </label>
-      <input
-        type="number"
-        value={variant.discount}
-        onChange={(e) => handleVariantChange(index, 'discount', e.target.value)}
-        min="0"
-        max="100"
-        className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-      />
-      {variant.price && variant.discount > 0 && (
-        <div className="text-sm text-green-600 mt-1">
-          Final Price: ₹{calculateFinalPrice(variant.price, variant.discount).toFixed(2)}
-        </div>
-      )}
-    </div> */}
-    <div className="flex-1">
-      <label className="block text-sm font-medium text-gray-700 mb-2">Stock</label>
-      <input
-        type="number"
-        value={variant.stock}
-        onChange={(e) => handleVariantChange(index, 'stock', e.target.value)}
-        required
-        min="0"
-        className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-      />
-    </div>
-    {productData.variants.length > 1 && (
-      <button
-        type="button"
-        onClick={() => removeVariant(index)}
-        className="mt-6 p-2 text-red-600 hover:bg-red-50 rounded-lg"
-      >
-        <X className="w-4 h-4" />
-      </button>
-    )}
-  </div>
-))}
-  </div>
-</div>
-
-
-            {/* Media */}
+  
+            {/* Variants */}
             <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold mb-4">Media</h3>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Photos (Upload exactly 3 images)
-                </label>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8">
-                  <div className="flex flex-col items-center justify-center">
-                    <input
-                      type="file"
-                      multiple
-                      onChange={handleImageUpload}
-                      accept="image/*"
-                      className="hidden"
-                      id="image-upload"
-                      required
-                    />
-                    <label htmlFor="image-upload" className="cursor-pointer">
-                      <div className="p-3 bg-gray-100 rounded-lg mb-3">
-                        <img
-                          src="/api/placeholder/24/24"
-                          alt="Upload"
-                          className="w-6 h-6"
-                        />
-                      </div>
-                      <p className="text-sm text-gray-600 mb-1">
-                        Drag and drop exactly 3 images here, or click to add
-                      </p>
-                      <button type="button" className="text-green-500 text-sm font-medium">
-                        Add Images
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold">Variants</h3>
+                <button
+                  type="button"
+                  onClick={addVariant}
+                  className="px-3 py-1 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg"
+                >
+                  Add Variant
+                </button>
+              </div>
+              <div className="space-y-4">
+                {productData.variants.map((variant, index) => (
+                  <div key={index} className="flex gap-6 items-start border-b pb-6">
+                    <div className="flex-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Size</label>
+                      <input
+                        type="text"
+                        value={variant.size}
+                        onChange={(e) => handleVariantChange(index, 'size', e.target.value)}
+                        required
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Price</label>
+                      <input
+                        type="number"
+                        value={variant.price}
+                        onChange={(e) => handleVariantChange(index, 'price', e.target.value)}
+                        required
+                        min="0"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Stock</label>
+                      <input
+                        type="number"
+                        value={variant.stock}
+                        onChange={(e) => handleVariantChange(index, 'stock', e.target.value)}
+                        required
+                        min="0"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                      />
+                    </div>
+                    {productData.variants.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeVariant(index)}
+                        className="mt-6 p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                      >
+                        <X className="w-4 h-4" />
                       </button>
-                    </label>
-                    {errors.images && (
-                      <p className="text-red-500 text-sm mt-2">{errors.images}</p>
-                    )}
-                    
-                    {/* Image Previews */}
-                    {imageUrls.length > 0 && (
-                      <div className="mt-4 grid grid-cols-3 gap-4">
-                        {imageUrls.map((url, index) => (
-                          <div key={index} className="relative">
-                            <img
-                              src={url}
-                              alt={`Preview ${index + 1}`}
-                              className="w-full h-32 object-cover rounded-lg"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const newFiles = imageFiles.filter((_, i) => i !== index);
-                                const newUrls = imageUrls.filter((_, i) => i !== index);
-                                setImageFiles(newFiles);
-                                setImageUrls(newUrls);
-                                setErrors(validateImages(newFiles));
-                              }}
-                              className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
                     )}
                   </div>
-                </div>
+                ))}
+              </div>
+              <div className="mt-6">
+                <h3 className="text-lg font-semibold mb-4">Media</h3>
+                <ImageUploader
+                  images={productImages}
+                  onImagesChange={setProductImages}
+                  showCrop={true}
+                />
               </div>
             </div>
           </div>
-
+  
           {/* Right Sidebar */}
           <div className="w-80 space-y-6">
             {/* Category */}

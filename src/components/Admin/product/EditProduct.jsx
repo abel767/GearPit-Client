@@ -4,13 +4,14 @@ import { X, Check } from 'lucide-react';
 import { toast } from 'react-toastify';
 import axiosInstance from '../../../api/axiosInstance';
 import uploadImageToCloudinary from '../../../services/uploadImageToCloudinary'; // Assuming you have this utility
-
+import ImageUploader from './ImageUploader';
 const EditProduct = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const [categories, setCategories] = useState([]);
-  const [imageUrls, setImageUrls] = useState([]);
-  const [imageFiles, setImageFiles] = useState([]);
+  const [productImages, setProductImages] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
   const [productData, setProductData] = useState({
     productName: '',
     category: '',
@@ -47,11 +48,19 @@ const EditProduct = () => {
             variants: product.variants.map(variant => ({
               size: variant.size,
               price: variant.price.toString(),
+              discount: variant.discount?.toString() || '0',
               finalPrice: variant.finalPrice.toString(),
               stock: variant.stock.toString()
             }))
           });
-          setImageUrls(product.images);
+
+          // Set product images in the format expected by ImageUploader
+          setProductImages(
+            (product.images || []).map(url => ({
+              preview: url,
+              file: url
+            }))
+          );
         }
       } catch (error) {
         console.error('Error fetching product:', error);
@@ -118,6 +127,7 @@ const EditProduct = () => {
         {
           size: '',
           price: '',
+          discount: '0',
           finalPrice: '0',
           stock: ''
         }
@@ -134,43 +144,59 @@ const EditProduct = () => {
     }
   };
 
-  const handleImageUpload = async (e) => {
-    const files = Array.from(e.target.files);
-    const MAX_IMAGES = 3;
-
-    if (files.length !== MAX_IMAGES) {
-      toast.error(`Please upload exactly ${MAX_IMAGES} images`);
-      return;
-    }
-
-    // Upload images to Cloudinary
-    try {
-      const uploadedImageUrls = await uploadImageToCloudinary(files);
-      if (uploadedImageUrls.length === MAX_IMAGES) {
-        setImageUrls(uploadedImageUrls);
-        setProductData(prev => ({
-          ...prev,
-          images: uploadedImageUrls
-        }));
-      } else {
-        toast.error('Failed to upload images');
-      }
-    } catch (error) {
-      console.error('Error uploading images:', error);
-      toast.error('Failed to upload images');
-    }
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+
     try {
+      // Validate that we have at least one image
+      if (!productImages || productImages.length === 0) {
+        toast.error('Please add at least one product image');
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Create an array to store all image URLs (both existing and new)
+      let finalImageUrls = [];
+
+      // Process each image
+      for (const img of productImages) {
+        if (typeof img.file === 'string') {
+          // This is an existing image URL
+          finalImageUrls.push(img.file);
+        } else if (img.file instanceof File || img.file instanceof Blob) {
+          // This is a new image that needs to be uploaded
+          try {
+            const uploadedUrls = await uploadImageToCloudinary([img.file]);
+            if (uploadedUrls && uploadedUrls.length > 0) {
+              finalImageUrls.push(uploadedUrls[0]);
+            }
+          } catch (uploadError) {
+            console.error('Error uploading image:', uploadError);
+            toast.error('Failed to upload one or more images');
+            setIsSubmitting(false);
+            return;
+          }
+        }
+      }
+
+      // Validate that we have successfully processed at least one image
+      if (finalImageUrls.length === 0) {
+        toast.error('No valid images found. Please add at least one image.');
+        setIsSubmitting(false);
+        return;
+      }
+
       const formattedData = {
         ...productData,
-        variants: productData.variants.map(variant => ({
-          size: variant.size,
+        images: finalImageUrls,
+        variants: productData.variants.map((variant) => ({
+          size: variant.size.trim(),
           price: parseFloat(variant.price),
-          discount: parseFloat(variant.discount),
-          finalPrice: calculateFinalPrice(variant.price, variant.discount),
+          discount: parseFloat(variant.discount || 0),
+          finalPrice: calculateFinalPrice(variant.price, variant.discount || 0),
           stock: parseInt(variant.stock)
         }))
       };
@@ -186,8 +212,10 @@ const EditProduct = () => {
     } catch (error) {
       console.error('Error updating product:', error);
       toast.error(error.response?.data?.message || 'Failed to update product');
+      setIsSubmitting(false);
     }
   };
+
 
   return (
     <div className="p-6">
@@ -220,7 +248,7 @@ const EditProduct = () => {
             </button>
           </div>
         </div>
-
+  
         <div className="flex gap-6">
           {/* Main Form */}
           <div className="flex-1 space-y-6">
@@ -267,7 +295,7 @@ const EditProduct = () => {
                 </div>
               </div>
             </div>
-
+  
             {/* Variants */}
             <div className="bg-white rounded-lg border border-gray-200 p-6">
               <div className="flex justify-between items-center mb-4">
@@ -304,7 +332,6 @@ const EditProduct = () => {
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                       />
                     </div>
-                   
                     <div className="flex-1">
                       <label className="block text-sm font-medium text-gray-700 mb-2">Stock</label>
                       <input
@@ -328,40 +355,17 @@ const EditProduct = () => {
                   </div>
                 ))}
               </div>
-            </div>
-
-            {/* Media */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold mb-4">Media</h3>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Current Images
-                </label>
-                <div className="grid grid-cols-3 gap-4 mt-2">
-                  {imageUrls.map((url, index) => (
-                    <div key={index} className="relative">
-                      <img
-                        src={url}
-                        alt={`Product ${index + 1}`}
-                        className="w-full h-32 object-cover rounded-lg"
-                      />
-                    </div>
-                  ))}
-                </div>
-                <label className="block text-sm font-medium text-gray-700 mt-4 mb-1">
-                  Replace Images (Upload exactly 3 images)
-                </label>
-                <input
-                  type="file"
-                  multiple
-                  onChange={handleImageUpload}
-                  accept="image/*"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+              <div className="mt-6">
+                <h3 className="text-lg font-semibold mb-4">Media</h3>
+                <ImageUploader
+                  images={productImages}
+                  onImagesChange={setProductImages}
+                  showCrop={true}
                 />
               </div>
             </div>
           </div>
-
+  
           {/* Right Sidebar */}
           <div className="w-80 space-y-6">
             {/* Category */}
