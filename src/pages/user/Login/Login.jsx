@@ -3,15 +3,16 @@ import { Link, useNavigate } from "react-router-dom";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { loginUser } from "../../../services/authService";
+import { Eye, EyeOff } from 'lucide-react';
 import image from '../../../assets/user/login/test.png'
+
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [, setIsSubmitted] = useState(false);
   const navigate = useNavigate();
-
-  
 
   const validateForm = () => {
     const newErrors = {};
@@ -35,14 +36,13 @@ function Login() {
 
   const googleAuth = () => {
     try {
-      const backendUrl = 'http://localhost:3000'; // Hardcode for testing
+      const backendUrl = 'http://localhost:3000';
       console.log('Starting Google Auth, redirecting to:', `${backendUrl}/auth/google`);
       window.location.href = `${backendUrl}/auth/google`;
     } catch (error) {
       console.error('Google auth error:', error);
     }
   };
-
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -56,7 +56,7 @@ function Login() {
     
     try {
       const response = await loginUser({ email, password });
-      console.log('Login response:', response); // Debug log
+      console.log('Login response:', response);
       
       if (response.status === 'VERIFIED' && response.user) {
         toast.success(response.message || 'Login successful', {
@@ -65,7 +65,6 @@ function Login() {
           theme: "colored"
         });
   
-        // Wait for the redux store to update
         setTimeout(() => {
           navigate('/user/home', { replace: true });
         }, 2000);
@@ -73,7 +72,7 @@ function Login() {
         throw new Error(response.message || 'Login failed');
       }
     } catch(error) {
-      console.error('Login error:', error); // Debug log
+      console.error('Login error:', error);
       toast.error(error.response?.data?.message || error.message || "Something went wrong", {
         position: "top-right",
         autoClose: 3000,
@@ -84,6 +83,7 @@ function Login() {
       });
     }
   };
+
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-white">
       {/* Left side - Logo */}
@@ -111,14 +111,25 @@ function Login() {
             )}
           </div>
 
-          <div>
+          <div className="relative">
             <input
-              type="password"
+              type={showPassword ? "text" : "password"}
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full h-12 px-4 border border-gray-300 rounded-md focus:ring-2 focus:ring-black focus:border-transparent"
+              className="w-full h-12 px-4 pr-12 border border-gray-300 rounded-md focus:ring-2 focus:ring-black focus:border-transparent"
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+            >
+              {showPassword ? (
+                <EyeOff className="w-5 h-5" />
+              ) : (
+                <Eye className="w-5 h-5" />
+              )}
+            </button>
             {errors.password && (
               <p className="text-red-500 text-sm mt-1">{errors.password}</p>
             )}

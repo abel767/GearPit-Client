@@ -6,12 +6,18 @@ import { useNavigate } from "react-router-dom"
 import axiosInstance from "../../api/axiosInstance"
 import { User, Menu, X, Home, Phone, Info, Store, ShoppingCart, Heart, LogOut, Search } from 'lucide-react'
 import logo from '../../assets/Logo/Logo2.png'
+
 const Navbar = () => {
     const [isNavOpen, setIsNavOpen] = useState(false)
     const dispatch = useDispatch()
     const navigate = useNavigate()
     
     const { user } = useSelector((state) => state.user)
+    const wishlistItems = useSelector((state) => state.wishlist.items)
+    const hasWishlistItems = wishlistItems.length > 0
+
+    const cartItems = useSelector((state) => state.cart.items)
+    const hasCartItems = cartItems.length > 0
 
     const handleLogout = async () => {
         try {
@@ -44,8 +50,7 @@ const Navbar = () => {
 
     return (
         <>
-            {/* Main Navbar */}
-            <nav className="fixed top-0 left-0 right-0 z-40 bg-black ">
+            <nav className="fixed top-0 left-0 right-0 z-40 bg-black">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between items-center h-16">
                         {/* Logo */}
@@ -68,25 +73,43 @@ const Navbar = () => {
                         </button>
 
                         {/* Desktop Navigation - Center */}
-                        <div className="hidden md:flex items-center space-x-20 flex-1 justify-center ">
+                        <div className="hidden md:flex items-center space-x-20 flex-1 justify-center">
                             <Link to="/user/home" className="text-white hover:text-gray-400">Home</Link>
                             <Link to="/user/store" className="text-white hover:text-gray-400">Store</Link>
                             <Link to="/user/aboutus" className="text-white hover:text-gray-400">About Us</Link>
                             <Link to="/user/contact" className="text-white hover:text-gray-400">Contact</Link>
                         </div>
 
-                        {/* Right Navigation */}
+                        {/* Desktop Navigation - Right Side */}
                         <div className="hidden md:flex items-center space-x-6">
-                            <Link to="/user/wishlist" className="text-white hover:text-gray-400">
-                                <Heart className="h-6 w-6" />
+                            <Link to="/user/wishlist" className="text-white hover:text-gray-400 relative">
+                                <Heart 
+                                    className="h-6 w-6" 
+                                    fill={hasWishlistItems ? "#FF0000" : "none"}
+                                    color={hasWishlistItems ? "#FF0000" : "currentColor"}
+                                />
+                                {hasWishlistItems && (
+                                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                                        {wishlistItems.length}
+                                    </span>
+                                )}
                             </Link>
                             
-                            <button className="text-white hover:text-gray-400">
+                            {/* <button className="text-white hover:text-gray-400">
                                 <Search className="h-6 w-6" />
-                            </button>
+                            </button> */}
 
-                            <Link to="/user/cart" className="text-white hover:text-gray-400">
-                                <ShoppingCart className="h-6 w-6" />
+                            <Link to="/user/cart" className="text-white hover:text-gray-400 relative">
+                                <ShoppingCart 
+                                    className="h-6 w-6" 
+                                    strokeWidth={hasCartItems ? 3 : 2}
+                                    color={hasCartItems ? "#FF0000" : "currentColor"}
+                                />
+                                {hasCartItems && (
+                                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                                        {cartItems.length}
+                                    </span>
+                                )}
                             </Link>
 
                             <Link to="/user/profile" className="text-white hover:text-gray-400">
@@ -123,15 +146,33 @@ const Navbar = () => {
 
                         {/* Icons Row */}
                         <div className="mt-16 flex justify-center space-x-6 pb-6 border-b border-gray-200">
-                            <Link to="/wishlist" className="text-gray-600 hover:text-gray-900">
-                                <Heart className="h-6 w-6" />
+                            <Link to="/wishlist" className="text-gray-600 hover:text-gray-900 relative">
+                                <Heart 
+                                    className="h-6 w-6"
+                                    fill={hasWishlistItems ? "#FF0000" : "none"}
+                                    color={hasWishlistItems ? "#FF0000" : "currentColor"}
+                                />
+                                {hasWishlistItems && (
+                                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                                        {wishlistItems.length}
+                                    </span>
+                                )}
                             </Link>
-                            <Link to="/user/cart" className="text-gray-600 hover:text-gray-900">
-                                <ShoppingCart className="h-6 w-6" />
+                            <Link to="/user/cart" className="text-gray-600 hover:text-gray-900 relative">
+                                <ShoppingCart 
+                                    className="h-6 w-6"
+                                    strokeWidth={hasCartItems ? 3 : 2}
+                                    color={hasCartItems ? "#FF0000" : "currentColor"}
+                                />
+                                {hasCartItems && (
+                                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                                        {cartItems.length}
+                                    </span>
+                                )}
                             </Link>
-                            <button className="text-gray-600 hover:text-gray-900">
+                            {/* <button className="text-gray-600 hover:text-gray-900">
                                 <Search className="h-6 w-6" />
-                            </button>
+                            </button> */}
                         </div>
 
                         {/* Navigation Links */}
@@ -171,27 +212,26 @@ const Navbar = () => {
 
                         {/* Profile and Logout Section */}
                         <div className="border-t border-gray-200 pt-6 space-y-6">
-                        <Link 
-    to="/user/profile" 
-    className="text-gray-600 hover:text-gray-900"
-    onClick={(e) => {
-        if (!user?.id) {
-            e.preventDefault();
-            // Optionally show an error message or redirect to login
-            navigate("/user/login");
-        }
-    }}
->
-    {user?.profileImage ? (
-        <img
-            src={user.profileImage}
-            alt="Profile"
-            className="h-8 w-8 rounded-full object-cover border-2 border-gray-200"
-            onError={(e) => {
-                e.target.onerror = null;
-                e.target.src = 'default-profile-image.svg'; // Use a proper default image
-            }}
-        />
+                            <Link 
+                                to="/user/profile" 
+                                className="flex items-center space-x-3 text-gray-600 hover:text-gray-900"
+                                onClick={() => {
+                                    if (!user?.id) {
+                                        navigate("/user/login");
+                                    }
+                                    setIsNavOpen(false);
+                                }}
+                            >
+                                {user?.profileImage ? (
+                                    <img
+                                        src={user.profileImage}
+                                        alt="Profile"
+                                        className="h-8 w-8 rounded-full object-cover border-2 border-gray-200"
+                                        onError={(e) => {
+                                            e.target.onerror = null;
+                                            e.target.src = 'default-profile-image.svg';
+                                        }}
+                                    />
                                 ) : (
                                     <User size={20} />
                                 )}

@@ -11,29 +11,31 @@ const cartSlice = createSlice({
     addToCart: (state, action) => {
       const { product, quantity, variant } = action.payload;
       
-      // Create a unique key combining productId and variantId
+      // Don't add if variant stock is 0
+      if (!variant.stock) {
+        return;
+      }
+    
       const existingItemIndex = state.items.findIndex(
         item => 
           item.productId === product._id && 
-          item.variantId === variant._id.toString() // Ensure string comparison
+          item.variantId === variant._id.toString()
       );
-
+    
       if (existingItemIndex >= 0) {
-        // Update existing item quantity
-        state.items[existingItemIndex].quantity += quantity;
-        // Ensure quantity doesn't exceed stock
+        // Update existing item quantity and stock
         state.items[existingItemIndex].quantity = Math.min(
-          state.items[existingItemIndex].quantity,
+          state.items[existingItemIndex].quantity + quantity,
           variant.stock
         );
+        state.items[existingItemIndex].stock = variant.stock;
       } else {
-        // Add new item with all variant-specific details
         state.items.push({
           productId: product._id,
-          variantId: variant._id.toString(), // Ensure string format
+          variantId: variant._id.toString(),
           name: product.productName,
           price: variant.price,
-          finalPrice: variant.finalPrice || variant.price * (1 - (variant.discount || 0) / 100),
+          finalPrice: variant.finalPrice,
           quantity: Math.min(quantity, variant.stock),
           image: product.images[0],
           size: variant.size,
@@ -66,18 +68,20 @@ const cartSlice = createSlice({
     },
     
     setCartItems: (state, action) => {
-      // Ensure each item has all necessary properties and consistent ID formats
-      state.items = action.payload.map(item => ({
-        productId: item.productId,
-        variantId: item.variantId.toString(),
-        name: item.name,
-        price: item.price,
-        finalPrice: item.finalPrice,
-        quantity: Math.min(item.quantity, item.stock),
-        image: item.image,
-        size: item.size,
-        stock: item.stock
-      }));
+      // Filter out items with 0 stock and ensure quantities don't exceed stock
+      state.items = action.payload
+        .filter(item => item.stock > 0)
+        .map(item => ({
+          productId: item.productId,
+          variantId: item.variantId.toString(),
+          name: item.name,
+          price: item.price,
+          finalPrice: item.finalPrice,
+          quantity: Math.min(item.quantity, item.stock),
+          image: item.image,
+          size: item.size,
+          stock: item.stock
+        }));
     }
   }
 });

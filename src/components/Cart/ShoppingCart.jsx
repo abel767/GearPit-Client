@@ -12,10 +12,6 @@ export default function ShoppingCart() {
   const userId = useSelector(state => state.user.user?._id)
   const [loading, setLoading] = useState(false)
   const [initialLoading, setInitialLoading] = useState(true)
-  const [subtotal, setSubtotal] = useState(0)
-
-
-  const total = subtotal
 
   useEffect(() => {
     const fetchCartItems = async () => {
@@ -23,23 +19,25 @@ export default function ShoppingCart() {
         setInitialLoading(false)
         return
       }
-
+  
       try {
         const response = await axiosInstance.get(`/user/cart/${userId}`)
+        console.log('Cart API Response:', response.data)
         
         if (response.status === 200 && response.data?.items) {
-          // Clear the cart before adding fetched items
           dispatch({ type: 'cart/clearCart' })
           
-          // Process each cart item
           response.data.items.forEach(item => {
             if (!item.productId || !item.productId.variants) {
               console.warn('Invalid product data:', item)
               return
             }
             
-            // Find the specific variant
-            const variant = item.productId.variants.find(v => v._id.toString() === item.variantId.toString())
+            const variant = item.productId.variants.find(
+              v => v._id.toString() === item.variantId.toString()
+            )
+            console.log('Found variant:', variant, 'for variantId:', item.variantId)
+            
             if (variant) {
               dispatch(addToCart({
                 product: {
@@ -47,7 +45,7 @@ export default function ShoppingCart() {
                   productName: item.productId.productName,
                   images: item.productId.images || [],
                 },
-                quantity: item.quantity,
+                quantity: Math.min(item.quantity, variant.stock),
                 variant: {
                   _id: variant._id,
                   price: variant.price || 0,
@@ -67,9 +65,11 @@ export default function ShoppingCart() {
         setInitialLoading(false)
       }
     }
-
+  
     fetchCartItems()
   }, [userId, dispatch])
+
+
 
   const handleUpdateQuantity = async (productId, variantId, change, currentQuantity) => {
     const newQuantity = Math.max(1, currentQuantity + change)
@@ -105,12 +105,6 @@ export default function ShoppingCart() {
 
       if (response.status === 200) {
         dispatch(removeFromCart({ productId, variantId }))
-        // After successful removal, recalculate totals
-        const updatedItems = items.filter(item => 
-          !(item.productId === productId && item.variantId === variantId)
-        )
-        const newSubtotal = updatedItems.reduce((sum, item) => sum + (item.finalPrice * item.quantity), 0)
-        setSubtotal(newSubtotal)
       }
     } catch (error) {
       console.error('Error removing item:', error)
@@ -120,12 +114,8 @@ export default function ShoppingCart() {
     }
   }
 
-  useEffect(() => {
-    // Update subtotal whenever items change
-    const newSubtotal = items.reduce((sum, item) => sum + (item.finalPrice * item.quantity), 0)
-    setSubtotal(newSubtotal)
-  }, [items])
-
+  const subtotal = items.reduce((sum, item) => sum + (item.finalPrice * item.quantity), 0)
+  const total = subtotal
 
   if (initialLoading) {
     return (
@@ -157,31 +147,21 @@ export default function ShoppingCart() {
   }, {})
 
   const handleCheckout = () => {
-    // Get the current cart items directly from Redux state
-    const currentCartItems = items.map(item => ({
+    const cartItems = items.map(item => ({
       productId: item.productId,
       variantId: item.variantId,
       quantity: item.quantity,
       price: item.finalPrice,
       name: item.name,
       size: item.size,
-      variant: item.size, // Adding variant info for display
-      images: [item.image], // Ensuring images are available
     }))
 
-    // Only proceed to checkout if there are items in the cart
-    if (currentCartItems.length === 0) {
-      alert('Your cart is empty')
-      return
-    }
-
-    // Navigate with current cart state
     navigate('/user/Checkout', {
       state: {
         productDetails: {
-          items: currentCartItems,
+          items: cartItems,
           subtotal,
-          total: subtotal // Since shipping is free
+          total
         }
       }
     })
@@ -191,7 +171,7 @@ export default function ShoppingCart() {
 
   
   return (
-   <div className="min-h-screen flex flex-col lg:flex-row">
+ <div className="min-h-screen flex flex-col lg:flex-row">
       {/* Cart Items Section */}
       <div className="w-full lg:w-2/3 bg-white min-h-screen overflow-y-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="max-w-3xl mx-auto">
@@ -230,6 +210,17 @@ export default function ShoppingCart() {
                           <p className="text-sm text-gray-500 mt-1">
                             Price: ₹{item.finalPrice.toFixed(2)}
                           </p>
+                          {/* Add stock status messages */}
+                          {item.quantity > item.stock && (
+                            <p className="text-red-500 text-sm mt-1">
+                              Stock has been updated. Quantity adjusted to available stock.
+                            </p>
+                          )}
+                          {item.stock === 0 && (
+                            <p className="text-red-500 text-sm mt-1">
+                              This item is currently out of stock
+                            </p>
+                          )}
                         </div>
                         <div className="text-sm mt-2 sm:mt-0">
                           ₹{(item.finalPrice * item.quantity).toFixed(2)}
@@ -247,9 +238,11 @@ export default function ShoppingCart() {
                         
                         <div className="flex items-center border rounded">
                           <button
-                            disabled={loading}
+                            disabled={loading || item.stock === 0}
                             onClick={() => handleUpdateQuantity(item.productId, item.variantId, -1, item.quantity)}
-                            className="px-2 py-1 text-gray-500 hover:bg-gray-50"
+                            className={`px-2 py-1 text-gray-500 hover:bg-gray-50 ${
+                              item.stock === 0 ? 'opacity-50 cursor-not-allowed' : ''
+                            }`}
                           >
                             <MinusIcon size={14} />
                           </button>
@@ -257,9 +250,11 @@ export default function ShoppingCart() {
                             {item.quantity}
                           </span>
                           <button
-                            disabled={loading || item.quantity >= item.stock}
+                            disabled={loading || item.quantity >= item.stock || item.stock === 0}
                             onClick={() => handleUpdateQuantity(item.productId, item.variantId, 1, item.quantity)}
-                            className="px-2 py-1 text-gray-500 hover:bg-gray-50"
+                            className={`px-2 py-1 text-gray-500 hover:bg-gray-50 ${
+                              (item.quantity >= item.stock || item.stock === 0) ? 'opacity-50 cursor-not-allowed' : ''
+                            }`}
                           >
                             <PlusIcon size={14} />
                           </button>

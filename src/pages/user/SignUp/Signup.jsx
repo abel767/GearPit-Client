@@ -1,13 +1,11 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import {  toast } from 'react-toastify';
+import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { Eye, EyeOff } from 'lucide-react';
 import axios from "axios";
 import axiosInstance from "../../../api/axiosInstance";
 import image from '../../../assets/user/login/test.png'
-
-
-// images 
 
 function Signup() {
   const [firstName, setFirstname] = useState("");
@@ -15,12 +13,15 @@ function Signup() {
   const [userName, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [confirmpassword, setConfirmpassword] = useState("");
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [phone, setPhone] = useState("");
-  const [profileImage, setProfileImage] = useState(null); // Updated for file
+  const [profileImage, setProfileImage] = useState(null);
   const [errors, setErrors] = useState({});
   const navigate = useNavigate();
 
+  // Rest of the existing functions remain the same
   const validateForm = () => {
     const newErrors = {};
     const trimmedFirstname = firstName.trim();
@@ -80,9 +81,10 @@ function Signup() {
       setProfileImage(file);
     }
   };
+
   const googleAuth = () => {
     try {
-      const backendUrl = 'http://localhost:3000'; // Hardcode for testing
+      const backendUrl = 'http://localhost:3000';
       console.log('Starting Google Auth, redirecting to:', `${backendUrl}/auth/google`);
       window.location.href = `${backendUrl}/auth/google`;
     } catch (error) {
@@ -109,7 +111,6 @@ function Signup() {
       formData.append("file", profileImage);
       formData.append("upload_preset", "GearPit");
 
-      // Upload to Cloudinary
       const cloudinaryResponse = await axios.post(
         "https://api.cloudinary.com/v1_1/dxdsvdd7l/image/upload",
         formData,
@@ -136,7 +137,6 @@ function Signup() {
         headers: {
           "Content-Type": "application/json",
         },
-        
       });
 
       toast.success(response.data.message, {
@@ -179,7 +179,7 @@ function Signup() {
       {/* Center - Form */}
       <div className="w-full md:w-1/2 px-4 md:px-0 flex flex-col justify-center items-center">
         <h4 className="text-2xl md:text-2xl font-black mb-8 md:mb-12 tracking-tight text-center mt-10">
-        Join the Adventure: Sign Up Now!
+          Join the Adventure: Sign Up Now!
         </h4>
 
         <form className="w-full max-w-md space-y-4 md:space-y-6 px-4 md:px-0" onSubmit={handleSubmit}>
@@ -238,27 +238,49 @@ function Signup() {
             )}
           </div>
 
-          <div>
+          <div className="relative">
             <input
-              type="password"
+              type={showPassword ? "text" : "password"}
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full h-12 px-4 border border-gray-300 rounded-md focus:ring-2 focus:ring-black focus:border-transparent"
+              className="w-full h-12 px-4 pr-12 border border-gray-300 rounded-md focus:ring-2 focus:ring-black focus:border-transparent"
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+            >
+              {showPassword ? (
+                <EyeOff className="w-5 h-5" />
+              ) : (
+                <Eye className="w-5 h-5" />
+              )}
+            </button>
             {errors.password && (
               <p className="text-red-500 text-sm mt-1">{errors.password}</p>
             )}
           </div>
 
-          <div>
+          <div className="relative">
             <input
-              type="password"
+              type={showConfirmPassword ? "text" : "password"}
               placeholder="Confirm Password"
               value={confirmpassword}
               onChange={(e) => setConfirmpassword(e.target.value)}
-              className="w-full h-12 px-4 border border-gray-300 rounded-md focus:ring-2 focus:ring-black focus:border-transparent"
+              className="w-full h-12 px-4 pr-12 border border-gray-300 rounded-md focus:ring-2 focus:ring-black focus:border-transparent"
             />
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+            >
+              {showConfirmPassword ? (
+                <EyeOff className="w-5 h-5" />
+              ) : (
+                <Eye className="w-5 h-5" />
+              )}
+            </button>
             {errors.confirmpassword && (
               <p className="text-red-500 text-sm mt-1">{errors.confirmpassword}</p>
             )}

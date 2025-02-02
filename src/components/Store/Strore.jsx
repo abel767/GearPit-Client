@@ -748,6 +748,10 @@ export default function Store() {
           <h3 className="text-sm font-medium mb-2 line-clamp-1">
             {product.productName}
           </h3>
+
+          <p className="text-xs text-gray-400 mb-2">
+            {product.category?.categoryName || 'Uncategorized'}
+          </p>
           
           <div className="flex items-center gap-2">
             {hasOffer ? (
