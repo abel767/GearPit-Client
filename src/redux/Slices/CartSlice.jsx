@@ -5,7 +5,8 @@ const cartSlice = createSlice({
   initialState: {
     items: [],
     loading: false,
-    error: null
+    error: null,
+    stockAlerts: {} // Initialize stockAlerts object
   },
   reducers: {
     addToCart: (state, action) => {
@@ -24,11 +25,22 @@ const cartSlice = createSlice({
     
       if (existingItemIndex >= 0) {
         // Update existing item quantity and stock
-        state.items[existingItemIndex].quantity = Math.min(
+        const newQuantity = Math.min(
           state.items[existingItemIndex].quantity + quantity,
           variant.stock
         );
+        
+        state.items[existingItemIndex].quantity = newQuantity;
         state.items[existingItemIndex].stock = variant.stock;
+        
+        // Add stock alert if necessary
+        if (newQuantity !== state.items[existingItemIndex].quantity + quantity) {
+          if (!state.stockAlerts) state.stockAlerts = {};
+          state.stockAlerts[`${product._id}-${variant._id}`] = {
+            type: 'quantity_adjusted',
+            message: `Only ${variant.stock} items available`
+          };
+        }
       } else {
         state.items.push({
           productId: product._id,
@@ -43,28 +55,62 @@ const cartSlice = createSlice({
         });
       }
     },
-    
+
     removeFromCart: (state, action) => {
       const { productId, variantId } = action.payload;
       state.items = state.items.filter(
         item => !(item.productId === productId && item.variantId === variantId.toString())
       );
+      // Clean up any associated stock alerts
+      if (state.stockAlerts) {
+        delete state.stockAlerts[`${productId}-${variantId}`];
+      }
     },
     
     updateQuantity: (state, action) => {
-      const { productId, variantId, quantity } = action.payload;
+      const { productId, variantId, quantity, availableStock } = action.payload;
       const itemIndex = state.items.findIndex(
         item => item.productId === productId && item.variantId === variantId.toString()
       );
       
       if (itemIndex >= 0) {
         const item = state.items[itemIndex];
-        item.quantity = Math.max(1, Math.min(quantity, item.stock));
+        const newQuantity = Math.max(1, Math.min(quantity, availableStock || item.stock));
+        
+        // Update stock alert if quantity was adjusted
+        if (newQuantity !== quantity) {
+          if (!state.stockAlerts) state.stockAlerts = {};
+          state.stockAlerts[`${productId}-${variantId}`] = {
+            type: 'stock_limit',
+            // message: `Quantity adjusted to available stock (${availableStock})`
+          };
+        }
+        
+        item.quantity = newQuantity;
+        if (availableStock !== undefined) {
+          item.stock = availableStock;
+        }
+      }
+    },
+
+    setStockAlert: (state, action) => {
+      const { productId, variantId, message } = action.payload;
+      if (!state.stockAlerts) state.stockAlerts = {};
+      state.stockAlerts[`${productId}-${variantId}`] = {
+        message
+      };
+    },
+
+    clearStockAlert: (state, action) => {
+      const { productId, variantId } = action.payload;
+      if (state.stockAlerts) {
+        delete state.stockAlerts[`${productId}-${variantId}`];
       }
     },
     
     clearCart: (state) => {
       state.items = [];
+      state.stockAlerts = {};
     },
     
     setCartItems: (state, action) => {
@@ -91,7 +137,9 @@ export const {
   removeFromCart, 
   updateQuantity, 
   clearCart,
-  setCartItems 
+  setCartItems,
+  clearStockAlert,
+  setStockAlert
 } = cartSlice.actions;
 
 export default cartSlice.reducer;

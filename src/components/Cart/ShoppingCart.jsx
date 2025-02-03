@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { MinusIcon, PlusIcon } from 'lucide-react'
 import { useDispatch, useSelector } from 'react-redux'
-import { updateQuantity, removeFromCart, addToCart } from '../../redux/Slices/CartSlice'
+import { updateQuantity, removeFromCart, addToCart,clearStockAlert } from '../../redux/Slices/CartSlice'
 import axiosInstance from '../../api/axiosInstance'
 import { useNavigate } from 'react-router-dom'
 
@@ -9,6 +9,7 @@ export default function ShoppingCart() {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const items = useSelector(state => state.cart.items)
+  const stockAlerts = useSelector(state => state.cart.stockAlerts)
   const userId = useSelector(state => state.user.user?._id)
   const [loading, setLoading] = useState(false)
   const [initialLoading, setInitialLoading] = useState(true)
@@ -19,10 +20,9 @@ export default function ShoppingCart() {
         setInitialLoading(false)
         return
       }
-  
+
       try {
         const response = await axiosInstance.get(`/user/cart/${userId}`)
-        console.log('Cart API Response:', response.data)
         
         if (response.status === 200 && response.data?.items) {
           dispatch({ type: 'cart/clearCart' })
@@ -36,16 +36,16 @@ export default function ShoppingCart() {
             const variant = item.productId.variants.find(
               v => v._id.toString() === item.variantId.toString()
             )
-            console.log('Found variant:', variant, 'for variantId:', item.variantId)
-            
             if (variant) {
+              // Auto-adjust quantity if it exceeds stock
+              const adjustedQuantity = Math.min(item.quantity, variant.stock)
               dispatch(addToCart({
                 product: {
                   _id: item.productId._id,
                   productName: item.productId.productName,
                   images: item.productId.images || [],
                 },
-                quantity: Math.min(item.quantity, variant.stock),
+                quantity: adjustedQuantity,
                 variant: {
                   _id: variant._id,
                   price: variant.price || 0,
@@ -55,6 +55,18 @@ export default function ShoppingCart() {
                   stock: variant.stock
                 }
               }))
+
+              // Add stock alert if quantity was adjusted
+              if (adjustedQuantity < item.quantity) {
+                dispatch({
+                  type: 'cart/setStockAlert',
+                  payload: {
+                    productId: item.productId._id,
+                    variantId: variant._id,
+                    message: `Quantity adjusted due to available stock`
+                  }
+                })
+              }
             }
           })
         }
@@ -65,9 +77,10 @@ export default function ShoppingCart() {
         setInitialLoading(false)
       }
     }
-  
+
     fetchCartItems()
   }, [userId, dispatch])
+
 
 
 
@@ -84,15 +97,26 @@ export default function ShoppingCart() {
       })
 
       if (response.status === 200) {
+        const { availableStock, actualQuantity } = response.data.stockInfo
         dispatch(updateQuantity({
           productId,
           variantId,
-          quantity: newQuantity
+          quantity: actualQuantity,
+          availableStock
         }))
+
+        // Clear any existing stock alerts after 5 seconds
+        setTimeout(() => {
+          dispatch(clearStockAlert({ productId, variantId }))
+        }, 5000)
       }
     } catch (error) {
       console.error('Error updating quantity:', error)
-      alert('Failed to update quantity')
+      if (error.response?.data?.message) {
+        alert(error.response.data.message)
+      } else {
+        alert('Failed to update quantity')
+      }
     } finally {
       setLoading(false)
     }
@@ -180,92 +204,101 @@ export default function ShoppingCart() {
           </div>
 
           <div className="space-y-6">
-            {Object.entries(groupedItems).map(([productId, productVariants]) => (
-              <div key={productId} className="space-y-4">
-                {/* Product header */}
-                <h3 className="text-lg font-medium border-b pb-2">
-                  {productVariants[0].name}
-                </h3>
-                
-                {/* Product variants */}
-                {productVariants.map((item) => (
-                  <div 
-                    key={`${item.productId}-${item.variantId}`}
-                    className="flex flex-col sm:flex-row items-start sm:items-center gap-4 py-4 pl-4 border-b last:border-0"
-                  >
-                    <div className="relative">
+          {Object.entries(groupedItems).map(([productId, productVariants]) => (
+            <div key={productId} className="space-y-4">
+              <h3 className="text-lg font-medium border-b pb-2">
+                {productVariants[0].name}
+              </h3>
+              
+              {productVariants.map((item) => (
+                <div 
+                  key={`${item.productId}-${item.variantId}`}
+                  className="flex flex-col sm:flex-row items-start sm:items-center gap-4 py-4 pl-4 border-b last:border-0"
+                >
+                    {/* <div className="relative">
                       <img 
                         src={item.image} 
                         alt={item.name}
                         className="w-20 h-20 object-cover rounded"
                       />
-                    </div>
+                    </div> */}
                     
-                    <div className="flex-1 w-full">
-                      <div className="flex flex-col sm:flex-row sm:justify-between">
-                        <div>
-                          <p className="text-sm text-gray-500">
-                            Size: {item.size}
+                    <div className="relative">
+                    <img 
+                      src={item.image} 
+                      alt={item.name}
+                      className="w-20 h-20 object-cover rounded"
+                    />
+                  </div>
+                  
+                  <div className="flex-1 w-full">
+                    <div className="flex flex-col sm:flex-row sm:justify-between">
+                      <div>
+                        <p className="text-sm text-gray-500">
+                          Size: {item.size}
+                        </p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          Price: ₹{item.finalPrice.toFixed(2)}
+                        </p>
+                        
+                        {/* Stock status and alerts */}
+                        {item.stock <= 10 && (
+                          <p className="text-orange-500 text-sm mt-1">
+                            Only {item.stock} left in stock
                           </p>
-                          <p className="text-sm text-gray-500 mt-1">
-                            Price: ₹{item.finalPrice.toFixed(2)}
-                          </p>
-                          {/* Add stock status messages */}
-                          {item.quantity > item.stock && (
-                            <p className="text-red-500 text-sm mt-1">
-                              Stock has been updated. Quantity adjusted to available stock.
-                            </p>
-                          )}
-                          {item.stock === 0 && (
-                            <p className="text-red-500 text-sm mt-1">
-                              This item is currently out of stock
-                            </p>
-                          )}
-                        </div>
-                        <div className="text-sm mt-2 sm:mt-0">
-                          ₹{(item.finalPrice * item.quantity).toFixed(2)}
-                        </div>
+                        )}
+                        
+                        {stockAlerts && stockAlerts[`${item.productId}-${item.variantId}`] && (
+  <p className="text-red-500 text-sm mt-1">
+    {stockAlerts[`${item.productId}-${item.variantId}`].message}
+  </p>
+)}
                       </div>
                       
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mt-3 gap-3 sm:gap-0">
+                      <div className="text-sm mt-2 sm:mt-0">
+                        ₹{(item.finalPrice * item.quantity).toFixed(2)}
+                      </div>
+                    </div>
+                    
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mt-3 gap-3 sm:gap-0">
+                      <button
+                        disabled={loading}
+                        onClick={() => handleRemoveItem(item.productId, item.variantId)}
+                        className="text-xs text-gray-500 hover:text-gray-700"
+                      >
+                        Remove
+                      </button>
+                      
+                      <div className="flex items-center border rounded">
                         <button
-                          disabled={loading}
-                          onClick={() => handleRemoveItem(item.productId, item.variantId)}
-                          className="text-xs text-gray-500 hover:text-gray-700"
+                          disabled={loading || item.quantity <= 1}
+                          onClick={() => handleUpdateQuantity(item.productId, item.variantId, -1, item.quantity)}
+                          className={`px-2 py-1 text-gray-500 hover:bg-gray-50 ${
+                            (loading || item.quantity <= 1) ? 'opacity-50 cursor-not-allowed' : ''
+                          }`}
                         >
-                          Remove
+                          <MinusIcon size={14} />
                         </button>
-                        
-                        <div className="flex items-center border rounded">
-                          <button
-                            disabled={loading || item.stock === 0}
-                            onClick={() => handleUpdateQuantity(item.productId, item.variantId, -1, item.quantity)}
-                            className={`px-2 py-1 text-gray-500 hover:bg-gray-50 ${
-                              item.stock === 0 ? 'opacity-50 cursor-not-allowed' : ''
-                            }`}
-                          >
-                            <MinusIcon size={14} />
-                          </button>
-                          <span className="px-3 py-1 text-sm border-x">
-                            {item.quantity}
-                          </span>
-                          <button
-                            disabled={loading || item.quantity >= item.stock || item.stock === 0}
-                            onClick={() => handleUpdateQuantity(item.productId, item.variantId, 1, item.quantity)}
-                            className={`px-2 py-1 text-gray-500 hover:bg-gray-50 ${
-                              (item.quantity >= item.stock || item.stock === 0) ? 'opacity-50 cursor-not-allowed' : ''
-                            }`}
-                          >
-                            <PlusIcon size={14} />
-                          </button>
-                        </div>
+                        <span className="px-3 py-1 text-sm border-x">
+                          {item.quantity}
+                        </span>
+                        <button
+                          disabled={loading || item.quantity >= item.stock}
+                          onClick={() => handleUpdateQuantity(item.productId, item.variantId, 1, item.quantity)}
+                          className={`px-2 py-1 text-gray-500 hover:bg-gray-50 ${
+                            (loading || item.quantity >= item.stock) ? 'opacity-50 cursor-not-allowed' : ''
+                          }`}
+                        >
+                          <PlusIcon size={14} />
+                        </button>
                       </div>
                     </div>
                   </div>
-                ))}
-              </div>
-            ))}
-          </div>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
 
           <button 
             onClick={() => navigate('/user/store')} 

@@ -8,6 +8,14 @@ import { useWalletPayment } from '../../hooks/walletPaymentHook';
 import { fetchWalletDetails } from '../../redux/Slices/walletSlice';
 import toast from 'react-hot-toast';
 import CouponCard from '../couponTab/CouponCard';
+import CartItemsList from './CartListItems';
+
+import { 
+  fetchAvailableCoupons, 
+  validateCoupon, 
+  clearAppliedCoupon 
+} from '../../redux/Slices/CouponSlice';
+
 
 const UPIIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -22,15 +30,8 @@ export default function PaymentMethod() {
   const location = useLocation();
   const dispatch = useDispatch();
   const { initializePayment, isProcessing } = useRazorpay();
-  const {
-    processWalletPayment,
-    isProcessing: walletProcessing,
-    error: walletError,
-    canPayWithWallet,
-    balance: walletBalance
-  } = useWalletPayment();
-
-  
+  const {processWalletPayment,isProcessing: walletProcessing,error: walletError,canPayWithWallet,balance: walletBalance} = useWalletPayment();
+  const {availableCoupons,appliedCoupon,loading: isCouponsLoading, error: couponReduxError } = useSelector((state) => state.coupon);
 
    // Redux selectors
    const cartItems = useSelector((state) => state.cart.items);
@@ -48,9 +49,6 @@ export default function PaymentMethod() {
   const [couponCode, setCouponCode] = useState('');
   const [couponError, setCouponError] = useState('');
   const [couponSuccess, setCouponSuccess] = useState('');
-  const [appliedCoupon, setAppliedCoupon] = useState(null);
-  const [availableCoupons, setAvailableCoupons] = useState([]);
-  const [isCouponsLoading, setIsCouponsLoading] = useState(false);
   const [orderSummary, setOrderSummary] = useState({
     subtotal: 0,
     shipping: 0,
@@ -73,30 +71,11 @@ export default function PaymentMethod() {
     }
   }, [cartItems, navigate]);
 
-  useEffect(() => {
-    fetchAvailableCoupons();
-  }, []);
+// Replace the old useEffect
+useEffect(() => {
+  fetchCoupons();
+}, []);
   
-  const fetchAvailableCoupons = async () => {
-    setIsCouponsLoading(true);
-    try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/user/valid-coupons`, {
-        credentials: 'include'
-      });
-      
-      if (!response.ok) throw new Error('Failed to fetch coupons');
-      
-      const data = await response.json();
-      setAvailableCoupons(data.data || []);
-    } catch (error) {
-      console.error('Error fetching coupons:', error);
-      toast.error('Failed to load available coupons');
-    } finally {
-      setIsCouponsLoading(false);
-    }
-  };
-
-
   useEffect(() => {
     if (!cartItems.length) {
       navigate('/user/cart');
@@ -201,7 +180,17 @@ export default function PaymentMethod() {
     }
   ];
 
-  const validateAndApplyCoupon = async (code) => {
+// Add fetchCoupons function
+const fetchCoupons = () => {
+  dispatch(fetchAvailableCoupons())
+    .unwrap()
+    .catch((error) => {
+      toast.error('Failed to load available coupons');
+    });
+};
+
+// Add handleCouponValidation function
+const handleCouponValidation = async (code) => {
   setCouponError('');
   setCouponSuccess('');
   
@@ -211,60 +200,34 @@ export default function PaymentMethod() {
   }
 
   try {
-    const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/user/validate-coupon`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify({
-        code: code.trim().toUpperCase(),
-        cartTotal: orderSummary.subtotal
-      })
-    });
+    const result = await dispatch(validateCoupon({
+      code,
+      cartTotal: orderSummary.subtotal
+    })).unwrap();
 
-    const data = await response.json();
-
-    if (response.status === 404) {
-      throw new Error('Invalid or expired coupon');
-    }
-
-    if (!response.ok) {
-      throw new Error(data.message || 'Failed to validate coupon');
-    }
-
-    if (!data.success) {
-      setCouponError(data.message);
-      return;
-    }
-
-    setAppliedCoupon(data.data);
     setCouponCode('');
-    setCouponSuccess(`Coupon applied! You saved ₹${data.data.discountAmount}`);
-    toast.success(`Coupon applied! You saved ₹${data.data.discountAmount}`);
+    setCouponSuccess(`Coupon applied! You saved ₹${result.discountAmount}`);
+    toast.success(`Coupon applied! You saved ₹${result.discountAmount}`);
 
-    // Update order summary
     setOrderSummary(prev => ({
       ...prev,
-      discount: data.data.discountAmount,
-      total: prev.subtotal + prev.shipping + prev.codFee - data.data.discountAmount
+      discount: result.discountAmount,
+      total: prev.subtotal + prev.shipping + prev.codFee - result.discountAmount
     }));
-
   } catch (error) {
-    console.error('Error applying coupon:', error);
-    setCouponError(error.message || 'Failed to apply coupon');
-    toast.error(error.message || 'Failed to apply coupon');
+    setCouponError(error);
+    toast.error(error);
   }
 };
 
-const removeCoupon = () => {
-  setAppliedCoupon(null);
+// Add handleRemoveCoupon function
+const handleRemoveCoupon = () => {
+  dispatch(clearAppliedCoupon());
   setCouponCode('');
   setCouponSuccess('');
   setCouponError('');
   toast.success('Coupon removed');
   
-  // Recalculate order summary without discount
   setOrderSummary(prev => ({
     ...prev,
     discount: 0,
@@ -272,9 +235,7 @@ const removeCoupon = () => {
   }));
 };
 
-const handleApplyCoupon = (code) => {
-  validateAndApplyCoupon(code);
-};
+
   const calculateOrderSummary = () => {
     let subtotal = 0;
 
@@ -383,7 +344,7 @@ const handleApplyCoupon = (code) => {
           phoneNumber: selectedAddress.phoneNumber
         },
         couponCode: appliedCoupon?.couponCode,
-        discount: discountAmount
+        discount: appliedCoupon?.discountAmount || 0
       };
   
       if (paymentId) {
@@ -431,48 +392,6 @@ const handleApplyCoupon = (code) => {
     }
   };
 
-  // const handlePaymentFailure = async (error) => {
-  //   try {
-  //     // Send the failure details to your backend
-  //     const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/user/payment-failure`, {
-  //       method: 'POST',
-  //       headers: {
-  //         'Content-Type': 'application/json',
-  //       },
-  //       credentials: 'include',
-  //       body: JSON.stringify({
-  //         error: {
-  //           code: error.code,
-  //           description: error.description,
-  //           source: error.source,
-  //           step: error.step,
-  //           reason: error.reason,
-  //           metadata: {
-  //             order_id: error.metadata?.order_id,
-  //             payment_id: error.metadata?.payment_id
-  //           }
-  //         }
-  //       })
-  //     });
-  
-  //     if (!response.ok) {
-  //       throw new Error('Failed to log payment failure');
-  //     }
-  
-  //     // Navigate to the failure page with error details
-  //     navigate('/user/PaymentFailure', {
-  //       state: {
-  //         errorCode: error.code,
-  //         errorMessage: error.description,
-  //         orderId: error.metadata?.order_id
-  //       }
-  //     });
-  //   } catch (error) {
-  //     console.error('Error handling payment failure:', error);
-  //     // Still navigate to failure page even if logging fails
-  //     navigate('/user/PaymentFailure');
-  //   }
-  // };
 
   const handlePaymentSubmit = async () => {
     setError(null);
@@ -578,6 +497,8 @@ const handleApplyCoupon = (code) => {
     return null;
   }
 
+
+  
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto">
@@ -686,21 +607,9 @@ const handleApplyCoupon = (code) => {
             <div className="sticky top-6">
               {/* Cart Items */}
               <div className="mb-6">
-                {cartDetails?.items?.map((item, index) => (
-                  <div key={index} className="flex items-center gap-4 mb-4">
-                    <div className="relative">
-                      <span className="absolute -top-2 -right-2 bg-gray-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                        {item.quantity}
-                      </span>
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">{item.name}</p>
-                      <p className="text-xs text-gray-500">{item.variant}</p>
-                    </div>
-                    <div className="text-sm">₹{item.price.toFixed(2)}</div>
-                  </div>
-                ))}
-              </div>
+  <h3 className="text-base mb-4">Order Summary</h3>
+  <CartItemsList items={cartDetails?.items} /> 
+</div>
 
               <div className="mb-6">
     <h3 className="text-base mb-3">Available Coupons</h3>
@@ -716,12 +625,12 @@ const handleApplyCoupon = (code) => {
               placeholder="Enter coupon code"
               className="flex-1 p-2 border rounded text-sm"
             />
-            <button
-              onClick={() => validateAndApplyCoupon(couponCode)}
-              className="px-4 py-2 border rounded text-sm hover:bg-gray-50"
-            >
-              Apply
-            </button>
+<button
+  onClick={() => handleCouponValidation(couponCode)}
+  className="px-4 py-2 border rounded text-sm hover:bg-gray-50"
+>
+  Apply
+</button>
           </div>
           {couponError && (
             <p className="text-red-500 text-xs">{couponError}</p>
@@ -735,32 +644,33 @@ const handleApplyCoupon = (code) => {
           <div className="text-sm text-gray-500">Loading available coupons...</div>
         ) : (
           <div className="space-y-3">
-            {availableCoupons.map((coupon) => (
-              <CouponCard
-                key={coupon._id}
-                coupon={coupon}
-                cartTotal={orderSummary.subtotal}
-                onApply={handleApplyCoupon}
-              />
+{availableCoupons.map((coupon) => (
+  <CouponCard
+    key={coupon._id}
+    coupon={coupon}
+    cartTotal={orderSummary.subtotal}
+    onApply={handleCouponValidation}
+  />
             ))}
           </div>
         )}
       </>
     ) : (
       <div className="relative">
-        <CouponCard
-          coupon={appliedCoupon}
-          cartTotal={orderSummary.subtotal}
-          onApply={() => {}}
-          isApplied={true}
-        />
-        <button
-          onClick={removeCoupon}
-          className="absolute -top-2 -right-2 p-1 bg-white rounded-full shadow-md hover:bg-gray-50"
-          aria-label="Remove coupon"
-        >
-          <X className="w-4 h-4 text-gray-500" />
-        </button>
+<CouponCard
+  key={appliedCoupon._id}
+  coupon={appliedCoupon}
+  cartTotal={orderSummary.subtotal}
+  onApply={() => {}}
+  isApplied={true}
+/>
+<button
+  onClick={handleRemoveCoupon}
+  className="absolute -top-2 -right-2 p-1 bg-white rounded-full shadow-md hover:bg-gray-50"
+  aria-label="Remove coupon"
+>
+  <X className="w-4 h-4 text-gray-500" />
+</button>
       </div>
     )}
   </div>

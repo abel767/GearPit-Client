@@ -15,9 +15,10 @@ import addressReducer from './Slices/addressSlice';
 import productReducer from './Slices/productSlice';
 import userReducer from './Slices/userSlice';
 import adminReducer from './Slices/adminSlice';
-import cartReducer from './Slices/CartSlice'
-import walletReducer from './Slices/walletSlice'
-import wishlistReducer from './Slices/wishlistSlice'
+import cartReducer from './Slices/CartSlice';
+import walletReducer from './Slices/walletSlice';
+import wishlistReducer from './Slices/wishlistSlice';
+import couponReducer from './Slices/CouponSlice';
 
 // Create persist configs
 const userPersistConfig = {
@@ -35,11 +36,17 @@ const wishlistPersistConfig = {
   storage,
 };
 
-// Add cart persist config
 const cartPersistConfig = {
   key: 'cart',
   storage,
-  whitelist: ['items'] // Only persist the items array
+  whitelist: ['items']
+};
+
+// Add coupon persist config
+const couponPersistConfig = {
+  key: 'coupon',
+  storage,
+  whitelist: ['appliedCoupon'] // Only persist the applied coupon
 };
 
 // Create persisted reducers
@@ -47,6 +54,7 @@ const persistedUserReducer = persistReducer(userPersistConfig, userReducer);
 const persistedAdminReducer = persistReducer(adminPersistConfig, adminReducer);
 const persistedWishlistReducer = persistReducer(wishlistPersistConfig, wishlistReducer);
 const persistedCartReducer = persistReducer(cartPersistConfig, cartReducer);
+const persistedCouponReducer = persistReducer(couponPersistConfig, couponReducer);
 
 const store = configureStore({
   reducer: {
@@ -55,9 +63,10 @@ const store = configureStore({
     profile: profileReducer,
     address: addressReducer,
     product: productReducer,
-    cart: persistedCartReducer, // Use the persisted cart reducer
+    cart: persistedCartReducer,
     wallet: walletReducer,
-    wishlist: persistedWishlistReducer  
+    wishlist: persistedWishlistReducer,
+    coupon: persistedCouponReducer  // Add the persisted coupon reducer
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
