@@ -24,6 +24,11 @@ export const createPaymentOrder = async (amount) => {
 
     if (!response.ok) throw new Error('Payment order creation failed');
     const result = await response.json();
+    
+    if (!result.success || !result.data) {
+      throw new Error('Invalid payment order response');
+    }
+
     return {
       id: result.data.orderId,
       amount: result.data.amount,
@@ -50,7 +55,13 @@ export const verifyPayment = async (paymentData) => {
       const errorData = await response.json();
       throw new Error(errorData.message || 'Payment verification failed');
     }
-    return await response.json();
+    
+    const result = await response.json();
+    if (!result.success) {
+      throw new Error(result.message || 'Payment verification failed');
+    }
+    
+    return result;
   } catch (error) {
     console.error('Payment verification error:', error);
     throw error;
@@ -69,7 +80,7 @@ export const createRazorpayOptions = ({
     key: keyId,
     amount: orderData.amount,
     currency: orderData.currency || 'INR',
-    name: 'Your Store Name',
+    name: 'GearPit',
     description: 'Order Payment',
     order_id: orderData.id,
     prefill: {
@@ -79,20 +90,38 @@ export const createRazorpayOptions = ({
     },
     handler: async function (response) {
       try {
-        // Verify payment before calling success
-        await verifyPayment({
+        // Verify payment with all required fields
+        const verifyResponse = await verifyPayment({
           razorpay_payment_id: response.razorpay_payment_id,
           razorpay_order_id: response.razorpay_order_id,
           razorpay_signature: response.razorpay_signature
         });
-        onSuccess(response.razorpay_payment_id);
+
+        if (verifyResponse.success) {
+          onSuccess(response.razorpay_payment_id);
+        } else {
+          throw new Error(verifyResponse.message || 'Payment verification failed');
+        }
       } catch (error) {
-        onError(error);
+        onError({
+          code: 'VERIFICATION_FAILED',
+          description: error.message,
+          metadata: {
+            order_id: response.razorpay_order_id,
+            payment_id: response.razorpay_payment_id
+          }
+        });
       }
     },
     modal: {
       ondismiss: function() {
-        onError(new Error('Payment cancelled by user'));
+        onError({
+          code: 'PAYMENT_MODAL_CLOSED',
+          description: 'Payment window was closed before completion',
+          metadata: {
+            order_id: orderData.id
+          }
+        });
       }
     },
     notes: {

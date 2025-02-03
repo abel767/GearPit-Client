@@ -44,12 +44,13 @@ export const useRazorpay = () => {
           onError: (error) => {
             clearTimeout(paymentTimeout);
             setIsProcessing(false);
-            // Ensure error has proper metadata
+            // Enhanced error metadata
             const enhancedError = {
-              ...error,
+              code: error.code || 'PAYMENT_FAILED',
+              description: error.description || error.message || 'Payment failed',
               metadata: {
-                ...error.metadata,
-                order_id: error.metadata?.order_id || orderData.id
+                order_id: error.metadata?.order_id || orderData.id,
+                payment_id: error.metadata?.payment_id
               }
             };
             onError(enhancedError);

@@ -392,6 +392,8 @@ const handleRemoveCoupon = () => {
     }
   };
 
+  
+
 
   const handlePaymentSubmit = async () => {
     setError(null);
@@ -402,15 +404,13 @@ const handleRemoveCoupon = () => {
     }
   
     if (selectedPayment === 'wallet') {
+      // Wallet payment logic remains unchanged
       const paymentAmount = orderSummary.total;
-      
-      // Validate amount
       if (!paymentAmount || paymentAmount <= 0) {
         setError('Invalid payment amount');
         return;
       }
   
-      // Validate wallet balance
       if (!canPayWithWallet(paymentAmount)) {
         setError('Insufficient wallet balance');
         return;
@@ -431,7 +431,22 @@ const handleRemoveCoupon = () => {
         console.error('Wallet payment error:', error);
         setError('Failed to process wallet payment');
       }
-    }else {
+    } else {
+      // Prepare order data for Razorpay payment
+      const orderData = {
+        userId: user._id,
+        items: cartDetails?.items?.map(item => ({
+          productId: item.productId,
+          variantId: item.variantId,
+          quantity: item.quantity,
+          price: item.price
+        })) || [],
+        paymentMethod: 'online',
+        totalAmount: orderSummary.total,
+        shippingAddress: selectedAddress,
+        couponCode: appliedCoupon?.couponCode,
+        discount: appliedCoupon?.discountAmount || 0
+      };
 
       try {
         await initializePayment({
@@ -445,50 +460,48 @@ const handleRemoveCoupon = () => {
             await handleSubmitOrder(paymentId);
           },
           onError: async (error) => {
-            // Don't handle user cancellation as a failure
-            if (error.message === 'Payment cancelled by user') {
-              return;
-            }
-  
-            // Send failure details to backend
+            console.log('Payment error received:', error);
+
+            // Handle modal close and other payment failures
             try {
-              await fetch(`${import.meta.env.VITE_BACKEND_URL}/user/payment-failure`, {
+              const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/user/payment-failure`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
                 },
                 credentials: 'include',
-                body: JSON.stringify({
-                  error: {
-                    code: error.code,
-                    description: error.description,
-                    source: error.source,
-                    step: error.step,
-                    reason: error.reason,
-                    metadata: {
-                      order_id: error.metadata?.order_id,
-                      payment_id: error.metadata?.payment_id
-                    }
-                  }
+                body: JSON.stringify({ 
+                  error,
+                  orderData // Include order data in failure request
                 })
+              });
+
+              const failureData = await response.json();
+              
+              navigate('/user/PaymentFailure', {
+                state: {
+                  errorCode: error.code,
+                  errorMessage: error.code === 'PAYMENT_MODAL_CLOSED' 
+                    ? 'Payment was cancelled.'
+                    : error.description || 'Payment failed. Please try again.',
+                  orderId: failureData.data?.orderId || error.metadata?.order_id
+                }
               });
             } catch (logError) {
               console.error('Failed to log payment failure:', logError);
+              navigate('/user/PaymentFailure', {
+                state: {
+                  errorCode: error.code || 'UNKNOWN_ERROR',
+                  errorMessage: 'An unexpected error occurred. Please try again.',
+                  orderId: error.metadata?.order_id
+                }
+              });
             }
-  
-            // Navigate to failure page with error details
-            navigate('/user/PaymentFailure', {
-              state: {
-                errorCode: error.code,
-                errorMessage: error.description || 'Payment failed. Please try again.',
-                orderId: error.metadata?.order_id
-              }
-            });
           }
         });
       } catch (error) {
-        setError('Failed to initialize payment. Please try again.');
         console.error('Payment initialization failed:', error);
+        setError('Failed to initialize payment. Please try again.');
       }
     }
   };

@@ -20,18 +20,15 @@ export default function PaymentFailure() {
 
   useEffect(() => {
     if (location.state) {
-      const retryWindowEnds = location.state.retryWindowEnds 
-        ? new Date(location.state.retryWindowEnds)
-        : new Date(Date.now() + 1 * 60000); // 1 minute retry window
-
       setErrorDetails({
         code: location.state.errorCode || '',
         message: location.state.errorMessage || 'Your payment could not be processed.',
         orderId: location.state.orderId || '',
-        retryWindowEnds
+        retryWindowEnds: new Date(Date.now() + 10 * 60000) // 10 minute retry window
       });
     }
   }, [location.state]);
+
 
   useEffect(() => {
     if (errorDetails.retryWindowEnds) {
@@ -62,23 +59,21 @@ export default function PaymentFailure() {
   
     setIsRetrying(true);
     try {
-      // Get clean order ID
-      const cleanOrderId = errorDetails.orderId.replace('order_', '');
-      
       await initiateRetryPayment({
-        orderId: cleanOrderId,
-        onSuccess: () => {
+        orderId: errorDetails.orderId,
+        onSuccess: (response) => {
           navigate('/user/PaymentSuccess', {
-            state: { message: 'Payment successful!' }
+            state: { 
+              orderNumber: response.data.orderNumber,
+              orderId: response.data.orderId
+            }
           });
         },
         onError: (error) => {
-          // Update error details with new failure
           setErrorDetails(prev => ({
             ...prev,
             code: error.code || 'RETRY_FAILED',
-            message: error.message || 'Payment retry failed. Please try again.',
-            orderId: error.metadata?.order_id || prev.orderId
+            message: error.message || 'Payment retry failed. Please try again.'
           }));
         }
       });

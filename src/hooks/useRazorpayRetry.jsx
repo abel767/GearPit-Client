@@ -6,7 +6,7 @@ export const useRazorpayRetry = () => {
   const [isProcessing, setIsProcessing] = useState(false);
 
   const initiateRetryPayment = useCallback(async ({
-    orderId,
+    orderId,  // MongoDB order ID
     onSuccess,
     onError
   }) => {
@@ -21,7 +21,7 @@ export const useRazorpayRetry = () => {
         throw new Error('Razorpay SDK failed to load');
       }
 
-      // Create new payment order for retry
+      // Get retry payment details using MongoDB order ID
       const retryResponse = await axiosInstance.post(`/user/orders/${orderId}/retry-payment`);
       
       if (!retryResponse.data.success || !retryResponse.data.data) {
@@ -36,17 +36,18 @@ export const useRazorpayRetry = () => {
         key: paymentData.key,
         amount: paymentData.amount,
         currency: paymentData.currency,
-        order_id: paymentData.orderId,
+        order_id: paymentData.razorpayOrderId, // Using razorpayOrderId from backend
         name: 'GearPit',
         description: `Retry Payment for Order #${paymentData.orderNumber}`,
         handler: async function(response) {
           clearTimeout(paymentTimeout);
           try {
-            const verifyResponse = await axiosInstance.post('/user/verify-payment', {
+            // Send verification with both IDs
+            const verifyResponse = await axiosInstance.post('/user/verify-retry-payment', {
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_order_id: response.razorpay_order_id,
               razorpay_signature: response.razorpay_signature,
-              orderId // Original order ID
+              orderId // Original MongoDB order ID
             });
             
             if (verifyResponse.data.success) {
@@ -70,7 +71,10 @@ export const useRazorpayRetry = () => {
             setIsProcessing(false);
             onError({
               code: 'MODAL_CLOSED',
-              message: 'Payment window was closed'
+              message: 'Payment window was closed',
+              metadata: {
+                order_id: paymentData.razorpayOrderId
+              }
             });
           }
         },
@@ -78,7 +82,8 @@ export const useRazorpayRetry = () => {
           enabled: false
         },
         notes: {
-          order_id: orderId
+          order_id: orderId,
+          retry_payment: 'true'
         }
       };
 
@@ -89,7 +94,10 @@ export const useRazorpayRetry = () => {
         setIsProcessing(false);
         onError({
           code: 'TIMEOUT',
-          message: 'Payment timed out'
+          message: 'Payment timed out',
+          metadata: {
+            order_id: paymentData.razorpayOrderId
+          }
         });
       }, 300000); // 5 minutes timeout
 
@@ -100,7 +108,10 @@ export const useRazorpayRetry = () => {
       onError({
         code: 'INITIALIZATION_FAILED',
         message: error.message || 'Failed to initialize payment retry',
-        details: error.response?.data
+        details: error.response?.data,
+        metadata: {
+          orderId // Include original order ID in error
+        }
       });
     }
   }, [isProcessing]);
