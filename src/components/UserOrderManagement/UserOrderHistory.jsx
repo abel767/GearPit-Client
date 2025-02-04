@@ -5,6 +5,8 @@ import axiosInstance from '../../api/axiosInstance';
 import { AlertCircle, X, RefreshCw, Clock, AlertTriangle } from 'lucide-react';
 import { loadRazorpay } from '../../utils/LoadRazorPay';
 import toast from 'react-hot-toast';
+import { useRazorpayRetry } from '../../hooks/useRazorpayRetry';
+
 const OrderHistory = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -14,6 +16,8 @@ const OrderHistory = () => {
   
   const userState = useSelector((state) => state.user);
   const userId = userState?.user?._id;
+
+  const { initiateRetryPayment, isProcessing } = useRazorpayRetry();
 
   const getStatusColor = (status, paymentStatus) => {
     if (paymentStatus === 'failed') {
@@ -94,55 +98,30 @@ const OrderHistory = () => {
     const seconds = Math.floor((diff % 60000) / 1000);
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
-
   const handleRetryPayment = async (order) => {
+    if (retryLoading) return;
+    
     try {
       setRetryLoading(order._id);
-      
-      const isLoaded = await loadRazorpay();
-      if (!isLoaded) throw new Error('Failed to load payment gateway');
-  
-      const response = await axiosInstance.post(`/user/orders/${order._id}/retry-payment`);
-      const { orderId: razorpayOrderId, amount, currency } = response.data.data;
-  
-      const options = {
-        key: import.meta.env.VITE_RAZORPAY_KEY_ID,
-        amount,
-        currency,
-        order_id: razorpayOrderId,
-        name: "Your Store",
-        description: `Retry Payment for Order #${order.orderNumber}`,
-        prefill: {
-          name: userState?.user?.name,
-          email: userState?.user?.email,
+      setError(null);
+
+      await initiateRetryPayment({
+        orderId: order._id,
+        onSuccess: async (response) => {
+          toast.success('Payment successful');
+          await fetchOrders();
         },
-        handler: async function (response) {
-          try {
-            await axiosInstance.post(`/user/orders/${order._id}/verify-retry-payment`, {
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_signature: response.razorpay_signature,
-              orderId: order._id
-            });
-            
-            toast.success('Payment successful');
-            await fetchOrders(); // Refresh order list
-            
-          } catch (error) {
-            setError('Payment verification failed');
-            console.error(error);
-          }
-        },
-        modal: {
-          ondismiss: () => setRetryLoading(null)
+        onError: (error) => {
+          console.error('Payment error:', error);
+          setError(error.message || 'Payment failed');
+          toast.error(error.message || 'Payment failed');
         }
-      };
-  
-      const rzp = new window.Razorpay(options);
-      rzp.open();
+      });
+
     } catch (error) {
-      setError('Failed to initiate payment retry');
-      console.error(error);
+      console.error('Retry payment error:', error);
+      setError('Failed to initiate payment');
+      toast.error('Failed to initiate payment');
     } finally {
       setRetryLoading(null);
     }
@@ -273,7 +252,7 @@ const OrderHistory = () => {
                   
                   <div className="w-full md:w-auto flex flex-col space-y-1">
                     <span className="md:hidden text-xs text-gray-500">Action:</span>
-                    {order.paymentStatus === 'failed' && isRetryWindowActive(order.paymentRetryWindow) ? (
+    {order.paymentStatus === 'failed' ? (
                       <button
                         onClick={() => handleRetryPayment(order)}
                         disabled={retryLoading === order._id}
