@@ -8,7 +8,7 @@ import {
   Check,
   X,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
 } from 'lucide-react';
 
 export default function OrderManagement() {
@@ -24,8 +24,30 @@ export default function OrderManagement() {
   const [currentPage, setCurrentPage] = useState(1);
   const ordersPerPage = 5;
 
-  const statusTabs = ['All Status', 'Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'];
+  const statusTabs = ['All Status', 'Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled', 'Failed'];
   const statusOptions = ['Processing', 'Shipped', 'Delivered', 'Cancelled'];
+
+
+
+  const fetchOrders = async () => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/admin/orders`, {
+        headers:{
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include'
+      });
+      const data = await response.json();
+      if (data.success) {
+        setOrders(data.orders);
+      }
+    } catch (error) {
+      console.error('Failed to fetch orders:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   useEffect(() => {
     fetchOrders();
@@ -45,24 +67,7 @@ export default function OrderManagement() {
 
   
 
-  const fetchOrders = async () => {
-    try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/admin/orders`, {
-        headers:{
-          'Content-Type': 'application/json',
-        }
-     
-      });
-      const data = await response.json();
-      if (data.success) {
-        setOrders(data.orders);
-      }
-    } catch (error) {
-      console.error('Failed to fetch orders:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+
 
 
 
@@ -102,7 +107,14 @@ export default function OrderManagement() {
       // You might want to show an error message to the user here
     }
   };
-  const getStatusColor = (status) => {
+
+
+   const getStatusColor = (status, paymentStatus) => {
+    // payment failed in red color 
+    if (paymentStatus === 'failed') {
+      return 'text-red-500 bg-red-50';
+    }
+
     switch (status?.toLowerCase()) {
       case 'pending':
         return 'text-yellow-500 bg-yellow-50';
@@ -118,6 +130,7 @@ export default function OrderManagement() {
         return 'text-gray-500 bg-gray-50';
     }
   };
+
 
 
 
@@ -145,12 +158,20 @@ export default function OrderManagement() {
   };
 
   const filteredOrders = orders.filter(order => {
-    const matchesStatus = selectedStatus === 'All Status' || order.status === selectedStatus;
+    const matchesStatus = () => {
+      if (selectedStatus === 'All Status') return true;
+      if (selectedStatus === 'Failed') return order.paymentStatus === 'failed';
+      return order.status.toLowerCase() === selectedStatus.toLowerCase();
+    };
+
     const matchesSearch = 
       order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.userId?.name?.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesStatus && matchesSearch;
+
+    return matchesStatus() && matchesSearch;
   });
+
+
 
   // Pagination calculations
   const totalPages = Math.ceil(filteredOrders.length / ordersPerPage);
@@ -342,14 +363,21 @@ export default function OrderManagement() {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-sm font-medium">₹{order.totalAmount}</td>
-                    <td className="px-6 py-4 text-sm capitalize">{order.paymentMethod}</td>
+                    <td className="px-6 py-4 text-sm capitalize">
+                      {order.paymentMethod}
+                      {order.paymentStatus === 'failed' && (
+                        <span className="ml-2 text-red-500 text-xs">
+                          (Payment Failed)
+                        </span>
+                      )}
+                    </td>
                     <td className="px-6 py-4">
-                      <span className={`px-3 py-1 rounded-full text-sm capitalize ${getStatusColor(order.status)}`}>
-                        {order.status}
+                      <span className={`px-3 py-1 rounded-full text-sm capitalize ${getStatusColor(order.status, order.paymentStatus)}`}>
+                        {order.paymentStatus === 'failed' ? 'Failed' : order.status}
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      {order.status?.toLowerCase() !== 'cancelled' && (
+                      {order.status?.toLowerCase() !== 'cancelled' && order.paymentStatus !== 'failed' && (
                         <div className="relative dropdown-container">
                           <button 
                             className="p-2 hover:bg-gray-100 rounded-lg"
@@ -368,7 +396,7 @@ export default function OrderManagement() {
                                   className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                                   onClick={() => {
                                     setSelectedOrder(order);
-                                    setSelectedNewStatus(status); // Set the new status here
+                                    setSelectedNewStatus(status);
                                     setShowStatusDialog(true);
                                     setOpenDropdownId(null);
                                   }}
