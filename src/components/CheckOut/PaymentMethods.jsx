@@ -71,17 +71,23 @@ export default function PaymentMethod() {
     }
   }, [cartItems, navigate]);
 
-// Replace the old useEffect
-useEffect(() => {
-  fetchCoupons();
-}, []);
-  
+
   useEffect(() => {
-    if (!cartItems.length) {
-      navigate('/user/cart');
-      return;
+  fetchCoupons();
+  const savedCouponState = localStorage.getItem('appliedCoupon');
+  if (savedCouponState) {
+    try {
+      const couponData = JSON.parse(savedCouponState);
+      dispatch(validateCoupon({
+        code: couponData.couponCode,
+        cartTotal: orderSummary.subtotal
+      }));
+    } catch (error) {
+      console.error('Error restoring coupon state:', error);
     }
-  }, [cartItems, navigate]);
+  }
+}, []);
+
 
   useEffect(() => {
     if (!isAuthenticated || !user) {
@@ -205,6 +211,12 @@ const handleCouponValidation = async (code) => {
       cartTotal: orderSummary.subtotal
     })).unwrap();
 
+    // Save coupon state to localStorage
+    localStorage.setItem('appliedCoupon', JSON.stringify({
+      couponCode: code,
+      discountAmount: result.discountAmount
+    }));
+
     setCouponCode('');
     setCouponSuccess(`Coupon applied! You saved ₹${result.discountAmount}`);
     toast.success(`Coupon applied! You saved ₹${result.discountAmount}`);
@@ -226,6 +238,7 @@ const handleRemoveCoupon = () => {
   setCouponCode('');
   setCouponSuccess('');
   setCouponError('');
+  localStorage.removeItem('appliedCoupon');
   toast.success('Coupon removed');
   
   setOrderSummary(prev => ({
@@ -262,16 +275,17 @@ const handleRemoveCoupon = () => {
     const subtotal = cartItems.reduce((sum, item) => sum + (item.finalPrice * item.quantity), 0);
     const shipping = 0;
     const codFee = selectedPayment === 'cod' ? 49 : 0;
-    const total = subtotal + shipping + codFee - orderSummary.discount;
-
+    const discount = appliedCoupon?.discountAmount || 0;
+    const total = subtotal + shipping + codFee - discount;
+  
     setOrderSummary({
       subtotal,
       shipping,
-      discount: orderSummary.discount,
+      discount,
       codFee,
       total
     });
-  }, [cartItems, selectedPayment, orderSummary.discount]);
+  }, [cartItems, selectedPayment, appliedCoupon]);
 
 
   const handleSubmitOrder = async (paymentId = null) => {
