@@ -1,4 +1,21 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import axiosInstance from '../../api/axiosInstance';
+
+// Add just the clearCartAsync thunk
+export const clearCartAsync = createAsyncThunk(
+  'cart/clearCartAsync',
+  async (userId, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.delete(`/user/cart/clear/${userId}`);
+      if (response.status === 200) {
+        return true;
+      }
+      throw new Error('Failed to clear cart');
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to clear cart');
+    }
+  }
+);
 
 const cartSlice = createSlice({
   name: 'cart',
@@ -6,13 +23,13 @@ const cartSlice = createSlice({
     items: [],
     loading: false,
     error: null,
-    stockAlerts: {} // Initialize stockAlerts object
+    stockAlerts: {}
   },
   reducers: {
+    // Keep all your existing reducers
     addToCart: (state, action) => {
       const { product, quantity, variant } = action.payload;
       
-      // Don't add if variant stock is 0
       if (!variant.stock) {
         return;
       }
@@ -24,7 +41,6 @@ const cartSlice = createSlice({
       );
     
       if (existingItemIndex >= 0) {
-        // Update existing item quantity and stock
         const newQuantity = Math.min(
           state.items[existingItemIndex].quantity + quantity,
           variant.stock
@@ -33,7 +49,6 @@ const cartSlice = createSlice({
         state.items[existingItemIndex].quantity = newQuantity;
         state.items[existingItemIndex].stock = variant.stock;
         
-        // Add stock alert if necessary
         if (newQuantity !== state.items[existingItemIndex].quantity + quantity) {
           if (!state.stockAlerts) state.stockAlerts = {};
           state.stockAlerts[`${product._id}-${variant._id}`] = {
@@ -61,7 +76,6 @@ const cartSlice = createSlice({
       state.items = state.items.filter(
         item => !(item.productId === productId && item.variantId === variantId.toString())
       );
-      // Clean up any associated stock alerts
       if (state.stockAlerts) {
         delete state.stockAlerts[`${productId}-${variantId}`];
       }
@@ -77,12 +91,10 @@ const cartSlice = createSlice({
         const item = state.items[itemIndex];
         const newQuantity = Math.max(1, Math.min(quantity, availableStock || item.stock));
         
-        // Update stock alert if quantity was adjusted
         if (newQuantity !== quantity) {
           if (!state.stockAlerts) state.stockAlerts = {};
           state.stockAlerts[`${productId}-${variantId}`] = {
             type: 'stock_limit',
-            // message: `Quantity adjusted to available stock (${availableStock})`
           };
         }
         
@@ -114,7 +126,6 @@ const cartSlice = createSlice({
     },
     
     setCartItems: (state, action) => {
-      // Filter out items with 0 stock and ensure quantities don't exceed stock
       state.items = action.payload
         .filter(item => item.stock > 0)
         .map(item => ({
@@ -129,6 +140,24 @@ const cartSlice = createSlice({
           stock: item.stock
         }));
     }
+  },
+  // Add just the clearCartAsync cases
+  extraReducers: (builder) => {
+    builder
+      .addCase(clearCartAsync.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(clearCartAsync.fulfilled, (state) => {
+        state.items = [];
+        state.stockAlerts = {};
+        state.loading = false;
+        state.error = null;
+      })
+      .addCase(clearCartAsync.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      });
   }
 });
 

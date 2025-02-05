@@ -9,6 +9,8 @@ import { fetchWalletDetails } from '../../redux/Slices/walletSlice';
 import toast from 'react-hot-toast';
 import CouponCard from '../couponTab/CouponCard';
 import CartItemsList from './CartListItems';
+import { clearCart,clearCartAsync  } from '../../redux/Slices/CartSlice';
+
 
 import { 
   fetchAvailableCoupons, 
@@ -64,13 +66,14 @@ export default function PaymentMethod() {
  const retryOrderId = location.state?.productDetails?.orderId;
   
 
-  useEffect(() => {
-    if (!cartItems.length) {
-      navigate('/user/cart');
-      return;
-    }
-  }, [cartItems, navigate]);
-
+ useEffect(() => {
+  // Only redirect to cart if there are no items on initial load
+  // and we're not in a post-payment state
+  if (!cartItems.length && !location.state?.isPaymentSuccess) {
+    navigate('/user/cart');
+    return;
+  }
+}, []); // Run only on mount
 
   useEffect(() => {
   fetchCoupons();
@@ -288,123 +291,160 @@ const handleRemoveCoupon = () => {
   }, [cartItems, selectedPayment, appliedCoupon]);
 
 
-  const handleSubmitOrder = async (paymentId = null) => {
-    setError(null);
-    try {
-      if (!selectedAddress) {
-        throw new Error('Please select a delivery address');
-      }
-  
-      setIsSubmitting(true);
+ const handleSubmitOrder = async (paymentId = null) => {
+  setError(null);
+  try {
+    if (!selectedAddress) {
+      throw new Error('Please select a delivery address');
+    }
 
-      if (isRetry && retryOrderId) {
-        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/user/orders/${retryOrderId}/retry-payment`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-          body: JSON.stringify({
-            paymentId,
-            paymentMethod: selectedPayment
-          })
-        });
-  
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Failed to process retry payment');
-        }
-  
-        const data = await response.json();
-        navigate('/user/PaymentSuccess', {
-          state: {
-            orderId: data.data.orderId,
-            orderNumber: data.data.orderNumber
-          }
-        });
-        return;
-      }
-  
-      let orderItems = [];
-      if (cartDetails?.items?.length) {
-        orderItems = cartDetails.items.map(item => ({
-          productId: item.productId,
-          variantId: item.variantId,
-          quantity: item.quantity,
-          price: item.price
-        }));
-      } else if (productDetails) {
-        orderItems = [{
-          productId: productDetails.productId,
-          variantId: productDetails.variantId,
-          quantity: productDetails.quantity,
-          price: productDetails.price
-        }];
-      }
-  
-      const orderData = {
-        userId: user._id,
-        items: orderItems,
-        paymentMethod: selectedPayment === 'cod' ? 'cod' : 'online',
-        totalAmount: orderSummary.total,
-        shippingAddress: {
-          firstName: selectedAddress.firstName,
-          lastName: selectedAddress.lastName || '',
-          address: selectedAddress.address,
-          country: selectedAddress.country || 'India',
-          state: selectedAddress.state,
-          city: selectedAddress.city,
-          pincode: selectedAddress.pincode,
-          phoneNumber: selectedAddress.phoneNumber
-        },
-        couponCode: appliedCoupon?.couponCode,
-        discount: appliedCoupon?.discountAmount || 0
-      };
-  
-      if (paymentId) {
-        orderData.paymentId = paymentId;
-      }
-  
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/user/orders`, {
+    setIsSubmitting(true);
+
+    // Handle retry payment scenario
+    if (isRetry && retryOrderId) {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/user/orders/${retryOrderId}/retry-payment`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify(orderData)
+        body: JSON.stringify({
+          paymentId,
+          paymentMethod: selectedPayment
+        })
       });
-  
+
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to create order');
+        throw new Error(errorData.message || 'Failed to process retry payment');
       }
-  
-      const data = await response.json();
 
-      if (cartDetails?.items?.length) {
-        try {
-          await fetch(`${import.meta.env.VITE_BACKEND_URL}/user/cart/clear/${user._id}`, {
-            method: 'DELETE',
-            credentials: 'include'
-          });
-        } catch (error) {
-          console.error('Failed to clear cart:', error);
-        }
+      const data = await response.json();
+      
+      // Clear cart in both Redux and backend for retry payment
+      try {
+        // First clear the backend cart
+        const clearBackendResult = await dispatch(clearCartAsync(user._id)).unwrap();
+        console.log('Backend cart cleared:', clearBackendResult);
+        
+        // Then clear the Redux cart state
+        dispatch(clearCart());
+        
+        // Remove any applied coupon from localStorage
+        localStorage.removeItem('appliedCoupon');
+        
+        toast.success('Payment successful!');
+      } catch (error) {
+        console.error('Failed to clear cart:', error);
+        // Even if backend clear fails, clear the frontend cart
+        dispatch(clearCart());
+        localStorage.removeItem('appliedCoupon');
       }
 
       navigate('/user/PaymentSuccess', {
         state: {
           orderId: data.data.orderId,
-          orderNumber: data.data.orderNumber
+          orderNumber: data.data.orderNumber,
+          isPaymentSuccess: true
         }
       });
-
-    } catch (error) {
-      console.error('Order submission failed:', error);
-      setError(error.message || 'Failed to create order');
-      setIsSubmitting(false);
+      return;
     }
-  };
+
+    // Handle new order scenario
+    let orderItems = [];
+    if (cartDetails?.items?.length) {
+      orderItems = cartDetails.items.map(item => ({
+        productId: item.productId,
+        variantId: item.variantId,
+        quantity: item.quantity,
+        price: item.price
+      }));
+    } else if (productDetails) {
+      orderItems = [{
+        productId: productDetails.productId,
+        variantId: productDetails.variantId,
+        quantity: productDetails.quantity,
+        price: productDetails.price
+      }];
+    }
+
+    const orderData = {
+      userId: user._id,
+      items: orderItems,
+      paymentMethod: selectedPayment === 'cod' ? 'cod' : 'online',
+      totalAmount: orderSummary.total,
+      shippingAddress: {
+        firstName: selectedAddress.firstName,
+        lastName: selectedAddress.lastName || '',
+        address: selectedAddress.address,
+        country: selectedAddress.country || 'India',
+        state: selectedAddress.state,
+        city: selectedAddress.city,
+        pincode: selectedAddress.pincode,
+        phoneNumber: selectedAddress.phoneNumber
+      },
+      couponCode: appliedCoupon?.couponCode,
+      discount: appliedCoupon?.discountAmount || 0
+    };
+
+    if (paymentId) {
+      orderData.paymentId = paymentId;
+    }
+
+    const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/user/orders`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify(orderData)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to create order');
+    }
+
+    const data = await response.json();
+
+    // Clear both Redux cart state and backend cart
+    try {
+      // First clear the backend cart
+      const clearBackendResult = await dispatch(clearCartAsync(user._id)).unwrap();
+      console.log('Backend cart cleared:', clearBackendResult);
+      
+      // Then clear the Redux cart state
+      dispatch(clearCart());
+      
+      // Remove any applied coupon from localStorage
+      localStorage.removeItem('appliedCoupon');
+      
+      toast.success('Order placed successfully!');
+    } catch (error) {
+      console.error('Failed to clear cart:', error);
+      // If backend clear fails, still clear the frontend cart
+      dispatch(clearCart());
+      localStorage.removeItem('appliedCoupon');
+    }
+
+    // Navigate to success page with isPaymentSuccess flag
+    navigate('/user/PaymentSuccess', {
+      state: {
+        orderId: data.data.orderId,
+        orderNumber: data.data.orderNumber,
+        isPaymentSuccess: true
+      }
+    });
+
+  } catch (error) {
+    console.error('Order submission failed:', error);
+    setError(error.message || 'Failed to create order');
+    setIsSubmitting(false);
+    toast.error(error.message || 'Failed to create order');
+  }
+};
+
 
   
 
