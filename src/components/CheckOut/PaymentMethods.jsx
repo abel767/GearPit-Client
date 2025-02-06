@@ -507,6 +507,11 @@ const handleRemoveCoupon = () => {
           amount: orderSummary.total,
           user,
           address: selectedAddress,
+          items: cartDetails?.items?.map(item=>({
+            productId:item.productId,
+            variantId: item.variantId,
+            quantity: item.quantity
+          })) || [],
           onSuccess: async (paymentId) => {
             if (!paymentId) {
               throw new Error('Payment verification failed - no payment ID received');
@@ -514,6 +519,17 @@ const handleRemoveCoupon = () => {
             await handleSubmitOrder(paymentId);
           },
           onError: async (error) => {
+
+           // Updated error handling for stock errors
+           if (error.code === 'STOCK_ERROR') {
+            const errorMessage = error.description || 'Some items are out of stock';
+            toast.error(errorMessage, {
+              duration: 3000,
+              position: 'top-center'
+            });
+            setError(errorMessage);
+            return;
+          }
             console.log('Payment error received:', error);
 
             // Handle modal close and other payment failures
@@ -556,6 +572,8 @@ const handleRemoveCoupon = () => {
       } catch (error) {
         console.error('Payment initialization failed:', error);
         setError('Failed to initialize payment. Please try again.');
+        setError(errorMessage);
+        toast.error(errorMessage);
       }
     }
   };

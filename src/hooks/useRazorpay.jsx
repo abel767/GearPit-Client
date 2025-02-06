@@ -1,13 +1,18 @@
 import { useState, useCallback } from 'react';
 import { loadRazorpay, createPaymentOrder, createRazorpayOptions } from '../utils/LoadRazorPay';
+import { useStockValidation } from './useStockValidation';
 
 export const useRazorpay = () => {
+
   const [isProcessing, setIsProcessing] = useState(false);
+  const {validateStock} = useStockValidation()
+
 
   const initializePayment = useCallback(async ({
     amount,
     user,
     address,
+    items,
     onSuccess,
     onError
   }) => {
@@ -15,6 +20,20 @@ export const useRazorpay = () => {
     
     try {
       setIsProcessing(true);
+
+      try {
+        await validateStock(items);
+      } catch (error) {
+        if (error.type === 'STOCK_ERROR') {
+          onError({
+            code: 'STOCK_ERROR',
+            description: error.message,
+            metadata: { invalidItems: error.invalidItems }
+          });
+          return; 
+        }
+        throw error;
+      }
 
       // Load Razorpay SDK
       const isLoaded = await loadRazorpay();
@@ -91,12 +110,12 @@ export const useRazorpay = () => {
     } catch (error) {
       setIsProcessing(false);
       onError({
-        code: 'INITIALIZATION_FAILED',
+        code: error.type === 'STOCK_ERROR'  ? 'STOCK_ERROR' : 'INITIALIZATION_FAILED',
         description: error.message || 'Payment initialization failed',
         metadata: {}
       });
     }
-  }, [isProcessing]);
+  }, [isProcessing, validateStock]);
 
   return {
     initializePayment,
