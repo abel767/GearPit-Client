@@ -1,5 +1,5 @@
 import AddCategoryOffer from "../../../../components/Admin/Offer/AddCategoryOffer";
-import Header from "../../../../components/Admin/Dashboard/Header";
+// import Header from "../../../../components/Admin/Dashboard/Header";
 import Sidebar from "../../../../components/Admin/Dashboard/Sidebar";
 
 function AddCategoryOfferPage(){
@@ -7,7 +7,7 @@ function AddCategoryOfferPage(){
         <div className="flex min-h-screen bg-gray-100">
           <Sidebar />
           <div className="flex-1">
-            <Header />
+            {/* <Header /> */}
             <AddCategoryOffer />
           </div>
         </div>

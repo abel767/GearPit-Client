@@ -218,30 +218,30 @@ const AddProduct = () => {
 
   
   return (
-    <div className="p-6">
+    <div className="p-4 md:p-6">
       <form onSubmit={handleSubmit}>
         {/* Header */}
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <div className="space-y-1">
-            <h2 className="text-2xl font-semibold">Add Product</h2>
+            <h2 className="text-xl md:text-2xl font-semibold">Add Product</h2>
             <div className="flex items-center space-x-2 text-sm">
               <span className="text-green-500">Dashboard</span>
               <span className="text-gray-400">/</span>
               <span className="text-gray-400">Add Product</span>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             <button
               type="button"
               onClick={() => navigate('/admin/productdata')}
-              className="px-4 py-2 text-sm font-medium hover:bg-gray-100 text-gray-700 border border-gray-300 rounded-lg flex items-center gap-2"
+              className="flex-1 sm:flex-none px-4 py-2 text-sm font-medium hover:bg-gray-100 text-gray-700 border border-gray-300 rounded-lg flex items-center justify-center gap-2"
             >
               <X className="w-4 h-4" />
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 text-sm font-medium bg-black text-white rounded-lg flex items-center gap-2 hover:bg-black/90"
+              className="flex-1 sm:flex-none px-4 py-2 text-sm font-medium bg-black text-white rounded-lg flex items-center justify-center gap-2 hover:bg-black/90"
             >
               <Plus className="w-4 h-4" />
               Add Product
@@ -249,11 +249,12 @@ const AddProduct = () => {
           </div>
         </div>
   
-        <div className="flex gap-6">
+        {/* Main Content */}
+        <div className="flex flex-col lg:flex-row gap-6">
           {/* Main Form */}
           <div className="flex-1 space-y-6">
             {/* General Information */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6">
               <h3 className="text-lg font-semibold mb-4">General Information</h3>
               <div className="space-y-4">
                 <div>
@@ -297,7 +298,7 @@ const AddProduct = () => {
             </div>
   
             {/* Variants */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-semibold">Variants</h3>
                 <button
@@ -308,53 +309,59 @@ const AddProduct = () => {
                   Add Variant
                 </button>
               </div>
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {productData.variants.map((variant, index) => (
-                  <div key={index} className="flex gap-6 items-start border-b pb-6">
-                    <div className="flex-1">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Size</label>
-                      <input
-                        type="text"
-                        value={variant.size}
-                        onChange={(e) => handleVariantChange(index, 'size', e.target.value)}
-                        required
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                      />
+                  <div key={index} className="border-b pb-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Size</label>
+                        <input
+                          type="text"
+                          value={variant.size}
+                          onChange={(e) => handleVariantChange(index, 'size', e.target.value)}
+                          required
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Price</label>
+                        <input
+                          type="number"
+                          value={variant.price}
+                          onChange={(e) => handleVariantChange(index, 'price', e.target.value)}
+                          required
+                          min="0"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                        />
+                      </div>
+                      <div className="relative">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Stock</label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            value={variant.stock}
+                            onChange={(e) => handleVariantChange(index, 'stock', e.target.value)}
+                            required
+                            min="0"
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                          />
+                          {productData.variants.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removeVariant(index)}
+                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg flex-shrink-0"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex-1">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Price</label>
-                      <input
-                        type="number"
-                        value={variant.price}
-                        onChange={(e) => handleVariantChange(index, 'price', e.target.value)}
-                        required
-                        min="0"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Stock</label>
-                      <input
-                        type="number"
-                        value={variant.stock}
-                        onChange={(e) => handleVariantChange(index, 'stock', e.target.value)}
-                        required
-                        min="0"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                      />
-                    </div>
-                    {productData.variants.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeVariant(index)}
-                        className="mt-6 p-2 text-red-600 hover:bg-red-50 rounded-lg"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    )}
                   </div>
                 ))}
               </div>
+  
+              {/* Media Section */}
               <div className="mt-6">
                 <h3 className="text-lg font-semibold mb-4">Media</h3>
                 <ImageUploader
@@ -366,10 +373,9 @@ const AddProduct = () => {
             </div>
           </div>
   
-          {/* Right Sidebar */}
-          <div className="w-80 space-y-6">
-            {/* Category */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
+          {/* Right Sidebar - Category */}
+          <div className="lg:w-80 space-y-6">
+            <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6">
               <h3 className="text-lg font-semibold mb-4">Category</h3>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">

@@ -423,20 +423,34 @@ export default function ProductDetail() {
           </div>
 
           <div className="flex gap-4 mb-8">
-            <button 
-              onClick={() => handleAddToCart(product)}
-              className="flex-1 bg-black text-white py-3 px-6 hover:bg-gray-800 flex items-center justify-center gap-2"
-            >
-              <ShoppingCart className="w-5 h-5" />
-              ADD TO CART
-            </button>
-            <button 
-            onClick={()=> handleBuyNow()}
-              className="flex-1 border border-black py-3 px-6 hover:bg-gray-100"
-            >
-              BUY NOW
-            </button>
-          </div>
+  <button 
+    onClick={() => handleAddToCart(product)}
+    disabled={!selectedVariant || selectedVariant.stock === 0}
+    className={`flex-1 py-3 px-6 flex items-center justify-center gap-2
+      ${(!selectedVariant || selectedVariant.stock === 0)
+        ? 'bg-gray-300 cursor-not-allowed text-gray-500'
+        : 'bg-black text-white hover:bg-gray-800'
+      }`}
+  >
+    <ShoppingCart className="w-5 h-5" />
+    {!selectedVariant ? 'SELECT SIZE' : 
+     selectedVariant.stock === 0 ? 'OUT OF STOCK' : 
+     'ADD TO CART'}
+  </button>
+  <button 
+    onClick={() => handleBuyNow()}
+    disabled={!selectedVariant || selectedVariant.stock === 0}
+    className={`flex-1 py-3 px-6 
+      ${(!selectedVariant || selectedVariant.stock === 0)
+        ? 'border border-gray-300 text-gray-500 cursor-not-allowed'
+        : 'border border-black hover:bg-gray-100'
+      }`}
+  >
+    {!selectedVariant ? 'SELECT SIZE' : 
+     selectedVariant.stock === 0 ? 'OUT OF STOCK' : 
+     'BUY NOW'}
+  </button>
+</div>
 
           <div className="border-t pt-8">
             <div className="flex gap-4 mb-4">

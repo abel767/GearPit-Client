@@ -27,75 +27,82 @@ const CouponCard = ({
 
   return (
     <div 
-      className={`group relative bg-white rounded-lg border hover:border-blue-200 transition-all ${
-        isValid ? 'cursor-pointer' : 'cursor-not-allowed opacity-75'
+      className={`group relative bg-gray-900 rounded-lg overflow-hidden transition-all ${
+        isValid ? 'cursor-pointer hover:scale-[1.02]' : 'cursor-not-allowed opacity-75'
       } ${className}`}
       onClick={() => isValid && onApply(coupon.code)}
     >
-      {/* Decorative edges */}
-      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-3 h-6 bg-gray-50 rounded-r-full" />
-      <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-6 bg-gray-50 rounded-l-full" />
+      {/* Decorative gradient border */}
+      <div className="absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-green-400 to-green-600" />
       
-      {/* Dotted line */}
-      <div className="absolute left-3 right-3 top-1/2 border-t border-dashed border-gray-200" />
-      
+      {/* Zigzag pattern overlay */}
+      <div className="absolute top-0 right-0 w-32 h-full opacity-5">
+        <div className="w-full h-full relative">
+          {[...Array(5)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute inset-0 transform"
+              style={{
+                border: '2px dashed rgba(255,255,255,0.2)',
+                margin: `${i * 8}px`,
+              }}
+            />
+          ))}
+        </div>
+      </div>
+
       <div className="p-4">
         {/* Header */}
         <div className="flex justify-between items-start mb-3">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <Scissors className="w-4 h-4 text-blue-500" />
-              <span className="font-bold text-lg tracking-wide">{coupon.code}</span>
+              <Scissors className="w-4 h-4 text-green-400" />
+              <span className="font-bold text-lg tracking-wide text-white">{coupon.code}</span>
             </div>
-            <p className="text-sm text-blue-600 font-semibold">
+            <p className="text-sm text-green-400 font-medium">
               Save {coupon.discount}% on your order
             </p>
           </div>
-          <button
-            onClick={copyCode}
-            className="p-1.5 hover:bg-gray-100 rounded-full transition-colors"
-            title="Copy code"
-          >
-            <Copy className="w-4 h-4 text-gray-500" />
-          </button>
+          <div className="flex items-start gap-2">
+            <button
+              onClick={copyCode}
+              className="p-1.5 hover:bg-gray-800 rounded-full transition-colors"
+              title="Copy code"
+            >
+              <Copy className="w-4 h-4 text-gray-400" />
+            </button>
+            <div className="text-2xl font-bold text-yellow-500">
+              {coupon.discount}%
+              <span className="block text-xs text-yellow-400 text-right">OFF</span>
+            </div>
+          </div>
         </div>
-        
-        {/* Details */}
-        <div className="space-y-2 mb-4">
-          <div className="flex items-center justify-between text-xs text-gray-500">
-            <span>Min. Purchase:</span>
-            <span className="font-medium">₹{coupon.minPurchase}</span>
+
+        {/* Bottom section */}
+        <div className="mt-4 pt-3 border-t border-gray-800">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs text-gray-400">Valid Till: {formatDate(coupon.expiryDate)}</span>
+            {isValid && (
+              <span className="text-xs text-green-400 font-medium">
+                You Save: ₹{savings.toFixed(2)}
+              </span>
+            )}
           </div>
-          <div className="flex items-center justify-between text-xs text-gray-500">
-            <span>Max. Discount:</span>
-            <span className="font-medium">₹{coupon.maxDiscount}</span>
-          </div>
-          <div className="flex items-center justify-between text-xs text-gray-500">
-            <span>Valid Till:</span>
-            <span className="font-medium">{formatDate(coupon.expiryDate)}</span>
-          </div>
-          {isValid && (
-            <div className="flex items-center justify-between text-xs text-green-600">
-              <span>You Save:</span>
-              <span className="font-medium">₹{savings.toFixed(2)}</span>
+
+          {!isValid ? (
+            <p className="text-xs text-red-400 text-center">
+              Add ₹{(coupon.minPurchase - cartTotal).toFixed(2)} more to unlock
+            </p>
+          ) : isApplied ? (
+            <div className="text-center py-1.5 bg-green-500 text-white text-sm font-medium rounded">
+              Applied
+            </div>
+          ) : (
+            <div className="text-center py-1.5 bg-green-500 text-white text-sm font-medium rounded opacity-90 group-hover:opacity-100 transition-all">
+              Apply Coupon
             </div>
           )}
         </div>
-        
-        {/* Action */}
-        {!isValid ? (
-          <p className="text-xs text-red-500 text-center">
-            Add ₹{(coupon.minPurchase - cartTotal).toFixed(2)} more to unlock
-          </p>
-        ) : isApplied ? (
-          <div className="text-center py-1.5 bg-green-50 text-green-600 text-sm font-medium rounded">
-            Applied
-          </div>
-        ) : (
-          <div className="text-center py-1.5 bg-blue-50 text-blue-600 text-sm font-medium rounded group-hover:bg-blue-100 transition-colors">
-            Apply Coupon
-          </div>
-        )}
       </div>
     </div>
   );

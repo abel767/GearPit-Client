@@ -1,4 +1,4 @@
-import Header from "../../../../components/Admin/Dashboard/Header"
+// import Header from "../../../../components/Admin/Dashboard/Header"
 import Sidebar from "../../../../components/Admin/Dashboard/Sidebar"
 import CategoriesAdd from "../../../../components/Admin/Categories/CategoriesAdd"
 
@@ -8,7 +8,7 @@ function AddCategories() {
             <div className="flex min-h-screen bg-gray-100">
               <Sidebar />
               <div className="flex-1">
-                <Header />
+                {/* <Header /> */}
                 < CategoriesAdd/>
               </div>
             </div>

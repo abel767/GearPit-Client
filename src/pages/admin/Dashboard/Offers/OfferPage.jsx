@@ -1,5 +1,5 @@
 import OfferManagement from "../../../../components/Admin/Offer/OfferManagement";
-import Header from "../../../../components/Admin/Dashboard/Header";
+// import Header from "../../../../components/Admin/Dashboard/Header";
 import Sidebar from "../../../../components/Admin/Dashboard/Sidebar";
 
 function OfferPage(){
@@ -7,7 +7,7 @@ function OfferPage(){
         <div className="flex min-h-screen bg-gray-100">
           <Sidebar />
           <div className="flex-1">
-            <Header />
+            {/* <Header /> */}
             <OfferManagement />
           </div>
         </div>

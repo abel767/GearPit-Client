@@ -54,10 +54,10 @@ function Home() {
   return (
     <>
       <Navbar />
-      <main className="flex-1 pt-9"> {/* pt-16 accounts for the navbar height */}
+      <main className="flex-1 pt-9 pb-10"> {/* pt-16 accounts for the navbar height */}
       <Hero />
       <Featured />
-      <BannerCarousel />    
+      <BannerCarousel/>    
       </main>
       <Footer />
     </>

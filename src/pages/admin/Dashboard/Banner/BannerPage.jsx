@@ -1,4 +1,4 @@
-import Header from "../../../../components/Admin/Dashboard/Header"
+// import Header from "../../../../components/Admin/Dashboard/Header"
 import Sidebar from "../../../../components/Admin/Dashboard/Sidebar"
 import BannerManagement from "../../../../components/Admin/Banner/BannerManagement"
 function BannerPage() {
@@ -7,7 +7,7 @@ function BannerPage() {
             <div className="flex min-h-screen bg-gray-100">
               <Sidebar />
               <div className="flex-1">
-                <Header />
+                {/* <Header /> */}
                 < BannerManagement/>
               </div>
             </div>

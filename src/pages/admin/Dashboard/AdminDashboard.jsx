@@ -1,5 +1,5 @@
 import Dashboard from "../../../components/Admin/Dashboard/Dashboard";
-import Header from "../../../components/Admin/Dashboard/Header";
+// import Header from "../../../components/Admin/Dashboard/Header";
 import Sidebar from "../../../components/Admin/Dashboard/Sidebar";
 
 function AdminDashboard(){
@@ -7,7 +7,7 @@ function AdminDashboard(){
         <div className="flex min-h-screen bg-gray-100">
           <Sidebar />
           <div className="flex-1">
-            <Header />
+            {/* <Header /> */}
             <Dashboard />
           </div>
         </div>

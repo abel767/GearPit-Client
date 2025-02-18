@@ -81,14 +81,13 @@ export default function EditCategory() {
       </div>
     );
   }
-
   return (
-    <div className="p-6 bg-white min-h-screen">
+    <div className="p-4 md:p-6 bg-white min-h-screen">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
-          <h2 className="text-xl font-semibold">Edit Category</h2>
-          <div className="flex items-center space-x-2 text-sm mt-1">
+          <h2 className="text-xl md:text-2xl font-semibold">Edit Category</h2>
+          <div className="flex flex-wrap items-center gap-x-2 text-sm mt-1">
             <span className="text-blue-500">Dashboard</span>
             <span className="text-gray-400">/</span>
             <span className="text-blue-500">Categories</span>
@@ -96,28 +95,28 @@ export default function EditCategory() {
             <span className="text-gray-400">Edit Category</span>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           <button 
             onClick={handleCancel}
-            className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md flex items-center gap-2"
+            className="flex-1 sm:flex-none px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md flex items-center justify-center gap-2 border border-gray-300"
           >
             <X className="w-4 h-4" />
             Cancel
           </button>
           <button 
             onClick={handleSubmit}
-            className="px-4 py-2 text-sm font-medium bg-black text-white rounded-md flex items-center gap-2 hover:bg-black/90"
+            className="flex-1 sm:flex-none px-4 py-2 text-sm font-medium bg-black text-white rounded-md flex items-center justify-center gap-2 hover:bg-black/90"
           >
             <Check className="w-4 h-4" />
             Save Category
           </button>
         </div>
       </div>
-
-      <div className="flex gap-6">
-
-        {/* Right Column - General Information */}
-        <div className="flex-1 bg-gray-50 rounded-lg p-6">
+  
+      {/* Form Content */}
+      <div className="w-full">
+        {/* General Information */}
+        <div className="bg-gray-50 rounded-lg p-4 md:p-6">
           <h3 className="text-sm font-medium mb-4">General Information</h3>
           <div className="space-y-4">
             <div>
@@ -129,7 +128,7 @@ export default function EditCategory() {
                 name="categoryName"
                 value={formData.categoryName}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm"
+                className="w-full px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
             <div>
@@ -141,7 +140,7 @@ export default function EditCategory() {
                 name="description"
                 value={formData.description}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm resize-none"
+                className="w-full px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
           </div>

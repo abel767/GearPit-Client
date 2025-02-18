@@ -51,83 +51,85 @@ export default function AddCategories() {
     }
 };
 
-  return (
-    <div className="p-6 bg-white min-h-screen">
-      <form onSubmit={handleSubmit}>
-        {/* Header */}
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h2 className="text-xl font-semibold">Add Category</h2>
-            <div className="flex items-center space-x-2 text-sm mt-1">
-              <span className="text-blue-500">Dashboard</span>
-              <span className="text-gray-400">/</span>
-              <span className="text-blue-500">Categories</span>
-              <span className="text-gray-400">/</span>
-              <span className="text-gray-400">Add Category</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => navigate('/admin/categorydata')} // Correct navigation URL for categories list
-              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md flex items-center gap-2"
-            >
-              <X className="w-4 h-4" />
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-4 py-2 text-sm font-medium bg-black text-white rounded-md flex items-center gap-2 hover:bg-black/90 disabled:opacity-50"
-            >
-              <Plus className="w-4 h-4" />
-              {loading ? 'Adding...' : 'Add Category'}
-            </button>
+return (
+  <div className="p-4 md:p-6 bg-white min-h-screen">
+    <form onSubmit={handleSubmit}>
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <div>
+          <h2 className="text-xl md:text-2xl font-semibold">Add Category</h2>
+          <div className="flex flex-wrap items-center gap-x-2 text-sm mt-1">
+            <span className="text-blue-500">Dashboard</span>
+            <span className="text-gray-400">/</span>
+            <span className="text-blue-500">Categories</span>
+            <span className="text-gray-400">/</span>
+            <span className="text-gray-400">Add Category</span>
           </div>
         </div>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <button
+            type="button"
+            onClick={() => navigate('/admin/categorydata')}
+            className="flex-1 sm:flex-none px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md flex items-center justify-center gap-2 border border-gray-300"
+          >
+            <X className="w-4 h-4" />
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={loading}
+            className="flex-1 sm:flex-none px-4 py-2 text-sm font-medium bg-black text-white rounded-md flex items-center justify-center gap-2 hover:bg-black/90 disabled:opacity-50"
+          >
+            <Plus className="w-4 h-4" />
+            {loading ? 'Adding...' : 'Add Category'}
+          </button>
+        </div>
+      </div>
 
-        {error && (
-          <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md">
-            {error}
-          </div>
-        )}
+      {/* Error Message */}
+      {error && (
+        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md text-sm">
+          {error}
+        </div>
+      )}
 
-        <div className="flex gap-6">
-          {/* Right Column - General Information */}
-          <div className="flex-1 bg-gray-50 rounded-lg p-6">
-            <h3 className="text-sm font-medium mb-4">General Information</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs text-gray-500 mb-2">
-                  Category Name
-                </label>
-                <input
-                  type="text"
-                  name="categoryName"
-                  value={formData.categoryName}
-                  onChange={handleInputChange}
-                  placeholder="Type category name here..."
-                  className="w-full px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-2">
-                  Description
-                </label>
-                <textarea
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  rows={6}
-                  placeholder="Type category description here..."
-                  className="w-full px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm resize-none"
-                />
-              </div>
+      {/* Form Content */}
+      <div className="w-full">
+        {/* General Information */}
+        <div className="bg-gray-50 rounded-lg p-4 md:p-6">
+          <h3 className="text-sm font-medium mb-4">General Information</h3>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs text-gray-500 mb-2">
+                Category Name
+              </label>
+              <input
+                type="text"
+                name="categoryName"
+                value={formData.categoryName}
+                onChange={handleInputChange}
+                placeholder="Type category name here..."
+                className="w-full px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-2">
+                Description
+              </label>
+              <textarea
+                name="description"
+                value={formData.description}
+                onChange={handleInputChange}
+                rows={6}
+                placeholder="Type category description here..."
+                className="w-full px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
             </div>
           </div>
         </div>
-      </form>
-    </div>
-  );
+      </div>
+    </form>
+  </div>
+);
 }

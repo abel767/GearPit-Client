@@ -9,6 +9,7 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  Menu
 } from 'lucide-react';
 
 export default function OrderManagement() {
@@ -20,19 +21,17 @@ export default function OrderManagement() {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showStatusDialog, setShowStatusDialog] = useState(false);
   const [openDropdownId, setOpenDropdownId] = useState(null);
-
+  const [showFilters, setShowFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const ordersPerPage = 5;
 
   const statusTabs = ['All Status', 'Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled', 'Failed'];
   const statusOptions = ['Processing', 'Shipped', 'Delivered', 'Cancelled'];
 
-
-
   const fetchOrders = async () => {
     try {
       const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/admin/orders`, {
-        headers:{
+        headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include'
@@ -48,10 +47,8 @@ export default function OrderManagement() {
     }
   };
 
-
   useEffect(() => {
     fetchOrders();
-    // Close dropdown when clicking outside
     const handleClickOutside = (event) => {
       if (!event.target.closest('.dropdown-container')) {
         setOpenDropdownId(null);
@@ -64,13 +61,6 @@ export default function OrderManagement() {
   useEffect(() => {
     setCurrentPage(1);
   }, [selectedStatus, searchTerm]);
-
-  
-
-
-
-
-
 
   const updateOrderStatus = async (orderId, newStatus) => {
     try {
@@ -86,7 +76,6 @@ export default function OrderManagement() {
   
       const data = await response.json();
       if (data.success) {
-        // Immediately update the orders state with the new status
         setOrders(prevOrders => 
           prevOrders.map(order => 
             order._id === orderId 
@@ -94,8 +83,6 @@ export default function OrderManagement() {
               : order
           )
         );
-        
-        // Close the dialog and reset selected status
         setShowStatusDialog(false);
         setSelectedNewStatus(null);
         setSelectedOrder(null);
@@ -104,13 +91,10 @@ export default function OrderManagement() {
       }
     } catch (error) {
       console.error('Failed to update order status:', error);
-      // You might want to show an error message to the user here
     }
   };
 
-
-   const getStatusColor = (status, paymentStatus) => {
-    // payment failed in red color 
+  const getStatusColor = (status, paymentStatus) => {
     if (paymentStatus === 'failed') {
       return 'text-red-500 bg-red-50';
     }
@@ -130,9 +114,6 @@ export default function OrderManagement() {
         return 'text-gray-500 bg-gray-50';
     }
   };
-
-
-
 
   const handleExport = () => {
     const csv = [
@@ -171,42 +152,36 @@ export default function OrderManagement() {
     return matchesStatus() && matchesSearch;
   });
 
-
-
-  // Pagination calculations
   const totalPages = Math.ceil(filteredOrders.length / ordersPerPage);
   const indexOfLastOrder = currentPage * ordersPerPage;
   const indexOfFirstOrder = indexOfLastOrder - ordersPerPage;
   const currentOrders = filteredOrders.slice(indexOfFirstOrder, indexOfLastOrder);
 
-  // Generate page numbers
   const getPageNumbers = () => {
     const pages = [];
-    const maxVisiblePages = 5;
+    const maxVisiblePages = window.innerWidth < 640 ? 3 : 5;
     
     if (totalPages <= maxVisiblePages) {
       for (let i = 1; i <= totalPages; i++) {
         pages.push(i);
       }
     } else {
-      if (currentPage <= 3) {
-        for (let i = 1; i <= 4; i++) {
+      if (currentPage <= 2) {
+        for (let i = 1; i <= 3; i++) {
           pages.push(i);
         }
         pages.push('...');
         pages.push(totalPages);
-      } else if (currentPage >= totalPages - 2) {
+      } else if (currentPage >= totalPages - 1) {
         pages.push(1);
         pages.push('...');
-        for (let i = totalPages - 3; i <= totalPages; i++) {
+        for (let i = totalPages - 2; i <= totalPages; i++) {
           pages.push(i);
         }
       } else {
         pages.push(1);
         pages.push('...');
-        pages.push(currentPage - 1);
         pages.push(currentPage);
-        pages.push(currentPage + 1);
         pages.push('...');
         pages.push(totalPages);
       }
@@ -214,14 +189,106 @@ export default function OrderManagement() {
     return pages;
   };
 
-  // Modal component using Tailwind
+  // Mobile Order Card Component
+  const OrderCard = ({ order }) => (
+    <div className="bg-white p-4 rounded-lg shadow mb-4">
+      <div className="flex justify-between items-start mb-3">
+        <div>
+          <div className="font-medium">{order.orderNumber}</div>
+          <div className="text-sm text-gray-500">
+            {new Date(order.createdAt).toLocaleDateString()}
+          </div>
+        </div>
+        <span className={`px-3 py-1 rounded-full text-sm capitalize ${getStatusColor(order.status, order.paymentStatus)}`}>
+          {order.paymentStatus === 'failed' ? 'Failed' : order.status}
+        </span>
+      </div>
+      
+      <div className="space-y-3">
+        <div>
+          <div className="text-sm text-gray-500">Customer</div>
+          <div>{order.userId?.name || 'N/A'}</div>
+        </div>
+        
+        <div>
+          <div className="text-sm text-gray-500">Products</div>
+          {order.items.map((item, index) => (
+            <div key={index} className="flex items-center gap-3 mt-2">
+              {item.productId?.images?.[0] && (
+                <img 
+                  src={item.productId.images[0]} 
+                  alt={item.productId?.productName} 
+                  className="w-12 h-12 rounded-md object-cover"
+                />
+              )}
+              <div>
+                <div className="font-medium">{item.productId?.productName}</div>
+                <div className="text-sm text-gray-500">Qty: {item.quantity}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        
+        <div className="flex justify-between items-center">
+          <div>
+            <div className="text-sm text-gray-500">Total Amount</div>
+            <div className="font-medium">₹{order.totalAmount}</div>
+          </div>
+          <div>
+            <div className="text-sm text-gray-500">Payment</div>
+            <div className="capitalize">
+              {order.paymentMethod}
+              {order.paymentStatus === 'failed' && (
+                <span className="ml-2 text-red-500 text-xs">
+                  (Payment Failed)
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {order.status?.toLowerCase() !== 'cancelled' && order.paymentStatus !== 'failed' && (
+          <div className="relative dropdown-container mt-4">
+            <button 
+              className="w-full px-4 py-2 bg-gray-100 rounded-lg text-sm flex items-center justify-center gap-2"
+              onClick={(e) => {
+                e.stopPropagation();
+                setOpenDropdownId(openDropdownId === order._id ? null : order._id);
+              }}
+            >
+              Update Status
+              <ChevronDown className="w-4 h-4" />
+            </button>
+            {openDropdownId === order._id && (
+              <div className="absolute left-0 right-0 mt-2 bg-white rounded-lg shadow-lg py-1 z-10">
+                {statusOptions.map((status) => (
+                  <button
+                    key={status}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    onClick={() => {
+                      setSelectedOrder(order);
+                      setSelectedNewStatus(status);
+                      setShowStatusDialog(true);
+                      setOpenDropdownId(null);
+                    }}
+                  >
+                    Mark as {status}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
   const StatusUpdateModal = ({ show, onClose, onConfirm, orderNumber }) => {
     if (!show) return null;
 
-
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-        <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-lg p-6 w-full max-w-md">
           <div className="mb-4">
             <h3 className="text-lg font-semibold">Update Order Status</h3>
             <p className="text-gray-600 mt-2">
@@ -250,12 +317,11 @@ export default function OrderManagement() {
     );
   };
 
-
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
+    <div className="p-4 md:p-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-semibold mb-1">Order Management</h1>
+          <h1 className="text-xl md:text-2xl font-semibold mb-1">Order Management</h1>
           <div className="flex items-center text-sm text-gray-500">
             <span>Dashboard</span>
             <span className="mx-2">•</span>
@@ -264,7 +330,7 @@ export default function OrderManagement() {
         </div>
         <button 
           onClick={handleExport}
-          className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800"
+          className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800"
         >
           <Download className="w-4 h-4" />
           Export Orders
@@ -272,30 +338,66 @@ export default function OrderManagement() {
       </div>
   
       <div className="bg-white rounded-lg shadow">
+        {/* Filters Section */}
         <div className="p-4 border-b">
-          <div className="flex justify-between items-center flex-wrap gap-4">
-            <div className="flex gap-2 overflow-x-auto">
-              {statusTabs.map((status) => (
-                <button
-                  key={status}
-                  className={`px-4 py-2 text-sm rounded-lg whitespace-nowrap ${
-                    selectedStatus === status
-                      ? 'bg-black text-white'
-                      : 'text-gray-500 hover:bg-gray-100'
-                  }`}
-                  onClick={() => setSelectedStatus(status)}
-                >
-                  {status}
-                </button>
-              ))}
+          <div className="flex flex-col gap-4">
+            {/* Mobile Filter Toggle */}
+            <div className="flex sm:hidden justify-between items-center">
+              <button 
+                onClick={() => setShowFilters(!showFilters)}
+                className="flex items-center gap-2 px-4 py-2 border rounded-lg"
+              >
+                <Menu className="w-4 h-4" />
+                Filters
+              </button>
+              <div className="relative flex-1 max-w-xs ml-2">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search..."
+                  className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
             </div>
-            <div className="flex gap-3">
-              <div className="relative">
+
+            {/* Status Tabs - Scrollable on mobile */}
+            <div className="overflow-x-auto">
+  <div className="grid grid-cols-3 sm:flex sm:flex-row gap-2 sm:gap-2">
+    {statusTabs.map((status) => {
+      // Shorten display text for mobile
+      const displayText = window.innerWidth < 640 
+        ? status === 'All Status' 
+          ? 'All' 
+          : status.slice(0, 4) 
+        : status;
+        
+      return (
+        <button
+          key={status}
+          className={`px-2 sm:px-4 py-2 text-xs sm:text-sm rounded-lg whitespace-nowrap ${
+            selectedStatus === status
+              ? 'bg-black text-white'
+              : 'text-gray-500 hover:bg-gray-100'
+          }`}
+          onClick={() => setSelectedStatus(status)}
+        >
+          {displayText}
+        </button>
+      );
+    })}
+  </div>
+</div>
+
+            {/* Desktop Search and Filters */}
+            <div className="hidden sm:flex gap-3">
+              <div className="relative flex-1 max-w-md">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
                   placeholder="Search orders..."
-                  className="pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                  className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -309,10 +411,40 @@ export default function OrderManagement() {
                 Filters
               </button>
             </div>
+
+            {/* Mobile Filters (Expandable) */}
+            {showFilters && (
+              <div className="sm:hidden space-y-4 pt-4 border-t">
+                <button className="w-full flex items-center justify-center gap-2 px-4 py-2 border rounded-lg hover:bg-gray-50">
+                  <Calendar className="w-4 h-4" />
+                  Date Range
+                </button>
+                <button className="w-full flex items-center justify-center gap-2 px-4 py-2 border rounded-lg hover:bg-gray-50">
+                  <SlidersHorizontal className="w-4 h-4" />
+                  More Filters
+                </button>
+              </div>
+            )}
           </div>
         </div>
-  
-        <div className="overflow-x-auto">
+
+        {/* Mobile View */}
+        <div className="sm:hidden">
+          {loading ? (
+            <div className="p-4 text-center">Loading orders...</div>
+          ) : currentOrders.length === 0 ? (
+            <div className="p-4 text-center">No orders found</div>
+          ) : (
+            <div className="p-4">
+              {currentOrders.map((order) => (
+                <OrderCard key={order._id} order={order} />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Desktop/Tablet View */}
+        <div className="hidden sm:block overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b">
@@ -416,10 +548,10 @@ export default function OrderManagement() {
           </table>
         </div>
 
-     {/* Pagination Controls */}
-     {!loading && filteredOrders.length > 0 && (
-          <div className="flex items-center justify-between px-6 py-4 border-t">
-            <div className="text-sm text-gray-500">
+        {/* Pagination - Responsive */}
+        {!loading && filteredOrders.length > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between px-4 sm:px-6 py-4 border-t gap-4">
+            <div className="text-sm text-gray-500 w-full sm:w-auto text-center sm:text-left">
               Showing {indexOfFirstOrder + 1} to {Math.min(indexOfLastOrder, filteredOrders.length)} of {filteredOrders.length} orders
             </div>
             <div className="flex items-center gap-2">
@@ -467,23 +599,23 @@ export default function OrderManagement() {
         )}
       </div>
 
-      
-  
+      {/* Status Update Modal */}
       <StatusUpdateModal
-  show={showStatusDialog}
-  onClose={() => {
-    setShowStatusDialog(false);
-    setSelectedNewStatus(null);
-    setSelectedOrder(null);
-  }}
-  onConfirm={() => {
-    if (selectedOrder && selectedNewStatus) {
-      updateOrderStatus(selectedOrder._id, selectedNewStatus);
-    }
-  }}
-  orderNumber={selectedOrder?.orderNumber}
-/>
-
+        show={showStatusDialog}
+        onClose={() => {
+          setShowStatusDialog(false);
+          setSelectedNewStatus(null);
+          setSelectedOrder(null);
+        }}
+        onConfirm={() => {
+          if (selectedOrder && selectedNewStatus) {
+            updateOrderStatus(selectedOrder._id, selectedNewStatus);
+          }
+        }}
+        orderNumber={selectedOrder?.orderNumber}
+      />
     </div>
   );
+
 }
+
