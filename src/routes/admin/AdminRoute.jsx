@@ -26,6 +26,8 @@ import AddCouponPage from '../../pages/admin/Dashboard/Coupon/AddCouponPage'
 //sales report
 import SalesReportPage from '../../pages/admin/Dashboard/salesReport/SalesReportPage'
 
+//banner
+import BannerPage from '../../pages/admin/Dashboard/Banner/BannerPage'
 //offer management
 import OfferPage from '../../pages/admin/Dashboard/Offers/OfferPage'
 import AddCategoryOfferPage from '../../pages/admin/Dashboard/Offers/AddCategoryOfferPage'
@@ -44,6 +46,9 @@ function AdminRoute(){
             <Route path='/productdata' element={<ProductTable />} />
             <Route path='/addproduct' element={<ProductAdd />} />
             <Route path='/editproduct/:id' element={<ProductEdit />} />
+            
+            {/* Banner */}
+            <Route path='/banner' element={<BannerPage />} />
 
             
             {/* inventory management */}

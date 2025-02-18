@@ -230,6 +230,45 @@ export default function ProductDetail() {
   };
 
 
+  const handleBuyNow = () => {
+    if (!isAuthenticated) {
+      navigate('/user/login');
+      return;
+    }
+  
+    if (!selectedVariant) {
+      alert('Please select a size');
+      return;
+    }
+  
+    // Create a single item array for direct purchase with all required price fields
+    const singleItemCheckout = {
+      items: [{
+        productId: product._id,
+        variantId: selectedVariant._id,
+        quantity: quantity,
+        price: selectedVariant.price,
+        finalPrice: selectedVariant.finalPrice || selectedVariant.price * (1 - (selectedVariant.discount || 0) / 100),
+        name: product.productName,
+        size: selectedVariant.size,
+        image: product.images[0],
+        stock: selectedVariant.stock
+      }],
+      isDirect: true
+    };
+  
+    // Add the calculated totals
+    const totalAmount = singleItemCheckout.items[0].finalPrice * quantity;
+    singleItemCheckout.subtotal = totalAmount;
+    singleItemCheckout.total = totalAmount;
+  
+    navigate('/user/Checkout', {
+      state: {
+        productDetails: singleItemCheckout
+      }
+    });
+  };
+
   const getFinalPrice = (variant) => {
     return variant.finalPrice || variant.price * (1 - (variant.discount || 0) / 100);
   };
@@ -392,22 +431,7 @@ export default function ProductDetail() {
               ADD TO CART
             </button>
             <button 
-              onClick={() => navigate('/user/Checkout', {
-                state: {
-                  productDetails: {
-                    productId: product._id,
-                    productName: product.productName,
-                    price: getFinalPrice(selectedVariant),
-                    quantity,
-                    variantId: selectedVariant._id,
-                    size: selectedVariant.size,
-                    discount: Math.max(
-                      selectedVariant.discount || 0,
-                      hasActiveOffer(product.offer) ? product.offer.percentage : 0
-                    ),
-                  }
-                }
-              })} 
+            onClick={()=> handleBuyNow()}
               className="flex-1 border border-black py-3 px-6 hover:bg-gray-100"
             >
               BUY NOW

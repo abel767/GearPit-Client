@@ -28,6 +28,9 @@ const UPIIcon = () => (
 
 
 export default function PaymentMethod() {
+
+
+
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch();
@@ -67,13 +70,20 @@ export default function PaymentMethod() {
   
 
  useEffect(() => {
-  // Only redirect to cart if there are no items on initial load
-  // and we're not in a post-payment state
-  if (!cartItems.length && !location.state?.isPaymentSuccess) {
+  // Check the route state to determine if it's a direct purchase or cart checkout
+  const isDirectPurchase = location.state?.productDetails?.isDirect;
+  
+  // Only redirect to cart if:
+  // 1. There are no items in cart AND
+  // 2. This is not a direct purchase AND
+  // 3. We're not in a post-payment state
+  if (!cartItems.length && !isDirectPurchase && !location.state?.isPaymentSuccess) {
     navigate('/user/cart');
     return;
   }
-}, []); // Run only on mount
+}, [location.state, cartItems.length, navigate]);
+
+
 
   useEffect(() => {
   fetchCoupons();
@@ -92,30 +102,31 @@ export default function PaymentMethod() {
 }, []);
 
 
-  useEffect(() => {
-    if (!isAuthenticated || !user) {
-      navigate('/user/login', { 
-        state: { 
-          from: location.pathname,
-          productDetails,
-          cartDetails 
-        },
-        replace: true
-      });
-      return;
-    }
+useEffect(() => {
+  if (!isAuthenticated || !user) {
+    navigate('/user/login', { 
+      state: { 
+        from: location.pathname,
+        productDetails: location.state?.productDetails
+      },
+      replace: true
+    });
+    return;
+  }
 
-    if (!productDetails && !cartDetails?.items?.length) {
-      navigate('/user/store', { replace: true });
-      return;
-    }
+  // Prevent navigation to store if we have either cart items or direct purchase details
+  const isDirectPurchase = location.state?.productDetails?.isDirect;
+  if (!location.state?.productDetails?.items?.length && !cartItems.length && !isDirectPurchase) {
+    navigate('/user/store', { replace: true });
+    return;
+  }
 
-    if (user?._id) {
-      dispatch(fetchAddresses(user._id));
-    }
+  if (user?._id) {
+    dispatch(fetchAddresses(user._id));
+  }
 
-    calculateOrderSummary();
-  }, [isAuthenticated, user, cartDetails, productDetails, navigate, location.pathname, dispatch]);
+  calculateOrderSummary();
+}, [isAuthenticated, user, cartItems, navigate, location.pathname, dispatch]);
 
   useEffect(() => {
     if (addresses?.length > 0 && !selectedAddressId) {
@@ -252,43 +263,65 @@ const handleRemoveCoupon = () => {
 };
 
 
-  const calculateOrderSummary = () => {
-    let subtotal = 0;
+const calculateOrderSummary = () => {
+  let subtotal = 0;
+  const isDirectPurchase = location.state?.productDetails?.isDirect;
 
-    if (cartDetails?.items?.length) {
-      subtotal = cartDetails.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    } else if (productDetails) {
-      subtotal = productDetails.price * productDetails.quantity;
-    }
+  if (isDirectPurchase && location.state?.productDetails?.items) {
+    // For direct purchase, use the provided subtotal or calculate from items
+    subtotal = location.state.productDetails.subtotal || 
+      location.state.productDetails.items.reduce((sum, item) => 
+        sum + (item.finalPrice * item.quantity), 0);
+  } else if (cartItems.length) {
+    // For cart checkout
+    subtotal = cartItems.reduce((sum, item) => 
+      sum + (item.finalPrice * item.quantity), 0);
+  }
 
-    const shipping = 0;
-    const codFee = selectedPayment === 'cod' ? 49 : 0;
-    const total = subtotal + shipping + codFee - discountAmount;
+  const shipping = 0;
+  const codFee = selectedPayment === 'cod' ? 49 : 0;
+  const discount = appliedCoupon?.discountAmount || 0;
+  const total = subtotal + shipping + codFee - discount;
 
-    setOrderSummary({
-      subtotal,
-      shipping,
-      discount: discountAmount,
-      codFee,
-      total
-    });
-  };
+  console.log("Direct purchase data:", {
+    isDirectPurchase: location.state?.productDetails?.isDirect,
+    items: location.state?.productDetails?.items,
+    subtotal: location.state?.productDetails?.subtotal
+  });
 
-  useEffect(() => {
-    const subtotal = cartItems.reduce((sum, item) => sum + (item.finalPrice * item.quantity), 0);
-    const shipping = 0;
-    const codFee = selectedPayment === 'cod' ? 49 : 0;
-    const discount = appliedCoupon?.discountAmount || 0;
-    const total = subtotal + shipping + codFee - discount;
+  setOrderSummary({
+    subtotal,
+    shipping,
+    discount,
+    codFee,
+    total
+  });
+};
+
+
+useEffect(() => {
+  const isDirectPurchase = location.state?.productDetails?.isDirect;
   
-    setOrderSummary({
-      subtotal,
-      shipping,
-      discount,
-      codFee,
-      total
-    });
-  }, [cartItems, selectedPayment, appliedCoupon]);
+  let subtotal;
+  if (isDirectPurchase) {
+    subtotal = location.state.productDetails.subtotal;
+  } else {
+    subtotal = cartItems.reduce((sum, item) => sum + (item.finalPrice * item.quantity), 0);
+  }
+
+  const shipping = 0;
+  const codFee = selectedPayment === 'cod' ? 49 : 0;
+  const discount = appliedCoupon?.discountAmount || 0;
+  const total = subtotal + shipping + codFee - discount;
+
+  setOrderSummary({
+    subtotal,
+    shipping,
+    discount,
+    codFee,
+    total
+  });
+}, [location.state?.productDetails, cartItems, selectedPayment, appliedCoupon]);
 
 
  const handleSubmitOrder = async (paymentId = null) => {
@@ -449,79 +482,82 @@ const handleRemoveCoupon = () => {
   
 
 
-  const handlePaymentSubmit = async () => {
-    setError(null);
-    
-    if (!selectedAddress) {
-      setError('Please select a delivery address');
+const handlePaymentSubmit = async () => {
+  setError(null);
+  
+  if (!selectedAddress) {
+    setError('Please select a delivery address');
+    return;
+  }
+
+  // Get order items based on whether it's a direct purchase or cart checkout
+  const isDirectPurchase = location.state?.productDetails?.isDirect;
+  const orderItems = isDirectPurchase 
+    ? location.state.productDetails.items
+    : cartDetails?.items?.map(item => ({
+        productId: item.productId,
+        variantId: item.variantId,
+        quantity: item.quantity,
+        price: item.finalPrice
+      })) || [];
+
+  if (selectedPayment === 'wallet') {
+    const paymentAmount = orderSummary.total;
+    if (!paymentAmount || paymentAmount <= 0) {
+      setError('Invalid payment amount');
       return;
     }
-  
-    if (selectedPayment === 'wallet') {
-      // Wallet payment logic remains unchanged
-      const paymentAmount = orderSummary.total;
-      if (!paymentAmount || paymentAmount <= 0) {
-        setError('Invalid payment amount');
-        return;
-      }
-  
-      if (!canPayWithWallet(paymentAmount)) {
-        setError('Insufficient wallet balance');
-        return;
-      }
-  
-      try {
-        const paymentResult = await processWalletPayment({
-          amount: paymentAmount
-        });
-  
-        if (paymentResult.success) {
-          await handleSubmitOrder(paymentResult.data?.transaction?._id);
-          dispatch(fetchWalletDetails(user._id));
-        } else {
-          setError(paymentResult.error || 'Payment failed');
-        }
-      } catch (error) {
-        console.error('Wallet payment error:', error);
-        setError('Failed to process wallet payment');
-      }
-    } else {
-      // Prepare order data for Razorpay payment
-      const orderData = {
-        userId: user._id,
-        items: cartDetails?.items?.map(item => ({
-          productId: item.productId,
-          variantId: item.variantId,
-          quantity: item.quantity,
-          price: item.price
-        })) || [],
-        paymentMethod: 'online',
-        totalAmount: orderSummary.total,
-        shippingAddress: selectedAddress,
-        couponCode: appliedCoupon?.couponCode,
-        discount: appliedCoupon?.discountAmount || 0
-      };
 
-      try {
-        await initializePayment({
-          amount: orderSummary.total,
-          user,
-          address: selectedAddress,
-          items: cartDetails?.items?.map(item=>({
-            productId:item.productId,
-            variantId: item.variantId,
-            quantity: item.quantity
-          })) || [],
-          onSuccess: async (paymentId) => {
-            if (!paymentId) {
-              throw new Error('Payment verification failed - no payment ID received');
-            }
-            await handleSubmitOrder(paymentId);
-          },
-          onError: async (error) => {
+    if (!canPayWithWallet(paymentAmount)) {
+      setError('Insufficient wallet balance');
+      return;
+    }
 
-           // Updated error handling for stock errors
-           if (error.code === 'STOCK_ERROR') {
+    try {
+      const paymentResult = await processWalletPayment({
+        amount: paymentAmount
+      });
+
+      if (paymentResult.success) {
+        await handleSubmitOrder(paymentResult.data?.transaction?._id);
+        dispatch(fetchWalletDetails(user._id));
+      } else {
+        setError(paymentResult.error || 'Payment failed');
+      }
+    } catch (error) {
+      console.error('Wallet payment error:', error);
+      setError('Failed to process wallet payment');
+    }
+  } else {
+    // Prepare order data for Razorpay payment
+    const orderData = {
+      userId: user._id,
+      items: orderItems,
+      paymentMethod: 'online',
+      totalAmount: orderSummary.total,
+      shippingAddress: selectedAddress,
+      couponCode: appliedCoupon?.couponCode,
+      discount: appliedCoupon?.discountAmount || 0
+    };
+
+    console.log("Order Summary:", orderSummary);
+
+
+    try {
+      await initializePayment({
+        amount: orderSummary.total,
+        user,
+        address: selectedAddress,
+        items: orderItems,
+        onSuccess: async (paymentId) => {
+          if (!paymentId) {
+            throw new Error('Payment verification failed - no payment ID received');
+          }
+          await handleSubmitOrder(paymentId);
+        },
+        onError: async (error) => {
+          // Handle stock errors
+          if (error.code === 'STOCK_ERROR') {
             const errorMessage = error.description || 'Some items are out of stock';
             toast.error(errorMessage, {
               duration: 3000,
@@ -530,57 +566,67 @@ const handleRemoveCoupon = () => {
             setError(errorMessage);
             return;
           }
-            console.log('Payment error received:', error);
 
-            // Handle modal close and other payment failures
-            try {
-              const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/user/payment-failure`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                credentials: 'include',
-                body: JSON.stringify({ 
-                  error,
-                  orderData // Include order data in failure request
-                })
-              });
+          console.log('Payment error received:', error);
 
-              const failureData = await response.json();
-              
-              navigate('/user/PaymentFailure', {
-                state: {
-                  errorCode: error.code,
-                  errorMessage: error.code === 'PAYMENT_MODAL_CLOSED' 
-                    ? 'Payment was cancelled.'
-                    : error.description || 'Payment failed. Please try again.',
-                  orderId: failureData.data?.orderId || error.metadata?.order_id
-                }
-              });
-            } catch (logError) {
-              console.error('Failed to log payment failure:', logError);
-              navigate('/user/PaymentFailure', {
-                state: {
-                  errorCode: error.code || 'UNKNOWN_ERROR',
-                  errorMessage: 'An unexpected error occurred. Please try again.',
-                  orderId: error.metadata?.order_id
-                }
-              });
-            }
+          // Handle modal close and other payment failures
+          try {
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/user/payment-failure`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              credentials: 'include',
+              body: JSON.stringify({ 
+                error,
+                orderData
+              })
+            });
+
+            const failureData = await response.json();
+            
+            navigate('/user/PaymentFailure', {
+              state: {
+                errorCode: error.code,
+                errorMessage: error.code === 'PAYMENT_MODAL_CLOSED' 
+                  ? 'Payment was cancelled.'
+                  : error.description || 'Payment failed. Please try again.',
+                orderId: failureData.data?.orderId || error.metadata?.order_id,
+                isDirectPurchase // Add this flag to handle redirect after failure
+              }
+            });
+          } catch (logError) {
+            console.error('Failed to log payment failure:', logError);
+            navigate('/user/PaymentFailure', {
+              state: {
+                errorCode: error.code || 'UNKNOWN_ERROR',
+                errorMessage: 'An unexpected error occurred. Please try again.',
+                orderId: error.metadata?.order_id,
+                isDirectPurchase // Add this flag to handle redirect after failure
+              }
+            });
           }
-        });
-      } catch (error) {
-        console.error('Payment initialization failed:', error);
-        setError('Failed to initialize payment. Please try again.');
-        setError(errorMessage);
-        toast.error(errorMessage);
-      }
+        }
+      });
+    } catch (error) {
+      console.error('Payment initialization failed:', error);
+      const errorMessage = error.message || 'Failed to initialize payment. Please try again.';
+      setError(errorMessage);
+      toast.error(errorMessage);
     }
-  };
+  }
+};
+
+
 
   if (!isAuthenticated || !user || (!productDetails && !cartDetails?.items?.length)) {
     return null;
   }
+
+  console.log("Location state:", location.state);
+console.log("Product details:", productDetails);
+console.log("Cart details:", cartDetails);
+console.log("Order Summary:", orderSummary);
 
 
   

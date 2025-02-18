@@ -5,7 +5,7 @@ import axios from "axios";
 import { useSelector } from "react-redux";
 import Hero from '../../../components/userHome/Hero';
 import Featured from '../../../components/userHome/Featured';
-import Banner from '../../../components/userHome/Banner';
+import BannerCarousel from '../../../components/userHome/Banner';
 
 function Home() {
   // Get user data from the user slice instead of auth slice
@@ -57,7 +57,7 @@ function Home() {
       <main className="flex-1 pt-9"> {/* pt-16 accounts for the navbar height */}
       <Hero />
       <Featured />
-      <Banner />    
+      <BannerCarousel />    
       </main>
       <Footer />
     </>
