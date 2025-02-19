@@ -64,7 +64,6 @@ export default function Sidebar() {
     }
   };
 
-  // Handle menu item click on mobile
   const handleMenuClick = () => {
     if (isMobile) {
       setIsOpen(false);
@@ -76,7 +75,7 @@ export default function Sidebar() {
       {/* Mobile Menu Toggle Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="md:hidden fixed top-4 left-4 z-50 p-2 bg-gray-800 rounded-lg text-white"
+        className="md:hidden fixed top-4 right-4 z-50 p-2 bg-gray-800 rounded-lg text-white"
       >
         {isOpen ? <X size={24} /> : <Menu size={24} />}
       </button>
@@ -91,14 +90,15 @@ export default function Sidebar() {
 
       {/* Sidebar */}
       <div className={`
-        fixed md:static top-0 left-0 z-40
-        h-full bg-minBlack text-white
+        fixed top-0 left-0 z-40
+        h-screen md:h-full bg-minBlack text-white
         transition-all duration-300 ease-in-out
         ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
         ${isOpen ? 'w-64' : 'w-0 md:w-20'}
         overflow-hidden
+        md:sticky
       `}>
-        <div className="flex flex-col h-full p-4">
+        <div className="flex flex-col h-full min-h-screen p-4 w-64">
           {/* Logo */}
           <div className="mb-8 flex justify-center">
             <img 
