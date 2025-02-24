@@ -3,8 +3,15 @@ import { store } from '../redux/store';
 import { userLogout } from '../redux/Slices/userSlice';
 import { adminLogout } from '../redux/Slices/adminSlice';
 
+// Determine the appropriate baseURL based on the current environment
+const isLocalhost = window.location.hostname === 'localhost' || 
+                    window.location.hostname === '127.0.0.1';
+const backendUrl = isLocalhost 
+                  ? 'http://localhost:3000' 
+                  : import.meta.env.VITE_BACKEND_URL;
+
 const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000',
+  baseURL: backendUrl,
   withCredentials: true,
   headers: {
       'Content-Type': 'application/json',
@@ -12,7 +19,7 @@ const axiosInstance = axios.create({
   }
 });
 
-
+// Rest of your code remains the same
 let isRefreshing = false;
 let failedQueue = [];
 
