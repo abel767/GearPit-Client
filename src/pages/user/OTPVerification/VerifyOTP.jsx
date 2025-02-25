@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import axios from 'axios';
+import axiosInstance from '../../../api/axiosInstance';
 import { useParams } from 'react-router-dom';
 import { useNavigate } from "react-router-dom";
 import { ToastContainer, toast } from 'react-toastify';
@@ -81,20 +81,15 @@ export default function VerifyOTP() {
       // Log userId and otp to verify they're being sent correctly
       console.log("Verifying OTP for userId:", userId, "with OTP:", otpValue);
 
-      const response = await axios.post(
-        "http://localhost:3000/user/verifyOTP",
-        {
-          userId,
-          otp: otpValue,
-        },
-        {
-          withCredentials: true
-        }
+      const response = await axiosInstance.post(
+        "/user/verifyOTP",
+        { userId, otp: otpValue }
       );
+      
 
       console.log('Backend response:', response.data);  // Log the backend response for debugging
 
-      if (response.data.status === "VERIFIED") {
+      if (response.data.message === "OTP verified successfully") {
         toast.success(response.data.message, {
           position: "top-right",
           autoClose: 3000,
@@ -136,9 +131,8 @@ export default function VerifyOTP() {
       setTimer(30);
       setResendVisible(false);
 
-      const response = await axios.post("http://localhost:3000/user/resendOTP", {
-        userId,
-        email
+      const response = await axiosInstance.post("/user/resendOTP", {
+        userId, email
       });
 
       toast.success("A new OTP has been sent to your email/phone.", {
