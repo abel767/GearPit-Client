@@ -8,7 +8,6 @@ const TestCORS = () => {
   const testConnection = async () => {
     try {
       const response = await axios.get('https://51.20.143.235.nip.io/test-cors', {
-        withCredentials: true
       });
       setResult(response.data);
       setError(null);
