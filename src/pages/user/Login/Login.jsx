@@ -36,7 +36,7 @@ function Login() {
 
   const googleAuth = () => {
     try {
-      const backendUrl = 'http://localhost:3000';
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
       console.log('Starting Google Auth, redirecting to:', `${backendUrl}/auth/google`);
       window.location.href = `${backendUrl}/auth/google`;
     } catch (error) {
