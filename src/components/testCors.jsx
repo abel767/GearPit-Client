@@ -1,23 +1,23 @@
 import { useState } from 'react';
+import axios from 'axios';
 
 const TestCORS = () => {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
-
+  
   const testConnection = async () => {
     try {
-      const response = await fetch('https://51.20.143.235.nip.io/test-cors', {
-        credentials: 'include'
+      const response = await axios.get('https://51.20.143.235.nip.io/test-cors', {
+        withCredentials: true
       });
-      const data = await response.json();
-      setResult(data);
+      setResult(response.data);
       setError(null);
     } catch (err) {
       setError(err.toString());
       setResult(null);
     }
   };
-
+  
   return (
     <div>
       <button onClick={testConnection}>Test CORS Connection</button>
