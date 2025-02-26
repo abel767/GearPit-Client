@@ -40,6 +40,9 @@ axiosInstance.interceptors.request.use((config) => {
   
   if (token) {
     config.headers['Authorization'] = `Bearer ${token}`;
+    console.log('Request with token:', config.url);
+  } else {
+    console.log('Request without token:', config.url);
   }
   return config;
 });
