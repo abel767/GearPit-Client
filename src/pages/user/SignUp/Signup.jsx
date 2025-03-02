@@ -133,7 +133,7 @@ function Signup() {
         profileImage: profileImageUrl
       };
 
-      const response = await axiosInstance.post(`?path=/user/signup`, userData, {
+      const response = await axiosInstance.post('/user/signup', userData, {
         headers: {
           "Content-Type": "application/json",
         },

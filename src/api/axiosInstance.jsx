@@ -6,13 +6,15 @@ import { adminLogout } from '../redux/Slices/adminSlice';
 // Determine the appropriate baseURL based on the current environment
 const isLocalhost = window.location.hostname === 'localhost' || 
                     window.location.hostname === '127.0.0.1';
-const backendUrl = isLocalhost 
-                    ? 'http://localhost:3000' 
-                    : '/api/proxy';
+
+                    const backendUrl = isLocalhost 
+                  ? 'http://localhost:3000' 
+                  : 'https://51.20.143.235.nip.io';
 
 const axiosInstance = axios.create({
   baseURL: backendUrl,
   withCredentials: true,
+  timeout: 30000, // Increase timeout to 30 seconds
   headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json'
