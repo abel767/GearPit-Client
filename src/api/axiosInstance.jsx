@@ -7,8 +7,8 @@ import { adminLogout } from '../redux/Slices/adminSlice';
 const isLocalhost = window.location.hostname === 'localhost' || 
                     window.location.hostname === '127.0.0.1';
 const backendUrl = isLocalhost 
-                  ? 'http://localhost:3000' 
-                  : import.meta.env.VITE_BACKEND_URL;
+                    ? 'http://localhost:3000' 
+                    : import.meta.env.VITE_BACKEND_URL;
 
 const axiosInstance = axios.create({
   baseURL: backendUrl,
