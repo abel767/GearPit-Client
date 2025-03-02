@@ -169,6 +169,16 @@ function Signup() {
     }
   };
 
+  // In your signup component, add a test function
+const testBackendConnection = async () => {
+  try {
+    const response = await axios.get('https://51.20.143.235.nip.io/test-cors');
+    console.log('Direct connection result:', response.data);
+  } catch (error) {
+    console.error('Direct connection error:', error);
+  }
+};
+
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-white">
       {/* Left side - Logo */}
