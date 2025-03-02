@@ -4,17 +4,15 @@ import { Navigate, Outlet } from 'react-router-dom';
 const ProtectedRoute = () => {
   const { isAuthenticated, isLoading, user } = useSelector((state) => state.user);
   
-  // Debug logs
   console.log('Protected Route State:', { isAuthenticated, isLoading, user });
 
-  // Show loading state
   if (isLoading) {
-    return <div>Loading...</div>; // Or your loading component
+    return <div>Loading...</div>;
   }
 
-  // Check both authentication and user data
-  if (!isAuthenticated || !user) {
-    console.log('Redirecting to login - Not authenticated');
+  // More detailed check for user data
+  if (!isAuthenticated || !user || !user._id) {
+    console.log('Redirecting to login - Invalid user data:', { isAuthenticated, user });
     return <Navigate to="/user/login" replace />;
   }
 
