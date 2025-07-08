@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { store } from '../redux/store';
-import { userLogout } from '../redux/Slices/userSlice';
+import { userLogout, updateTokens } from '../redux/Slices/userSlice';
 import { adminLogout } from '../redux/Slices/adminSlice';
 
 // Determine the appropriate baseURL based on the current environment
@@ -76,6 +76,9 @@ axiosInstance.interceptors.response.use(
         const { accessToken } = response.data;
 
         if (accessToken) {
+          // 🔥 FIX: Update the token in Redux store
+          store.dispatch(updateTokens({ accessToken }));
+          
           originalRequest.headers['Authorization'] = `Bearer ${accessToken}`;
           axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
           
@@ -83,6 +86,7 @@ axiosInstance.interceptors.response.use(
           return axiosInstance(originalRequest);
         }
       } catch (refreshError) {
+        console.error('Token refresh failed:', refreshError);
         processQueue(refreshError, null);
         const state = store.getState();
         if (state.admin.isAuthenticated) {
