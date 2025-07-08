@@ -8,8 +8,7 @@ const isLocalhost = window.location.hostname === 'localhost' ||
                     window.location.hostname === '127.0.0.1';
 
 // Use environment variable if available, otherwise fallback to automatic detection
-const backendUrl = import.meta.env.VITE_BACKEND_URL || 
-                  (isLocalhost ? 'http://localhost:3000' : 'https://51.20.143.235.nip.io');
+const backendUrl = import.meta.env.VITE_BACKEND_URL
 
 console.log('Backend URL:', backendUrl); // For debugging
 
