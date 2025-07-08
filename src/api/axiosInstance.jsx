@@ -7,21 +7,22 @@ import { adminLogout } from '../redux/Slices/adminSlice';
 const isLocalhost = window.location.hostname === 'localhost' || 
                     window.location.hostname === '127.0.0.1';
 
-                    const backendUrl = isLocalhost 
-                  ? 'http://localhost:3000' 
-                  : 'https://51.20.143.235.nip.io';
+// Use environment variable if available, otherwise fallback to automatic detection
+const backendUrl = import.meta.env.VITE_BACKEND_URL || 
+                  (isLocalhost ? 'http://localhost:3000' : 'https://51.20.143.235.nip.io');
+
+console.log('Backend URL:', backendUrl); // For debugging
 
 const axiosInstance = axios.create({
   baseURL: backendUrl,
   withCredentials: true,
-  timeout: 30000, // Increase timeout to 30 seconds
+  timeout: 30000,
   headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json'
   }
 });
 
-// Rest of your code remains the same
 let isRefreshing = false;
 let failedQueue = [];
 

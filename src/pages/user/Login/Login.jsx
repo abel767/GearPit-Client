@@ -5,7 +5,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { loginUser } from "../../../services/authService";
 import { Eye, EyeOff } from 'lucide-react';
 import image from '../../../assets/user/login/test.png'
-import TestCORS from "../../../components/testCors";
+
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -167,7 +167,7 @@ function Login() {
         </form>
 
         <div className="mt-6 md:mt-8 text-center px-4 md:px-0">
-          <span className="text-gray-600">Dont have an account? </span>
+          <span className="text-gray-600">Don't have an account? </span>
           <Link to="/user/signup" className="text-red-600 hover:text-red-700 font-medium">
             Sign up now
           </Link>
@@ -199,11 +199,6 @@ function Login() {
           fontSize: '18px',
         }}
       />
-      {/* Add TestCORS component */}
-<div className="mt-6 px-4">
-  <h3 className="text-lg font-medium mb-2">API Connection Test</h3>
-  <TestCORS />
-</div>
     </div>
   );
 }

@@ -21,7 +21,6 @@ function Signup() {
   const [errors, setErrors] = useState({});
   const navigate = useNavigate();
 
-  // Rest of the existing functions remain the same
   const validateForm = () => {
     const newErrors = {};
     const trimmedFirstname = firstName.trim();
@@ -84,7 +83,8 @@ function Signup() {
 
   const googleAuth = () => {
     try {
-      const backendUrl = 'http://localhost:3000';
+      // Use environment variable with fallback to localhost
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
       console.log('Starting Google Auth, redirecting to:', `${backendUrl}/auth/google`);
       window.location.href = `${backendUrl}/auth/google`;
     } catch (error) {
@@ -168,16 +168,6 @@ function Signup() {
       console.error("Error config:", error.config);
     }
   };
-
-  // In your signup component, add a test function
-const testBackendConnection = async () => {
-  try {
-    const response = await axios.get('https://51.20.143.235.nip.io/test-cors');
-    console.log('Direct connection result:', response.data);
-  } catch (error) {
-    console.error('Direct connection error:', error);
-  }
-};
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-white">
