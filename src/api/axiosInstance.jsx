@@ -3,18 +3,13 @@ import { store } from '../redux/store';
 import { userLogout, updateTokens } from '../redux/Slices/userSlice';
 import { adminLogout } from '../redux/Slices/adminSlice';
 
-// Determine the appropriate baseURL based on the current environment
-const isLocalhost = window.location.hostname === 'localhost' || 
-                    window.location.hostname === '127.0.0.1';
+const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://gearpit-server.onrender.com';
 
-// Use environment variable if available, otherwise fallback to automatic detection
-const backendUrl = import.meta.env.VITE_BACKEND_URL
-
-console.log('Backend URL:', backendUrl); // For debugging
+console.log('Backend URL:', backendUrl);
 
 const axiosInstance = axios.create({
   baseURL: backendUrl,
-  withCredentials: true,
+  withCredentials: true, // CRITICAL: This must be true for cookies
   timeout: 30000,
   headers: {
       'Content-Type': 'application/json',
@@ -36,6 +31,7 @@ const processQueue = (error, token = null) => {
   failedQueue = [];
 };
 
+// Request interceptor - FIXED
 axiosInstance.interceptors.request.use((config) => {
   const state = store.getState();
   const token = state.user.tokens?.accessToken;
@@ -46,9 +42,13 @@ axiosInstance.interceptors.request.use((config) => {
   } else {
     console.log('Request without token:', config.url);
   }
+  
   return config;
+}, (error) => {
+  return Promise.reject(error);
 });
 
+// Response interceptor - FIXED
 axiosInstance.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -76,24 +76,23 @@ axiosInstance.interceptors.response.use(
         const { accessToken } = response.data;
 
         if (accessToken) {
-          // 🔥 FIX: Update the token in Redux store
           store.dispatch(updateTokens({ accessToken }));
-          
           originalRequest.headers['Authorization'] = `Bearer ${accessToken}`;
-          axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
-          
           processQueue(null, accessToken);
           return axiosInstance(originalRequest);
         }
       } catch (refreshError) {
         console.error('Token refresh failed:', refreshError);
         processQueue(refreshError, null);
+        
+        // Clear tokens and logout
         const state = store.getState();
         if (state.admin.isAuthenticated) {
           store.dispatch(adminLogout());
         } else if (state.user.isAuthenticated) {
           store.dispatch(userLogout());
         }
+        
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
